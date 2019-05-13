@@ -12,16 +12,11 @@
 #include <tuple>
 
 #include <boost/algorithm/string.hpp>
-#include <boost/foreach.hpp>
-#define foreach BOOST_FOREACH
-#include <boost/bind.hpp>
-//#include <boost/enable_shared_from_this.hpp>
 
 #include <zeep/exception.hpp>
 #include <zeep/xml/doctype.hpp>
 #include <zeep/xml/unicode_support.hpp>
 
-using namespace std;
 namespace ba = boost::algorithm;
 
 namespace zeep { namespace xml { namespace doctype {
@@ -30,12 +25,12 @@ namespace zeep { namespace xml { namespace doctype {
 // validator code
 
 // a refcounted state base class
-struct state_base : enable_shared_from_this<state_base>
+struct state_base : std::enable_shared_from_this<state_base>
 {
 								state_base() : m_ref_count(1) {}
 
-	virtual tuple<bool,bool>
-								allow(const string& name) = 0;
+	virtual std::tuple<bool,bool>
+								allow(const std::string& name) = 0;
 	virtual bool				allow_char_data()					{ return false; }
 	virtual bool				allow_empty()						{ return false; }
 	
@@ -54,37 +49,37 @@ struct state_base : enable_shared_from_this<state_base>
 
 struct state_any : public state_base
 {
-	virtual tuple<bool,bool>
-								allow(const string& name)			{ return make_tuple(true, true); }
+	virtual std::tuple<bool,bool>
+								allow(const std::string& name)		{ return std::make_tuple(true, true); }
 	virtual bool				allow_char_data()					{ return true; }
 	virtual bool				allow_empty()						{ return true; }
 };
 
 struct state_empty : public state_base
 {
-	virtual tuple<bool,bool>
-								allow(const string& name)			{ return make_tuple(false, true); }
+	virtual std::tuple<bool,bool>
+								allow(const std::string& name)		{ return std::make_tuple(false, true); }
 	virtual bool				allow_empty()						{ return true; }
 };
 
 struct state_element : public state_base
 {
-								state_element(const string& name)
+								state_element(const std::string& name)
 									: m_name(name), m_done(false) {}
 
-	virtual tuple<bool,bool>
-								allow(const string& name)
+	virtual std::tuple<bool,bool>
+								allow(const std::string& name)
 								{
 									bool result = false;
 									if (not m_done and m_name == name)
 										m_done = result = true;
 //									m_done = true;
-									return make_tuple(result, m_done);
+									return std::make_tuple(result, m_done);
 								}
 
 	virtual void				reset()								{ m_done = false; }
 
-	string						m_name;
+	std::string					m_name;
 	bool						m_done;
 };
 
@@ -113,12 +108,12 @@ struct state_repeated_zero_or_once : public state_repeated
 								state_repeated_zero_or_once(allowed_ptr sub)
 									: state_repeated(sub) {}
 
-	tuple<bool,bool>		allow(const string& name);
+	std::tuple<bool,bool>		allow(const std::string& name);
 
 	virtual bool				allow_empty()						{ return true; }
 };
 
-tuple<bool,bool> state_repeated_zero_or_once::allow(const string& name)
+std::tuple<bool,bool> state_repeated_zero_or_once::allow(const std::string& name)
 {
 	// use a state machine
 	enum State {
@@ -131,7 +126,7 @@ tuple<bool,bool> state_repeated_zero_or_once::allow(const string& name)
 	switch (m_state)
 	{
 		case state_Start:
-			tie(result, done) = m_sub->allow(name);
+			std::tie(result, done) = m_sub->allow(name);
 			if (result == true)
 				m_state = state_Loop;
 			else
@@ -139,13 +134,13 @@ tuple<bool,bool> state_repeated_zero_or_once::allow(const string& name)
 			break;
 		
 		case state_Loop:
-			tie(result, done) = m_sub->allow(name);
+			std::tie(result, done) = m_sub->allow(name);
 			if (result == false and done)
 				done = true;
 			break;
 	}
 	
-	return make_tuple(result, done);
+	return std::make_tuple(result, done);
 }
 
 struct state_repeated_any : public state_repeated
@@ -153,12 +148,12 @@ struct state_repeated_any : public state_repeated
 								state_repeated_any(allowed_ptr sub)
 									: state_repeated(sub) {}
 
-	tuple<bool,bool>		allow(const string& name);
+	std::tuple<bool,bool>		allow(const std::string& name);
 
 	virtual bool				allow_empty()						{ return true; }
 };
 
-tuple<bool,bool> state_repeated_any::allow(const string& name)
+std::tuple<bool,bool> state_repeated_any::allow(const std::string& name)
 {
 	// use a state machine
 	enum State {
@@ -171,7 +166,7 @@ tuple<bool,bool> state_repeated_any::allow(const string& name)
 	switch (m_state)
 	{
 		case state_Start:
-			tie(result, done) = m_sub->allow(name);
+			std::tie(result, done) = m_sub->allow(name);
 			if (result == true)
 				m_state = state_Loop;
 			else
@@ -179,18 +174,18 @@ tuple<bool,bool> state_repeated_any::allow(const string& name)
 			break;
 		
 		case state_Loop:
-			tie(result, done) = m_sub->allow(name);
+			std::tie(result, done) = m_sub->allow(name);
 			if (result == false and done)
 			{
 				m_sub->reset();
-				tie(result, done) = m_sub->allow(name);
+				std::tie(result, done) = m_sub->allow(name);
 				if (result == false)
 					done = true;
 			}
 			break;
 	}
 	
-	return make_tuple(result, done);
+	return std::make_tuple(result, done);
 }
 
 struct state_repeated_at_least_once : public state_repeated
@@ -198,12 +193,12 @@ struct state_repeated_at_least_once : public state_repeated
 								state_repeated_at_least_once(allowed_ptr sub)
 									: state_repeated(sub) {}
 
-	tuple<bool,bool>		allow(const string& name);
+	std::tuple<bool,bool>		allow(const std::string& name);
 
 	virtual bool				allow_empty()						{ return m_sub->allow_empty(); }
 };
 
-tuple<bool,bool> state_repeated_at_least_once::allow(const string& name)
+std::tuple<bool,bool> state_repeated_at_least_once::allow(const std::string& name)
 {
 	// use a state machine
 	enum State {
@@ -217,35 +212,35 @@ tuple<bool,bool> state_repeated_at_least_once::allow(const string& name)
 	switch (m_state)
 	{
 		case state_Start:
-			tie(result, done) = m_sub->allow(name);
+			std::tie(result, done) = m_sub->allow(name);
 			if (result == true)
 				m_state = state_FirstLoop;
 			break;
 		
 		case state_FirstLoop:
-			tie(result, done) = m_sub->allow(name);
+			std::tie(result, done) = m_sub->allow(name);
 			if (result == false and done)
 			{
 				m_sub->reset();
-				tie(result, done) = m_sub->allow(name);
+				std::tie(result, done) = m_sub->allow(name);
 				if (result == true)
 					m_state = state_NextLoop;
 			}
 			break;
 
 		case state_NextLoop:
-			tie(result, done) = m_sub->allow(name);
+			std::tie(result, done) = m_sub->allow(name);
 			if (result == false and done)
 			{
 				m_sub->reset();
-				tie(result, done) = m_sub->allow(name);
+				std::tie(result, done) = m_sub->allow(name);
 				if (result == false)
 					done = true;
 			}
 			break;
 	}
 	
-	return make_tuple(result, done);
+	return std::make_tuple(result, done);
 }
 
 // allow a sequence
@@ -255,29 +250,29 @@ struct state_seq : public state_base
 								state_seq(const allowed_list& allowed)
 									: m_state(0)
 								{
-									foreach (allowed_ptr a, allowed)
+									for (allowed_ptr a: allowed)
 										m_states.push_back(a->create_state());
 								}
 
 								~state_seq()
 								{
-									foreach (state_ptr s, m_states)
+									for (state_ptr s: m_states)
 										s->release();
 								}
 
-	virtual tuple<bool,bool>
-								allow(const string& name);
+	virtual std::tuple<bool,bool>
+								allow(const std::string& name);
 
 	virtual void				reset()
 								{
 									m_state = 0;
-									for_each(m_states.begin(), m_states.end(), boost::bind(&state_base::reset, _1));
+									std::for_each(m_states.begin(), m_states.end(), [](auto state) { state->reset(); });
 								}
 
 	virtual bool				allow_char_data()
 								{
 									bool result = false;
-									foreach (state_ptr s, m_states)
+									for (state_ptr s: m_states)
 									{
 										if (s->allow_char_data())
 										{
@@ -291,12 +286,12 @@ struct state_seq : public state_base
 
 	virtual bool				allow_empty();
 	
-	list<state_ptr>				m_states;
-	list<state_ptr>::iterator	m_next;
-	int							m_state;
+	std::list<state_ptr>			m_states;
+	std::list<state_ptr>::iterator	m_next;
+	int								m_state;
 };
 
-tuple<bool,bool> state_seq::allow(const string& name)
+std::tuple<bool,bool> state_seq::allow(const std::string& name)
 {
 	bool result = false, done = false;
 	
@@ -318,7 +313,7 @@ tuple<bool,bool> state_seq::allow(const string& name)
 			// fall through
 		
 		case state_Element:
-			tie(result, done) = (*m_next)->allow(name);
+			std::tie(result, done) = (*m_next)->allow(name);
 			while (result == false and done)
 			{
 				++m_next;
@@ -329,12 +324,12 @@ tuple<bool,bool> state_seq::allow(const string& name)
 					break;
 				}
 
-				tie(result, done) = (*m_next)->allow(name);
+				std::tie(result, done) = (*m_next)->allow(name);
 			}
 			break;
 	}
 	
-	return make_tuple(result, done);
+	return std::make_tuple(result, done);
 }
 
 bool state_seq::allow_empty()
@@ -346,7 +341,7 @@ bool state_seq::allow_empty()
 	else
 	{
 		result = accumulate(m_states.begin(), m_states.end(), true,
-			boost::bind(&state_base::allow_empty, _2) and _1);
+			[](bool flag, auto& state) { return state->allow_empty() and flag; });
 	}
 	
 	return result;
@@ -360,36 +355,36 @@ struct state_choice : public state_base
 									: m_mixed(mixed)
 									, m_state(0)
 								{
-									foreach (allowed_ptr a, allowed)
+									for (allowed_ptr a: allowed)
 										m_states.push_back(a->create_state());
 								}
 								
 								~state_choice()
 								{
-									foreach (state_ptr s, m_states)
+									for (state_ptr s: m_states)
 										s->release();
 								}
 
-	virtual tuple<bool,bool>
-								allow(const string& name);
+	virtual std::tuple<bool,bool>
+								allow(const std::string& name);
 
 	virtual void				reset()
 								{
 									m_state = 0;
-									for_each(m_states.begin(), m_states.end(), boost::bind(&state_base::reset, _1));
+									std::for_each(m_states.begin(), m_states.end(), [](auto& state) { state->reset(); });
 								}
 
 	virtual bool				allow_char_data()					{ return m_mixed; }
 
 	virtual bool				allow_empty();
 	
-	list<state_ptr>				m_states;
+	std::list<state_ptr>		m_states;
 	bool						m_mixed;
 	int							m_state;
 	state_ptr					m_sub;
 };
 
-tuple<bool,bool> state_choice::allow(const string& name)
+std::tuple<bool,bool> state_choice::allow(const std::string& name)
 {
 	bool result = false, done = false;
 	
@@ -401,9 +396,9 @@ tuple<bool,bool> state_choice::allow(const string& name)
 	switch (m_state)
 	{
 		case state_Start:
-			for (list<state_ptr>::iterator choice = m_states.begin(); choice != m_states.end(); ++choice)
+			for (auto choice = m_states.begin(); choice != m_states.end(); ++choice)
 			{
-				tie(result, done) = (*choice)->allow(name);
+				std::tie(result, done) = (*choice)->allow(name);
 				if (result == true)
 				{
 					m_sub = *choice;
@@ -414,17 +409,17 @@ tuple<bool,bool> state_choice::allow(const string& name)
 			break;
 
 		case state_Choice:
-			tie(result, done) = m_sub->allow(name);
+			std::tie(result, done) = m_sub->allow(name);
 			break;
 	}
 	
-	return make_tuple(result, done);
+	return std::make_tuple(result, done);
 }
 
 bool state_choice::allow_empty()
 {
 	return m_mixed or
-		find_if(m_states.begin(), m_states.end(), boost::bind(&state_base::allow_empty, _1)) != m_states.end();
+		std::find_if(m_states.begin(), m_states.end(), std::bind(&state_base::allow_empty, std::placeholders::_1)) != m_states.end();
 }
 
 // --------------------------------------------------------------------
@@ -486,10 +481,10 @@ void validator::reset()
 	m_state->reset();
 }
 
-bool validator::allow(const string& name)
+bool validator::allow(const std::string& name)
 {
 	bool result;
-	tie(result, m_done) = m_state->allow(name);
+	std::tie(result, m_done) = m_state->allow(name);
 	return result;
 }
 
@@ -519,7 +514,7 @@ state_ptr allowed_any::create_state() const
 	return new state_any();
 }
 
-void allowed_any::print(ostream& os)
+void allowed_any::print(std::ostream& os)
 {
 	os << "ANY";
 }
@@ -531,7 +526,7 @@ state_ptr allowed_empty::create_state() const
 	return new state_empty();
 }
 
-void allowed_empty::print(ostream& os)
+void allowed_empty::print(std::ostream& os)
 {
 	os << "EMPTY";
 }
@@ -543,7 +538,7 @@ state_ptr allowed_element::create_state() const
 	return new state_element(m_name);
 }
 
-void allowed_element::print(ostream& os)
+void allowed_element::print(std::ostream& os)
 {
 	os << m_name;
 }
@@ -566,7 +561,7 @@ state_ptr allowed_repeated::create_state() const
 	}
 }
 
-void allowed_repeated::print(ostream& os)
+void allowed_repeated::print(std::ostream& os)
 {
 	m_allowed->print(os); os << m_repetition;
 }
@@ -580,7 +575,7 @@ bool allowed_repeated::element_content() const
 
 allowed_seq::~allowed_seq()
 {
-	foreach (allowed_ptr a, m_allowed)
+	for (allowed_ptr a: m_allowed)
 		delete a;
 }
 
@@ -594,7 +589,7 @@ state_ptr allowed_seq::create_state() const
 	return new state_seq(m_allowed);
 }
 
-void allowed_seq::print(ostream& os)
+void allowed_seq::print(std::ostream& os)
 {
 	os << '(';
 	for (allowed_list::iterator s = m_allowed.begin(); s != m_allowed.end(); ++s)
@@ -609,7 +604,7 @@ void allowed_seq::print(ostream& os)
 bool allowed_seq::element_content() const
 {
 	bool result = true;
-	foreach (allowed_ptr a, m_allowed)
+	for (allowed_ptr a: m_allowed)
 	{
 		if (not a->element_content())
 		{
@@ -624,7 +619,7 @@ bool allowed_seq::element_content() const
 
 allowed_choice::~allowed_choice()
 {
-	foreach (allowed_ptr a, m_allowed)
+	for (allowed_ptr a: m_allowed)
 		delete a;
 }
 
@@ -638,7 +633,7 @@ state_ptr allowed_choice::create_state() const
 	return new state_choice(m_allowed, m_mixed);
 }
 
-void allowed_choice::print(ostream& os)
+void allowed_choice::print(std::ostream& os)
 {
 	os << '(';
 
@@ -665,7 +660,7 @@ bool allowed_choice::element_content() const
 		result = false;
 	else
 	{
-		foreach (allowed_ptr a, m_allowed)
+		for (allowed_ptr a: m_allowed)
 		{
 			if (not a->element_content())
 			{
@@ -679,7 +674,7 @@ bool allowed_choice::element_content() const
 
 // --------------------------------------------------------------------
 
-bool attribute::is_name(string& s) const
+bool attribute::is_name(std::string& s) const
 {
 	bool result = true;
 	
@@ -687,7 +682,7 @@ bool attribute::is_name(string& s) const
 	
 	if (not s.empty())
 	{
-		string::iterator c = s.begin();
+		std::string::iterator c = s.begin();
 		
 		if (c != s.end())
 			result = is_name_start_char(*c);
@@ -699,7 +694,7 @@ bool attribute::is_name(string& s) const
 	return result;
 }
 
-bool attribute::is_names(string& s) const
+bool attribute::is_names(std::string& s) const
 {
 	bool result = true;
 
@@ -707,8 +702,8 @@ bool attribute::is_names(string& s) const
 	
 	if (not s.empty())
 	{
-		string::iterator c = s.begin();
-		string t;
+		std::string::iterator c = s.begin();
+		std::string t;
 		
 		while (result and c != s.end())
 		{
@@ -739,28 +734,28 @@ bool attribute::is_names(string& s) const
 	return result;
 }
 
-bool attribute::is_nmtoken(string& s) const
+bool attribute::is_nmtoken(std::string& s) const
 {
 	ba::trim(s);
 	
 	bool result = not s.empty();
 
-	string::iterator c = s.begin();
+	std::string::iterator c = s.begin();
 	while (result and ++c != s.end())
 		result = is_name_char(*c);
 	
 	return result;
 }
 
-bool attribute::is_nmtokens(string& s) const
+bool attribute::is_nmtokens(std::string& s) const
 {
 	// remove leading and trailing spaces
 	ba::trim(s);
 	
 	bool result = not s.empty();
 	
-	string::iterator c = s.begin();
-	string t;
+	std::string::iterator c = s.begin();
+	std::string t;
 	
 	while (result and c != s.end())
 	{
@@ -798,7 +793,7 @@ bool attribute::is_nmtokens(string& s) const
 	return result;
 }
 
-bool attribute::validate_value(string& value, const entity_list& entities) const
+bool attribute::validate_value(std::string& value, const entity_list& entities) const
 {
 	bool result = true;
 
@@ -817,9 +812,9 @@ bool attribute::validate_value(string& value, const entity_list& entities) const
 		result = is_names(value);
 		if (result)
 		{
-			vector<string> values;
+			std::vector<std::string> values;
 			ba::split(values, value, ba::is_any_of(" "));
-			foreach (const string& v, values)
+			for (const std::string& v: values)
 			{
 				if (not is_unparsed_entity(v, entities))
 				{
@@ -847,11 +842,11 @@ bool attribute::validate_value(string& value, const entity_list& entities) const
 	return result;
 }
 
-bool attribute::is_unparsed_entity(const string& s, const entity_list& l) const
+bool attribute::is_unparsed_entity(const std::string& s, const entity_list& l) const
 {
 	bool result = false;
 	
-	entity_list::const_iterator i = find_if(l.begin(), l.end(), boost::bind(&entity::name, _1) == s);
+	entity_list::const_iterator i = std::find_if(l.begin(), l.end(), [s](auto e) { return e->name() == s; });
 	if (i != l.end())
 		result = (*i)->parsed() == false;
 	
@@ -862,7 +857,7 @@ bool attribute::is_unparsed_entity(const string& s, const entity_list& l) const
 
 element::~element()
 {
-	foreach (attribute* attr, m_attlist)
+	for (attribute* attr: m_attlist)
 		delete attr;
 	delete m_allowed;
 }
@@ -878,15 +873,15 @@ void element::set_allowed(allowed_ptr allowed)
 
 void element::add_attribute(attribute* attrib)
 {
-	unique_ptr<attribute> attr(attrib);
-	if (find_if(m_attlist.begin(), m_attlist.end(), boost::bind(&attribute::name, _1) == attr->name()) == m_attlist.end())
+	std::unique_ptr<attribute> attr(attrib);
+	if (find_if(m_attlist.begin(), m_attlist.end(), [attrib](auto a) { return a->name() == attrib->name(); }) == m_attlist.end())
 		m_attlist.push_back(attr.release());
 }
 
-const attribute* element::get_attribute(const string& name) const
+const attribute* element::get_attribute(const std::string& name) const
 {
 	attribute_list::const_iterator dta =
-		find_if(m_attlist.begin(), m_attlist.end(), boost::bind(&attribute::name, _1) == name);
+		find_if(m_attlist.begin(), m_attlist.end(), [name](auto a) { return a->name() == name; });
 	
 	const attribute* result = nullptr;
 	

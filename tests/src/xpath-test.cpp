@@ -52,7 +52,7 @@ bool run_test(const xml::element& test)
 	xml::xpath xp(test.get_attribute("xpath"));
 
 	xml::context context;
-	foreach (const xml::element* e, test.find("var"))
+	for (const xml::element* e: test.find("var"))
 		context.set(e->get_attribute("name"), e->get_attribute("value"));
 	
 	xml::node_set ns = xp.evaluate<xml::node>(*doc.root(), context);
@@ -60,7 +60,7 @@ bool run_test(const xml::element& test)
 	if (VERBOSE)
 	{
 		int nr = 1;
-		foreach (const xml::node* n, ns)
+		for (const xml::node* n: ns)
 			cout << nr++ << ">> " << *n << endl;
 	}
 	
@@ -82,7 +82,7 @@ bool run_test(const xml::element& test)
 		if (VERBOSE)
 			cout << "testing attribute " << test_attr_name << " for " << attr_test << endl;
 		
-		foreach (const xml::node* n, ns)
+		for (const xml::node* n: ns)
 		{
 			const xml::element* e = dynamic_cast<const xml::element*>(n);
 			if (e == NULL)
@@ -103,7 +103,7 @@ bool run_test(const xml::element& test)
 		cout << "Test failed" << endl;
 		
 		int nr = 1;
-		foreach (const xml::node* n, ns)
+		for (const xml::node* n: ns)
 			cout << nr++ << ") " << *n << endl;
 	}
 	
@@ -126,7 +126,7 @@ void run_tests(const fs::path& file)
 	
 	int nr_of_tests = 0, failed_nr_of_tests = 0;
 	
-	foreach (const xml::element* test, doc.find("//xpath-test"))
+	for (const xml::element* test: doc.find("//xpath-test"))
 	{
 		++nr_of_tests;
 		if (run_test(*test) == false)

@@ -8,46 +8,46 @@
 
 #include <memory>
 
-#include <boost/noncopyable.hpp>
-#include <boost/array.hpp>
 #include <boost/asio/posix/stream_descriptor.hpp>
 
 #include <zeep/http/message_parser.hpp>
 #include <zeep/http/request_handler.hpp>
 
-namespace zeep { namespace http {
+namespace zeep
+{
+namespace http
+{
 
 /// The HTTP server implementation of libzeep is inspired by the example code
 /// as provided by boost::asio. These objects are not to be used directly.
 
 class connection
 	: public std::enable_shared_from_this<connection>
-	, public boost::noncopyable
 {
-  public:
-				connection(boost::asio::io_service& service,
-					request_handler& handler);
+public:
+	connection(connection &) = delete;
+	connection &operator=(connection &) = delete;
 
-	void		start();
+	connection(boost::asio::io_service &service,
+			   request_handler &handler);
 
-	void		handle_read(const boost::system::error_code& ec,
-					size_t bytes_transferred);
+	void start();
+	void handle_read(boost::system::error_code ec, size_t bytes_transferred);
+	void handle_write(boost::system::error_code ec);
 
-	void		handle_write(const boost::system::error_code& ec);
+	boost::asio::ip::tcp::socket &
+	get_socket() { return m_socket; }
 
-	boost::asio::ip::tcp::socket&
-				get_socket()				{ return m_socket; }
-
-  private:
-	boost::asio::ip::tcp::socket			m_socket;
-	request_parser							m_request_parser;
-	request_handler&						m_request_handler;
-	boost::array<char,8192>					m_buffer;						
-	request									m_request;
-	reply									m_reply;
+private:
+	boost::asio::ip::tcp::socket m_socket;
+	request_parser m_request_parser;
+	request_handler &m_request_handler;
+	std::array<char, 8192> m_buffer;
+	request m_request;
+	reply m_reply;
 };
 
-}
-}
+} // namespace http
+} // namespace zeep
 
 #endif

@@ -379,7 +379,7 @@ int main(int argc, const char* argv[])
 		});
 		
 		boost::thread t(
-			boost::bind(&zeep::http::preforked_server::run, &server, "0.0.0.0", 10333, 2));
+			bind(&zeep::http::preforked_server::run, &server, "0.0.0.0", 10333, 2));
 		server.start();
 
 	    pthread_sigmask(SIG_SETMASK, &old_mask, 0);
@@ -419,7 +419,7 @@ int main(int argc, const char* argv[])
 
 	my_server server("blabla");
 	server.bind("0.0.0.0", 10333);
-    boost::thread t(boost::bind(&my_server::run, &server, 2));
+    boost::thread t(bind(&my_server::run, &server, 2));
 	t.join();
 
 #else
@@ -430,7 +430,7 @@ int main(int argc, const char* argv[])
 
 		my_server server("blabla");
 		server.bind("0.0.0.0", 10333);
-		boost::thread t(boost::bind(&my_server::run, &server, 2));
+		boost::thread t(bind(&my_server::run, &server, 2));
 
 		pthread_sigmask(SIG_SETMASK, &old_mask, 0);
 

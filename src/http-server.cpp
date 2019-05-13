@@ -16,13 +16,9 @@
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/date_time/local_time/local_time.hpp>
 #include <boost/thread.hpp>
-#include <boost/bind.hpp>
-#include <boost/lexical_cast.hpp>
-#include <boost/foreach.hpp>
-#define foreach BOOST_FOREACH
+// #include <boost/lexical_cast.hpp>
 #include <boost/algorithm/string.hpp>
 
-using namespace std;
 namespace ba = boost::algorithm;
 
 namespace zeep { namespace http {
@@ -31,7 +27,7 @@ namespace detail {
 
 // a thread specific logger
 
-boost::thread_specific_ptr<ostringstream>	s_log;
+boost::thread_specific_ptr<std::ostringstream>	s_log;
 boost::mutex								s_log_lock;
 
 }
@@ -39,20 +35,20 @@ boost::mutex								s_log_lock;
 // --------------------------------------------------------------------
 // decode_url function
 
-string decode_url(const string& s)
+std::string decode_url(const std::string& s)
 {
-	string result;
+	std::string result;
 	
-	for (string::const_iterator c = s.begin(); c != s.end(); ++c)
+	for (std::string::const_iterator c = s.begin(); c != s.end(); ++c)
 	{
 		if (*c == '%')
 		{
 			if (s.end() - c >= 3)
 			{
 				int value;
-				string s2(c + 1, c + 3);
-				istringstream is(s2);
-				if (is >> hex >> value)
+				std::string s2(c + 1, c + 3);
+				std::istringstream is(s2);
+				if (is >> std::hex >> value)
 				{
 					result += static_cast<char>(value);
 					c += 2;
@@ -70,7 +66,7 @@ string decode_url(const string& s)
 // --------------------------------------------------------------------
 // encode_url function
 
-string encode_url(const string& s)
+std::string encode_url(const std::string& s)
 {
 	const unsigned char kURLAcceptable[96] =
 	{/* 0 1 2 3 4 5 6 7 8 9 A B C D E F */
@@ -84,9 +80,9 @@ string encode_url(const string& s)
 
 	const char kHex[] = "0123456789abcdef";
 
-	string result;
+	std::string result;
 	
-	for (string::const_iterator c = s.begin(); c != s.end(); ++c)
+	for (std::string::const_iterator c = s.begin(); c != s.end(); ++c)
 	{
 		unsigned char a = (unsigned char)*c;
 		if (not (a >= 32 and a < 128 and (kURLAcceptable[a - 32] & 4)))
@@ -111,10 +107,10 @@ server::server()
 	using namespace boost::local_time;
 
 	local_time_facet* lf(new local_time_facet("[%d/%b/%Y:%H:%M:%S %z]"));
-	cout.imbue(locale(cout.getloc(), lf));
+	std::cout.imbue(std::locale(std::cout.getloc(), lf));
 }
 
-void server::bind(const string& address, unsigned short port)
+void server::bind(const std::string& address, unsigned short port)
 {
 	m_address = address;
 	m_port = port;
@@ -123,7 +119,7 @@ void server::bind(const string& address, unsigned short port)
 	m_new_connection.reset(new connection(m_io_service, *this));
 
 	boost::asio::ip::tcp::resolver resolver(m_io_service);
-	boost::asio::ip::tcp::resolver::query query(address, boost::lexical_cast<string>(port));
+	boost::asio::ip::tcp::resolver::query query(address, boost::lexical_cast<std::string>(port));
 	boost::asio::ip::tcp::endpoint endpoint = *resolver.resolve(query);
 
 	m_acceptor->open(endpoint.protocol());
@@ -131,7 +127,7 @@ void server::bind(const string& address, unsigned short port)
 	m_acceptor->bind(endpoint);
 	m_acceptor->listen();
 	m_acceptor->async_accept(m_new_connection->get_socket(),
-		boost::bind(&server::handle_accept, this, boost::asio::placeholders::error));
+		[this](boost::system::error_code ec) { this->handle_accept(ec); });
 }
 
 server::~server()
@@ -145,12 +141,13 @@ void server::run(int nr_of_threads)
 	boost::asio::io_service::work work(m_io_service);
 
 	for (int i = 0; i < nr_of_threads; ++i)
-	{
-		m_threads.create_thread(
-			boost::bind(&boost::asio::io_service::run, &m_io_service));
-	}
+		m_threads.emplace_back([this]() { m_io_service.run(); });
 
-	m_threads.join_all();
+	for (auto& t: m_threads)
+	{
+		if (t.joinable())
+			t.join();
+	}
 }
 
 void server::stop()
@@ -161,21 +158,21 @@ void server::stop()
 	m_io_service.stop();
 }
 
-void server::handle_accept(const boost::system::error_code& ec)
+void server::handle_accept(boost::system::error_code ec)
 {
 	if (not ec)
 	{
 		m_new_connection->start();
 		m_new_connection.reset(new connection(m_io_service, *this));
 		m_acceptor->async_accept(m_new_connection->get_socket(),
-			boost::bind(&server::handle_accept, this, boost::asio::placeholders::error));
+			[this](boost::system::error_code ec) { this->handle_accept(ec); });
 	}
 }
 
-ostream& server::log()
+std::ostream& server::log()
 {
 	if (detail::s_log.get() == NULL)
-		detail::s_log.reset(new ostringstream);
+		detail::s_log.reset(new std::ostringstream);
 	return *detail::s_log;
 }
 
@@ -190,22 +187,22 @@ void server::handle_request(boost::asio::ip::tcp::socket& socket,
 {
 	using namespace boost::posix_time;
 	
-	detail::s_log.reset(new ostringstream);
+	detail::s_log.reset(new std::ostringstream);
 	ptime start = second_clock::local_time();
 	
-	string referer("-"), userAgent("-"), accept, client;
+	std::string referer("-"), userAgent("-"), accept, client;
 	
-	foreach (const header& h, req.headers)
+	for (const header& h: req.headers)
 	{
 		if (m_log_forwarded and ba::iequals(h.name, "X-Forwarded-For"))
 		{
 			client = h.value;
-			string::size_type comma = client.rfind(',');
-			if (comma != string::npos)
+			std::string::size_type comma = client.rfind(',');
+			if (comma != std::string::npos)
 			{
 				if (comma < client.length() - 1 and client[comma + 1] == ' ')
 					++comma;
-				client = client.substr(comma + 1, string::npos);
+				client = client.substr(comma + 1, std::string::npos);
 			}
 		}
 		else if (ba::iequals(h.name, "Referer"))
@@ -222,7 +219,7 @@ void server::handle_request(boost::asio::ip::tcp::socket& socket,
 		if (client.empty())
 		{
 			boost::asio::ip::address addr = socket.remote_endpoint().address();
-			client = boost::lexical_cast<string>(addr);
+			client = boost::lexical_cast<std::string>(addr);
 		}
 
 		// do the actual work.
@@ -252,11 +249,11 @@ void server::handle_request(boost::asio::ip::tcp::socket& socket,
 	catch (...) {}
 }
 
-void server::log_request(const string& client,
+void server::log_request(const std::string& client,
 	const request& req, const reply& rep,
 	const boost::posix_time::ptime& start,
-	const string& referer, const string& userAgent,
-	const string& entry)
+	const std::string& referer, const std::string& userAgent,
+	const std::string& entry)
 {
 	// protect the output stream from garbled log messages
 	boost::unique_lock<boost::mutex> lock(detail::s_log_lock);
@@ -265,11 +262,11 @@ void server::log_request(const string& client,
 
 	local_date_time start_local(start, time_zone_ptr());
 
-	string username = req.username;
+	std::string username = req.username;
 	if (username.empty())
 		username = "-";
 
-	cout << client << ' '
+	std::cout << client << ' '
 		 << "-" << ' '
 		 << username << ' '
 		 << start_local << ' '
@@ -281,9 +278,9 @@ void server::log_request(const string& client,
 		 << '"' << userAgent << '"' << ' ';
 	
 	if (entry.empty())
-		cout << '-' << endl;
+		std::cout << '-' << std::endl;
 	else
-		cout << '"' << entry << '"' << endl;
+		std::cout << '"' << entry << '"' << std::endl;
 }
 
 }

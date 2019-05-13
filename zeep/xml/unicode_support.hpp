@@ -7,7 +7,6 @@
 #define ZEEP_XML_UNICODE_SUPPORT_HPP
 
 #include <zeep/config.hpp>
-#include <boost/cstdint.hpp>
 
 #include <string>
 
@@ -15,7 +14,7 @@ namespace zeep { namespace xml {
 
 /// We use our own unicode type since wchar_t might be too small.
 /// This type should be able to contain a UCS4 encoded character.
-typedef boost::uint32_t unicode;
+typedef char32_t unicode;
 
 /// the supported encodings. Perhaps we should extend this list a bit?
 enum encoding_type
@@ -42,6 +41,12 @@ std::string wstring_to_string(const std::wstring& s);
 /// manipulate UTF-8 encoded strings
 void append(std::string& s, unicode ch);
 unicode pop_last_char(std::string& s);
+
+/// our own implementation of iequals: strings are compared case-insensitive
+bool iequals(const std::string& a, const std::string& b);
+
+/// Maybe not the correct location, but here's a to_string equivalent returning a hexadecimal representation.
+std::string to_hex(int i);
 
 // inlines
 

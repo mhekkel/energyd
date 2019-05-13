@@ -6,8 +6,9 @@
 #ifndef SOAP_HTTP_SERVER_HPP
 #define SOAP_HTTP_SERVER_HPP
 
+#include <thread>
+
 #include <boost/asio.hpp>
-#include <boost/thread/thread.hpp>
 
 #include <zeep/http/request_handler.hpp>
 #include <zeep/http/reply.hpp>
@@ -77,12 +78,12 @@ class server : public request_handler
 	virtual void		handle_request(boost::asio::ip::tcp::socket& socket,
 							const request& req, reply& rep);
 
-	void				handle_accept(const boost::system::error_code& ec);
+	void				handle_accept(boost::system::error_code ec);
 
 	boost::asio::io_service			m_io_service;
 	std::shared_ptr<boost::asio::ip::tcp::acceptor>
 									m_acceptor;
-	boost::thread_group				m_threads;
+	std::list<std::thread>			m_threads;
 	std::shared_ptr<connection>		m_new_connection;
 	std::string						m_address;
 	unsigned short					m_port;

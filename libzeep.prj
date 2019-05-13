@@ -27,7 +27,6 @@
       </group>
       <group name="xml">
         <file>document.cpp</file>
-        <file>document-expat.cpp</file>
         <file>doctype.cpp</file>
         <file>node.cpp</file>
         <file>parser.cpp</file>
@@ -46,11 +45,12 @@
         <define>DEBUG</define>
       </defines>
       <cflags>
+        <cflag>-std=c++0x</cflag>
         <cflag>-O0</cflag>
         <cflag>-pthread</cflag>
         <cflag>-gdwarf-2</cflag>
         <cflag>-fPIC</cflag>
-        <cflag>-std=c++0x</cflag>
+        <cflag>-std=c++14</cflag>
       </cflags>
       <warnings>
         <warning>all</warning>

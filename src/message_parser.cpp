@@ -8,12 +8,7 @@
 #include <sstream>
 
 #include <zeep/http/message_parser.hpp>
-
-#include <boost/algorithm/string.hpp>
-#include <boost/typeof/typeof.hpp>
-
-using namespace std;
-namespace ba = boost::algorithm;
+#include <zeep/xml/unicode_support.hpp>
 
 namespace zeep { namespace http {
 	
@@ -54,7 +49,7 @@ void parser::reset()
 	m_http_version_minor = 0;
 }
 
-boost::tribool parser::parse_header_lines(vector<header>& headers, string& payload, char ch)
+boost::tribool parser::parse_header_lines(std::vector<header>& headers, std::string& payload, char ch)
 {
 	boost::tribool result = boost::indeterminate;
 	
@@ -138,18 +133,18 @@ boost::tribool parser::parse_header_lines(vector<header>& headers, string& paylo
 			{
 				result = true;
 
-				for (vector<header>::iterator h = headers.begin(); h != headers.end(); ++h)
+				for (std::vector<header>::iterator h = headers.begin(); h != headers.end(); ++h)
 				{
-					if (ba::iequals(h->name, "Transfer-Encoding") and ba::iequals(h->value, "chunked"))
+					if (xml::iequals(h->name, "Transfer-Encoding") and xml::iequals(h->value, "chunked"))
 					{
 						m_parser = &parser::parse_chunk;
 						m_state = 0;
 						m_parsing_content = true;
 						break;
 					}
-					else if (ba::iequals(h->name, "Content-Length"))
+					else if (xml::iequals(h->name, "Content-Length"))
 					{
-						stringstream s(h->value);
+						std::stringstream s(h->value);
 						s >> m_chunk_size;
 
 						if (m_chunk_size > 0)
@@ -170,7 +165,7 @@ boost::tribool parser::parse_header_lines(vector<header>& headers, string& paylo
 	return result;
 }
 
-boost::tribool parser::parse_chunk(vector<header>& headers, string& payload, char ch)
+boost::tribool parser::parse_chunk(std::vector<header>& headers, std::string& payload, char ch)
 {
 	boost::tribool result = boost::indeterminate;
 	
@@ -213,8 +208,8 @@ boost::tribool parser::parse_chunk(vector<header>& headers, string& payload, cha
 		case 3:
 			if (ch == '\n')
 			{
-				stringstream s(m_data);
-				s >> hex >> m_chunk_size;
+				std::stringstream s(m_data);
+				s >> std::hex >> m_chunk_size;
 
 				if (m_chunk_size > 0)
 				{
@@ -246,7 +241,7 @@ boost::tribool parser::parse_chunk(vector<header>& headers, string& payload, cha
 	return result;
 }
 
-boost::tribool parser::parse_content(vector<header>& headers, string& payload, char ch)
+boost::tribool parser::parse_content(std::vector<header>& headers, std::string& payload, char ch)
 {
 	boost::tribool result = boost::indeterminate;
 	
@@ -303,7 +298,7 @@ parser::result_type request_parser::parse(request& req, const char* text, size_t
 		req.http_version_minor = m_http_version_minor;
 	}
 
-	return tie(result, used);
+	return std::tie(result, used);
 }
 
 parser::result_type request_parser::parse_header(request& req, const char* text, size_t length)
@@ -332,7 +327,7 @@ parser::result_type request_parser::parse_header(request& req, const char* text,
 		req.http_version_minor = m_http_version_minor;
 	}
 
-	return tie(result, used);
+	return std::tie(result, used);
 }
 
 parser::result_type request_parser::parse_content(request& req, const char* text, size_t length)
@@ -355,10 +350,10 @@ parser::result_type request_parser::parse_content(request& req, const char* text
 		}
 	}
 	
-	return tie(result, used);
+	return std::tie(result, used);
 }
 
-boost::tribool request_parser::parse(request& req, streambuf& text)
+boost::tribool request_parser::parse(request& req, std::streambuf& text)
 {
 	if (m_parser == NULL)
 	{
@@ -394,7 +389,7 @@ boost::tribool request_parser::parse(request& req, streambuf& text)
 	return result;
 }
 
-boost::tribool request_parser::parse_header(request& req, streambuf& text)
+boost::tribool request_parser::parse_header(request& req, std::streambuf& text)
 {
 	if (m_parser == NULL)
 	{
@@ -422,7 +417,7 @@ boost::tribool request_parser::parse_header(request& req, streambuf& text)
 	return result;
 }
 
-boost::tribool request_parser::parse_content(request& req, streambuf& text)
+boost::tribool request_parser::parse_content(request& req, std::streambuf& text)
 {
 	boost::tribool result = boost::indeterminate;
 
@@ -442,7 +437,7 @@ boost::tribool request_parser::parse_content(request& req, streambuf& text)
 	return result;
 }
 
-boost::tribool request_parser::parse_content(request& req, streambuf& text, streambuf& sink)
+boost::tribool request_parser::parse_content(request& req, std::streambuf& text, std::streambuf& sink)
 {
 	boost::tribool result = boost::indeterminate;
 
@@ -463,7 +458,7 @@ boost::tribool request_parser::parse_content(request& req, streambuf& text, stre
 	return result;
 }
 
-boost::tribool request_parser::parse_initial_line(vector<header>& headers, string& payload, char ch)
+boost::tribool request_parser::parse_initial_line(std::vector<header>& headers, std::string& payload, char ch)
 {
 	boost::tribool result = boost::indeterminate;
 	
@@ -573,7 +568,7 @@ parser::result_type reply_parser::parse(reply& rep, const char* text, size_t len
 		rep.m_version_minor = m_http_version_minor;
 	}
 
-	return tie(result, used);
+	return std::tie(result, used);
 }
 
 parser::result_type reply_parser::parse_header(reply& rep, const char* text, size_t length)
@@ -604,7 +599,7 @@ parser::result_type reply_parser::parse_header(reply& rep, const char* text, siz
 		rep.m_version_minor = m_http_version_minor;
 	}
 
-	return tie(result, used);
+	return std::tie(result, used);
 }
 
 parser::result_type reply_parser::parse_content(reply& rep, const char* text, size_t length)
@@ -622,10 +617,10 @@ parser::result_type reply_parser::parse_content(reply& rep, const char* text, si
 			result = (this->*m_parser)(rep.m_headers, rep.m_content, text[used++]);
 	}
 	
-	return tie(result, used);
+	return std::tie(result, used);
 }
 
-boost::tribool reply_parser::parse(reply& rep, streambuf& text)
+boost::tribool reply_parser::parse(reply& rep, std::streambuf& text)
 {
 	if (m_parser == NULL)
 	{
@@ -660,7 +655,7 @@ boost::tribool reply_parser::parse(reply& rep, streambuf& text)
 	return result;
 }
 
-boost::tribool reply_parser::parse_header(reply& rep, streambuf& text)
+boost::tribool reply_parser::parse_header(reply& rep, std::streambuf& text)
 {
 	if (m_parser == NULL)
 	{
@@ -690,7 +685,7 @@ boost::tribool reply_parser::parse_header(reply& rep, streambuf& text)
 	return result;
 }
 
-boost::tribool reply_parser::parse_content(reply& rep, streambuf& text, streambuf& sink)
+boost::tribool reply_parser::parse_content(reply& rep, std::streambuf& text, std::streambuf& sink)
 {
 	boost::tribool result = boost::indeterminate;
 
@@ -711,7 +706,7 @@ boost::tribool reply_parser::parse_content(reply& rep, streambuf& text, streambu
 	return result;
 }
 
-boost::tribool reply_parser::parse_initial_line(vector<header>& headers, string& payload, char ch)
+boost::tribool reply_parser::parse_initial_line(std::vector<header>& headers, std::string& payload, char ch)
 {
 	boost::tribool result = boost::indeterminate;
 	

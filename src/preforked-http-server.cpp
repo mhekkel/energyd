@@ -17,17 +17,12 @@
 #include <zeep/exception.hpp>
 
 #include <boost/date_time/posix_time/posix_time.hpp>
-#include <boost/thread.hpp>
-#include <boost/bind.hpp>
-#include <boost/lexical_cast.hpp>
 
 #include <sys/wait.h>
 
-using namespace std;
-
 namespace zeep { namespace http {
 
-preforked_server::preforked_server(function<server*(void)> constructor)
+preforked_server::preforked_server(std::function<server*(void)> constructor)
 	: m_constructor(constructor)
 	, m_acceptor(m_io_service)
 	, m_socket(m_io_service)
@@ -73,10 +68,10 @@ void preforked_server::run(const std::string& address, short port, int nr_of_thr
 			pthread_sigmask(SIG_SETMASK, &wait_mask, 0);
 	
 			// Time to construct the Server object
-			unique_ptr<server> srvr(m_constructor());
+			std::unique_ptr<server> srvr(m_constructor());
 			
 			// run the server as a worker
-			boost::thread t(boost::bind(&server::run, srvr.get(), nr_of_threads));
+			std::thread t(std::bind(&server::run, srvr.get(), nr_of_threads));
 
 			// now start the processing loop passing on file descriptors read
 			// from the parent process
@@ -94,7 +89,7 @@ void preforked_server::run(const std::string& address, short port, int nr_of_thr
 			}
 			catch (std::exception& e)
 			{
-				cerr << "Exception caught: " << e.what() << endl;
+				std::cerr << "Exception caught: " << e.what() << std::endl;
 				exit(1);
 			}
 			
@@ -105,12 +100,11 @@ void preforked_server::run(const std::string& address, short port, int nr_of_thr
 		}
 
 		// first wait until we are allowed to start listening
-		boost::unique_lock<boost::mutex> lock(m_lock);
+		std::unique_lock<std::mutex> lock(m_lock);
 
 		// then bind the address here
 		boost::asio::ip::tcp::resolver resolver(m_io_service);
-		boost::asio::ip::tcp::resolver::query
-			query(address, boost::lexical_cast<string>(port));
+		boost::asio::ip::tcp::resolver::query query(address, std::to_string(port));
 		boost::asio::ip::tcp::endpoint endpoint = *resolver.resolve(query);
 	
 		m_acceptor.open(endpoint.protocol());
@@ -119,7 +113,7 @@ void preforked_server::run(const std::string& address, short port, int nr_of_thr
 		m_acceptor.listen();
 	
 		m_acceptor.async_accept(m_socket,
-			boost::bind(&preforked_server::handle_accept, this, boost::asio::placeholders::error));
+			[this](boost::system::error_code& ec) { handle_accept(ec); });
 		
 		// close one end of the pipe, save the other
 		m_fd = sockfd[0];
@@ -129,8 +123,7 @@ void preforked_server::run(const std::string& address, short port, int nr_of_thr
 		boost::asio::io_service::work work(m_io_service);
 	
 		// start a thread to listen to the socket
-		boost::thread thread(
-			boost::bind(&boost::asio::io_service::run, &m_io_service));
+		std::thread thread([this]() { m_io_service.run(); });
 		
 		// now run until the child proces dies, or the server is stopped
 		while (not m_io_service.stopped())
@@ -145,7 +138,7 @@ void preforked_server::run(const std::string& address, short port, int nr_of_thr
 			{
 				m_pid = -1;
 				
-				cerr << "Child exited, status=" << WEXITSTATUS(status) << endl;
+				std::cerr << "Child exited, status=" << WEXITSTATUS(status) << std::endl;
 				break;
 			}
 			
@@ -153,7 +146,7 @@ void preforked_server::run(const std::string& address, short port, int nr_of_thr
 			{
 				m_pid = -1;
 
-				cerr << "Child killed by signal " << WTERMSIG(status) << endl;
+				std::cerr << "Child killed by signal " << WTERMSIG(status) << std::endl;
 				break;
 			}
 			
@@ -195,7 +188,7 @@ void preforked_server::run(const std::string& address, short port, int nr_of_thr
 	}
 	catch (std::exception& e)
 	{
-		cerr << "Exception caught in running server: " << e.what() << endl;
+		std::cerr << "Exception caught in running server: " << e.what() << std::endl;
 	}
 }
 
@@ -246,9 +239,9 @@ bool preforked_server::read_socket_from_parent(int fd_socket, boost::asio::ip::t
 		if (cmptr != nullptr and cmptr->cmsg_len == CMSG_LEN(sizeof(int)))
 		{
 			if (cmptr->cmsg_level != SOL_SOCKET)
-			 	cerr << "control level != SOL_SOCKET" << endl;
+			 	std::cerr << "control level != SOL_SOCKET" << std::endl;
 			else if (cmptr->cmsg_type != SCM_RIGHTS)
-				cerr << "control type != SCM_RIGHTS";
+				std::cerr << "control type != SCM_RIGHTS";
 			else
 			{
 				/* Produces warning: dereferencing type-punned pointer will break strict-aliasing rules [-Wstrict-aliasing]
@@ -327,11 +320,11 @@ void preforked_server::handle_accept(const boost::system::error_code& ec)
 		}
 		catch (const std::exception& e)
 		{
-			cerr << "error writing socket to client: " << e.what() << endl;
+			std::cerr << "error writing socket to client: " << e.what() << std::endl;
 			
 			reply r = reply::stock_reply(service_unavailable);
 
-			vector<boost::asio::const_buffer> buffers;
+			std::vector<boost::asio::const_buffer> buffers;
 			r.to_buffers(buffers);
 
 			try
@@ -340,14 +333,14 @@ void preforked_server::handle_accept(const boost::system::error_code& ec)
 			}
 			catch(const std::exception& e)
 			{
-				cerr << e.what() << '\n';
+				std::cerr << e.what() << std::endl;
 			}
 		}
 
 		m_socket.close();
 
 		m_acceptor.async_accept(m_socket,
-			boost::bind(&preforked_server::handle_accept, this, boost::asio::placeholders::error));
+			[this](boost::system::error_code& ec) { handle_accept(ec); });
 	}
 }
 

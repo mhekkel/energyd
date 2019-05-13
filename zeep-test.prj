@@ -61,7 +61,7 @@
         <cflag>-O0</cflag>
         <cflag>-pthread</cflag>
         <cflag>-gdwarf-2</cflag>
-        <cflag>-std=c++0x</cflag>
+        <cflag>\-std=c\+\+14</cflag>
       </cflags>
       <ldflags>
         <ldflag>-static-libgcc</ldflag>

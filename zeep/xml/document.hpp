@@ -6,25 +6,12 @@
 #ifndef SOAP_XML_DOCUMENT_H
 #define SOAP_XML_DOCUMENT_H
 
-#include <boost/filesystem/path.hpp>
-#include <boost/function.hpp>
-
 #include <zeep/config.hpp>
 #include <zeep/xml/node.hpp>
 #include <zeep/xml/unicode_support.hpp>
 #include <zeep/xml/serialize.hpp>
 
 namespace zeep { namespace xml {
-
-#if SOAP_XML_HAS_EXPAT_SUPPORT
-/// By default libzeep will use its own XML SAX parser, but you can use
-/// expat instead.
-enum parser_type
-{
-	parser_zeep,
-	parser_expat
-};
-#endif
 
 struct document_imp;
 
@@ -63,7 +50,7 @@ class document
 
 	/// \brief Constructor that will parse the XML passed in argument \a is. This
 	/// constructor will also validate the input using DTD's found in \a base_dir
-						document(std::istream& is, const boost::filesystem::path& base_dir);
+						document(std::istream& is, const std::string& base_dir);
 
 #ifndef LIBZEEP_DOXYGEN_INVOKED
 	virtual				~document();
@@ -72,7 +59,7 @@ class document
 	// I/O
 	void				read(const std::string& s);		///< Replace the content of the document with the parsed XML in \a s
 	void				read(std::istream& is);			///< Replace the content of the document with the parsed XML in \a is
-	void				read(std::istream& is, const boost::filesystem::path& base_dir);
+	void				read(std::istream& is, const std::string& base_dir);
 														///< Replace the content of the document with the parsed XML in \a is and use validation based on DTD's found in \a base_dir
 
 	virtual void		write(writer& w) const;			///< Write the contents of the document as XML using zeep::xml::writer object \a w
@@ -110,13 +97,13 @@ class document
 	
 	/// If you want to validate the document using DTD files stored on disk, you can specifiy this directory prior to reading
 	/// the document.
-	void				base_dir(const boost::filesystem::path& path);
+	void				base_dir(const std::string& path);
 
 	/// The default for libzeep is to locate the external reference based
 	/// on sysid and base_dir. Only local files are loaded this way.
 	/// You can specify a entity loader here if you want to be able to load
 	/// DTD files from another source.
-	boost::function<std::istream*(const std::string& base, const std::string& pubid, const std::string& sysid)>
+	std::function<std::istream*(const std::string& base, const std::string& pubid, const std::string& sysid)>
 						external_entity_ref_handler;
 
 	encoding_type		encoding() const;				///< The text encoding as detected in the input.	
@@ -145,23 +132,12 @@ class document
 	/// into text nodes.
 	void				set_preserve_cdata(bool preserve_cdata);
 	
-#if SOAP_XML_HAS_EXPAT_SUPPORT
-	/// By default, libzeep uses its own parser implementation. But if you prefer
-	/// expat you can specify that here.
-	static void			set_parser_type(parser_type type);
-#endif
-
 #ifndef LIBZEEP_DOXYGEN_INVOKED
   protected:
 						document(struct document_imp* impl);
 
 	friend void process_document_elements(std::istream& data, const std::string& element_xpath,
-										boost::function<bool(node* doc_root, element* e)> cb);
-
-#if SOAP_XML_HAS_EXPAT_SUPPORT
-	static parser_type	s_parser_type;
-#endif
-	document_imp*		create_imp(document* doc);
+										std::function<bool(node* doc_root, element* e)> cb);
 
 	document_imp*		m_impl;
 
@@ -181,7 +157,7 @@ std::ostream& operator<<(std::ostream& lhs, const document& rhs);
 /// If the \a proc callback retuns false, processing is terminated. The \a doc_root parameter of
 /// the callback is the leading xml up to the first element.
 void process_document_elements(std::istream& data, const std::string& element_xpath,
-	boost::function<bool(node* doc_root, element* e)> cb);
+	std::function<bool(node* doc_root, element* e)> cb);
 
 #ifndef LIBZEEP_DOXYGEN_INVOKED
 

@@ -5,19 +5,11 @@
 
 #include <iostream>
 #include <sstream>
+#include <fstream>
 #include <vector>
 #include <stack>
 #include <deque>
 #include <map>
-
-#include <boost/algorithm/string.hpp>
-#include <boost/function.hpp>
-#include <boost/bind.hpp>
-#include <boost/lexical_cast.hpp>
-#include <boost/filesystem/operations.hpp>
-#include <boost/filesystem/fstream.hpp>
-#include <boost/foreach.hpp>
-#define foreach BOOST_FOREACH
 
 #include <zeep/config.hpp>
 #include "document-imp.hpp"
@@ -26,32 +18,15 @@
 #include <zeep/xml/writer.hpp>
 #include <zeep/xml/xpath.hpp>
 
-#if SOAP_XML_HAS_EXPAT_SUPPORT
-#include "document-expat.hpp"
-#endif
-
-using namespace std;
-namespace ba = boost::algorithm;
-namespace fs = boost::filesystem;
-
-namespace zeep { namespace xml {
+namespace zeep
+{
+namespace xml
+{
 
 // --------------------------------------------------------------------
 
-document_imp::document_imp(document* doc)
-	: m_encoding(enc_UTF8)
-	, m_standalone(false)
-	, m_indent(2)
-	, m_empty(true)
-	, m_wrap(true)
-	, m_trim(true)
-	, m_escape_whitespace(false)
-	, m_no_comment(false)
-	, m_validating(false)
-	, m_preserve_cdata(false)
-	, m_doc(doc)
-	, m_cur(nullptr)
-	, m_cdata(nullptr)
+document_imp::document_imp(document *doc)
+	: m_encoding(enc_UTF8), m_standalone(false), m_indent(2), m_empty(true), m_wrap(true), m_trim(true), m_escape_whitespace(false), m_no_comment(false), m_validating(false), m_preserve_cdata(false), m_doc(doc), m_cur(nullptr), m_cdata(nullptr)
 {
 }
 
@@ -59,45 +34,47 @@ document_imp::~document_imp()
 {
 }
 
-string document_imp::prefix_for_namespace(const string& ns)
+std::string document_imp::prefix_for_namespace(const std::string &ns)
 {
-	vector<pair<string,string> >::iterator i = find_if(m_namespaces.begin(), m_namespaces.end(),
-		boost::bind(&pair<string,string>::second, _1) == ns);
-	
-	string result;
+	auto i = std::find_if(m_namespaces.begin(), m_namespaces.end(), [ns](auto &n) { return n.second == ns; });
+
+	std::string result;
 	if (i != m_namespaces.end())
 		result = i->first;
 	else if (m_cur != nullptr)
 		result = m_cur->prefix_for_namespace(ns);
 	else
 		throw exception("namespace not found: %s", ns.c_str());
-	
+
 	return result;
 }
 
-istream* document_imp::external_entity_ref(const string& base, const string& pubid, const string& sysid)
+std::istream *document_imp::external_entity_ref(const std::string &base, const std::string &pubid, const std::string &sysid)
 {
-	istream* result = nullptr;
-	
+	std::istream *result = nullptr;
+
 	if (m_doc->external_entity_ref_handler)
 		result = m_doc->external_entity_ref_handler(base, pubid, sysid);
-	
+
 	if (result == nullptr and not sysid.empty())
 	{
-		fs::path path;
-		
+		std::string path;
+
 		if (base.empty())
 			path = sysid;
 		else
 			path = base + '/' + sysid;
-		
-		if (not fs::exists(path))
-			path = m_dtd_dir / path;
 
-		if (fs::exists(path))
-			result = new fs::ifstream(m_dtd_dir / path, ios::binary);
+		auto fs = new std::ifstream(path, std::ios::binary);
+		if (not fs->is_open())
+			fs->open(m_dtd_dir + '/' + path, std::ios::binary);
+
+		if (fs->is_open())
+			result = fs;
+		else
+			delete fs;
 	}
-	
+
 	return result;
 }
 
@@ -105,51 +82,51 @@ istream* document_imp::external_entity_ref(const string& base, const string& pub
 
 struct zeep_document_imp : public document_imp
 {
-					zeep_document_imp(document* doc);
+	zeep_document_imp(document *doc);
 
-	virtual void	StartElementHandler(const string& name, const string& uri,
-						const parser::attr_list_type& atts);
+	virtual void StartElementHandler(const std::string &name, const std::string &uri,
+									 const parser::attr_list_type &atts);
 
-	virtual void	EndElementHandler(const string& name, const string& uri);
+	virtual void EndElementHandler(const std::string &name, const std::string &uri);
 
-	virtual void	CharacterDataHandler(const string& data);
+	virtual void CharacterDataHandler(const std::string &data);
 
-	virtual void	ProcessingInstructionHandler(const string& target, const string& data);
+	virtual void ProcessingInstructionHandler(const std::string &target, const std::string &data);
 
-	virtual void	CommentHandler(const string& comment);
+	virtual void CommentHandler(const std::string &comment);
 
-	virtual void	StartCdataSectionHandler();
+	virtual void StartCdataSectionHandler();
 
-	virtual void	EndCdataSectionHandler();
+	virtual void EndCdataSectionHandler();
 
-	virtual void	StartNamespaceDeclHandler(const string& prefix, const string& uri);
+	virtual void StartNamespaceDeclHandler(const std::string &prefix, const std::string &uri);
 
-	virtual void	EndNamespaceDeclHandler(const string& prefix);
-	
-	virtual void	NotationDeclHandler(const string& name, const string& sysid, const string& pubid);
+	virtual void EndNamespaceDeclHandler(const std::string &prefix);
 
-	virtual void	parse(istream& data);
+	virtual void NotationDeclHandler(const std::string &name, const std::string &sysid, const std::string &pubid);
+
+	virtual void parse(std::istream &data);
 };
 
 // --------------------------------------------------------------------
 
-zeep_document_imp::zeep_document_imp(document* doc)
+zeep_document_imp::zeep_document_imp(document *doc)
 	: document_imp(doc)
 {
 }
 
-void zeep_document_imp::StartElementHandler(const string& name, const string& uri,
-	const parser::attr_list_type& atts)
+void zeep_document_imp::StartElementHandler(const std::string &name, const std::string &uri,
+											const parser::attr_list_type &atts)
 {
-	string qname = name;
+	std::string qname = name;
 	if (not uri.empty())
 	{
-		string prefix = prefix_for_namespace(uri);
+		std::string prefix = prefix_for_namespace(uri);
 		if (not prefix.empty())
 			qname = prefix + ':' + name;
 	}
 
-	unique_ptr<element> n(new element(qname));
+	std::unique_ptr<element> n(new element(qname));
 
 	if (m_cur == nullptr)
 		m_root.child_element(n.get());
@@ -157,45 +134,45 @@ void zeep_document_imp::StartElementHandler(const string& name, const string& ur
 		m_cur->append(n.get());
 
 	m_cur = n.release();
-	
-	foreach (const parser::attr_type& a, atts)
+
+	for (const parser::attr_type &a : atts)
 	{
 		qname = a.m_name;
 		if (not a.m_ns.empty())
 			qname = prefix_for_namespace(a.m_ns) + ':' + a.m_name;
-		
+
 		m_cur->set_attribute(qname, a.m_value, a.m_id);
 	}
 
-	for (vector<pair<string,string> >::iterator ns = m_namespaces.begin(); ns != m_namespaces.end(); ++ns)
+	for (auto ns = m_namespaces.begin(); ns != m_namespaces.end(); ++ns)
 		m_cur->set_name_space(ns->first, ns->second);
-	
+
 	m_namespaces.clear();
 }
 
-void zeep_document_imp::EndElementHandler(const string& name, const string& uri)
+void zeep_document_imp::EndElementHandler(const std::string &name, const std::string &uri)
 {
 	if (m_cur == nullptr)
 		throw exception("Empty stack");
-	
+
 	if (m_cdata != nullptr)
 		throw exception("CDATA section not closed");
-	
-	m_cur = dynamic_cast<element*>(m_cur->parent());
+
+	m_cur = dynamic_cast<element *>(m_cur->parent());
 }
 
-void zeep_document_imp::CharacterDataHandler(const string& data)
+void zeep_document_imp::CharacterDataHandler(const std::string &data)
 {
 	if (m_cur == nullptr)
 		throw exception("Empty stack");
-	
+
 	if (m_cdata != nullptr)
 		m_cdata->append(data);
 	else
 		m_cur->add_text(data);
 }
 
-void zeep_document_imp::ProcessingInstructionHandler(const string& target, const string& data)
+void zeep_document_imp::ProcessingInstructionHandler(const std::string &target, const std::string &data)
 {
 	if (m_cur != nullptr)
 		m_cur->append(new processing_instruction(target, data));
@@ -203,7 +180,7 @@ void zeep_document_imp::ProcessingInstructionHandler(const string& target, const
 		m_root.append(new processing_instruction(target, data));
 }
 
-void zeep_document_imp::CommentHandler(const string& s)
+void zeep_document_imp::CommentHandler(const std::string &s)
 {
 	if (m_cur != nullptr)
 		m_cur->append(new comment(s));
@@ -215,10 +192,10 @@ void zeep_document_imp::StartCdataSectionHandler()
 {
 	if (m_cur == nullptr)
 		throw exception("empty stack");
-	
+
 	if (m_cdata != nullptr)
 		throw exception("Nested CDATA?");
-	
+
 	m_cdata = new cdata();
 	m_cur->append(m_cdata);
 }
@@ -228,108 +205,81 @@ void zeep_document_imp::EndCdataSectionHandler()
 	m_cdata = nullptr;
 }
 
-void zeep_document_imp::StartNamespaceDeclHandler(const string& prefix, const string& uri)
+void zeep_document_imp::StartNamespaceDeclHandler(const std::string &prefix, const std::string &uri)
 {
 	m_namespaces.push_back(make_pair(prefix, uri));
 }
-	
-void zeep_document_imp::EndNamespaceDeclHandler(const string& prefix)
+
+void zeep_document_imp::EndNamespaceDeclHandler(const std::string &prefix)
 {
 }
 
 void zeep_document_imp::NotationDeclHandler(
-	const string& name, const string& sysid, const string& pubid)
+	const std::string &name, const std::string &sysid, const std::string &pubid)
 {
-	notation n = { name, sysid, pubid };
-	
-	list<notation>::iterator i = find_if(m_notations.begin(), m_notations.end(),
-		boost::bind(&notation::m_name, _1) >= name);
-	
+	notation n = {name, sysid, pubid};
+
+	auto i = find_if(m_notations.begin(), m_notations.end(),
+					 [name](auto &nt) { return nt.m_name >= name; });
+
 	m_notations.insert(i, n);
 }
 
 // --------------------------------------------------------------------
 
 void zeep_document_imp::parse(
-	istream&		data)
+	std::istream &data)
 {
 	parser p(data);
 
-	p.start_element_handler = boost::bind(&zeep_document_imp::StartElementHandler, this, _1, _2, _3);
-	p.end_element_handler = boost::bind(&zeep_document_imp::EndElementHandler, this, _1, _2);
-	p.character_data_handler = boost::bind(&zeep_document_imp::CharacterDataHandler, this, _1);
+	using std::placeholders::_1;
+	using std::placeholders::_2;
+	using std::placeholders::_3;
+
+	p.start_element_handler = std::bind(&zeep_document_imp::StartElementHandler, this, _1, _2, _3);
+	p.end_element_handler = std::bind(&zeep_document_imp::EndElementHandler, this, _1, _2);
+	p.character_data_handler = std::bind(&zeep_document_imp::CharacterDataHandler, this, _1);
 	if (m_preserve_cdata)
 	{
-		p.start_cdata_section_handler = boost::bind(&zeep_document_imp::StartCdataSectionHandler, this);
-		p.end_cdata_section_handler = boost::bind(&zeep_document_imp::EndCdataSectionHandler, this);
+		p.start_cdata_section_handler = std::bind(&zeep_document_imp::StartCdataSectionHandler, this);
+		p.end_cdata_section_handler = std::bind(&zeep_document_imp::EndCdataSectionHandler, this);
 	}
-	p.start_namespace_decl_handler = boost::bind(&zeep_document_imp::StartNamespaceDeclHandler, this, _1, _2);
-	p.processing_instruction_handler = boost::bind(&zeep_document_imp::ProcessingInstructionHandler, this, _1, _2);
-	p.comment_handler = boost::bind(&zeep_document_imp::CommentHandler, this, _1);
-	p.notation_decl_handler = boost::bind(&zeep_document_imp::NotationDeclHandler, this, _1, _2, _3);
-	p.external_entity_ref_handler = boost::bind(&document_imp::external_entity_ref, this, _1, _2, _3);
+	p.start_namespace_decl_handler = std::bind(&zeep_document_imp::StartNamespaceDeclHandler, this, _1, _2);
+	p.processing_instruction_handler = std::bind(&zeep_document_imp::ProcessingInstructionHandler, this, _1, _2);
+	p.comment_handler = std::bind(&zeep_document_imp::CommentHandler, this, _1);
+	p.notation_decl_handler = std::bind(&zeep_document_imp::NotationDeclHandler, this, _1, _2, _3);
+	p.external_entity_ref_handler = std::bind(&document_imp::external_entity_ref, this, _1, _2, _3);
 
 	p.parse(m_validating);
 }
 
 // --------------------------------------------------------------------
 
-#if SOAP_XML_HAS_EXPAT_SUPPORT
-parser_type document::s_parser_type = parser_zeep;
-
-document_imp* document::create_imp(document* doc)
-{
-	document_imp* impl;
-	
-	if (s_parser_type == parser_expat)
-		impl = new expat_doc_imp(doc);
-	else if (s_parser_type == parser_zeep)
-		impl = new zeep_document_imp(doc);
-	else
-		throw zeep::exception("invalid parser type specified");
-	
-	return impl;
-}
-
-void document::set_parser_type(parser_type type)
-{
-	s_parser_type = type;
-}
-
-#else
-
-document_imp* document::create_imp(document* doc)
-{
-	return new zeep_document_imp(doc);
-}
-
-#endif
-
 document::document()
-	: m_impl(create_imp(this))
+	: m_impl(new zeep_document_imp(this))
 {
 }
 
-document::document(const string& s)
-	: m_impl(create_imp(this))
+document::document(const std::string &s)
+	: m_impl(new zeep_document_imp(this))
 {
-	istringstream is(s);
+	std::istringstream is(s);
 	read(is);
 }
 
-document::document(std::istream& is)
-	: m_impl(create_imp(this))
+document::document(std::istream &is)
+	: m_impl(new zeep_document_imp(this))
 {
 	read(is);
 }
 
-document::document(std::istream& is, const boost::filesystem::path& base_dir)
-	: m_impl(create_imp(this))
+document::document(std::istream &is, const std::string &base_dir)
+	: m_impl(new zeep_document_imp(this))
 {
 	read(is, base_dir);
 }
 
-document::document(document_imp* impl)
+document::document(document_imp *impl)
 	: m_impl(impl)
 {
 }
@@ -339,92 +289,92 @@ document::~document()
 	delete m_impl;
 }
 
-void document::read(const string& s)
+void document::read(const std::string &s)
 {
-	istringstream is(s);
+	std::istringstream is(s);
 	read(is);
 }
 
-void document::read(istream& is)
+void document::read(std::istream &is)
 {
 	m_impl->parse(is);
 }
 
-void document::read(istream& is, const boost::filesystem::path& base_dir)
+void document::read(std::istream &is, const std::string &base_dir)
 {
 	set_validating(true);
 	m_impl->m_dtd_dir = base_dir;
 	m_impl->parse(is);
 }
 
-void document::write(writer& w) const
+void document::write(writer &w) const
 {
-//	w.set_xml_decl(true);
-//	w.set_indent(m_impl->m_indent);
-//	w.set_wrap(m_impl->m_wrap);
-//	w.set_trim(m_impl->m_trim);
-//	w.set_escape_whitespace(m_impl->m_escape_whitespace);
-//	w.set_no_comment(m_impl->m_no_comment);
-	
-	element* e = m_impl->m_root.child_element();
-	
+	//	w.set_xml_decl(true);
+	//	w.set_indent(m_impl->m_indent);
+	//	w.set_wrap(m_impl->m_wrap);
+	//	w.set_trim(m_impl->m_trim);
+	//	w.set_escape_whitespace(m_impl->m_escape_whitespace);
+	//	w.set_no_comment(m_impl->m_no_comment);
+
+	element *e = m_impl->m_root.child_element();
+
 	if (e == nullptr)
 		throw exception("cannot write an empty XML document");
-	
+
 	w.xml_decl(m_impl->m_standalone);
 
 	if (not m_impl->m_notations.empty())
 	{
 		w.start_doctype(e->qname(), "");
-		foreach (const document_imp::notation& n, m_impl->m_notations)
+		for (const document_imp::notation &n : m_impl->m_notations)
 			w.notation(n.m_name, n.m_sysid, n.m_pubid);
 		w.end_doctype();
 	}
-	
+
 	m_impl->m_root.write(w);
 }
 
-root_node* document::root() const
+root_node *document::root() const
 {
 	return &m_impl->m_root;
 }
 
-element* document::child() const
+element *document::child() const
 {
 	return m_impl->m_root.child_element();
 }
 
-void document::child(element* e)
+void document::child(element *e)
 {
 	return m_impl->m_root.child_element(e);
 }
 
-element_set document::find(const char* path) const
+element_set document::find(const char *path) const
 {
 	return m_impl->m_root.find(path);
 }
 
-element* document::find_first(const char* path) const
+element *document::find_first(const char *path) const
 {
 	return m_impl->m_root.find_first(path);
 }
 
-void document::find(const char* path, node_set& nodes) const
+void document::find(const char *path, node_set &nodes) const
 {
 	m_impl->m_root.find(path, nodes);
 }
 
-void document::find(const char* path, element_set& elements) const
+void document::find(const char *path, element_set &elements) const
 {
 	m_impl->m_root.find(path, elements);
 }
 
-node* document::find_first_node(const char* path) const
+node *document::find_first_node(const char *path) const
 {
 	return m_impl->m_root.find_first_node(path);
 }
 
-void document::base_dir(const fs::path& path)
+void document::base_dir(const std::string &path)
 {
 	m_impl->m_dtd_dir = path;
 }
@@ -489,21 +439,21 @@ void document::set_preserve_cdata(bool preserve_cdata)
 	m_impl->m_preserve_cdata = preserve_cdata;
 }
 
-bool document::operator==(const document& other) const
+bool document::operator==(const document &other) const
 {
 	return m_impl->m_root.equals(&other.m_impl->m_root);
 }
 
-istream& operator>>(istream& lhs, document& rhs)
+std::istream &operator>>(std::istream &lhs, document &rhs)
 {
 	rhs.read(lhs);
 	return lhs;
 }
 
-ostream& operator<<(ostream& lhs, const document& rhs)
+std::ostream &operator<<(std::ostream &lhs, const document &rhs)
 {
 	writer w(lhs);
-	
+
 	rhs.write(w);
 	return lhs;
 }
@@ -511,44 +461,44 @@ ostream& operator<<(ostream& lhs, const document& rhs)
 // --------------------------------------------------------------------
 //
 //	A visitor for elements that match the element_xpath.
-//	
+//
 
 struct visitor_imp : public zeep_document_imp
 {
-					visitor_imp(document* doc, const string& element_xpath,
-						boost::function<bool(node* doc_root, element* e)> cb);
+	visitor_imp(document *doc, const std::string &element_xpath,
+				std::function<bool(node *doc_root, element *e)> cb);
 
-	void			EndElementHandler(const string& name, const string& uri);
+	void EndElementHandler(const std::string &name, const std::string &uri);
 
-	xpath			mElementXPath;
-	boost::function<bool(node* doc_root, element* e)>
-					mCallback;
+	xpath mElementXPath;
+	std::function<bool(node *doc_root, element *e)>
+		mCallback;
 };
 
 // --------------------------------------------------------------------
 
-visitor_imp::visitor_imp(document* doc, const string& element_xpath,
-		boost::function<bool(node* doc_root, element* e)> cb)
+visitor_imp::visitor_imp(document *doc, const std::string &element_xpath,
+						 std::function<bool(node *doc_root, element *e)> cb)
 	: zeep_document_imp(doc), mElementXPath(element_xpath), mCallback(cb)
 {
 }
 
-void visitor_imp::EndElementHandler(const string& name, const string& uri)
+void visitor_imp::EndElementHandler(const std::string &name, const std::string &uri)
 {
 	if (m_cur == nullptr)
 		throw exception("Empty stack");
-	
+
 	if (m_cdata != nullptr)
 		throw exception("CDATA section not closed");
-	
+
 	// see if we need to process this one
 	if (mElementXPath.matches(m_cur))
 	{
 		if (not mCallback(m_root.child(), m_cur))
 			; // TODO stop processing, how?
 
-		element* e = m_cur;
-		m_cur = dynamic_cast<element*>(m_cur->parent());
+		element *e = m_cur;
+		m_cur = dynamic_cast<element *>(m_cur->parent());
 		if (m_cur == nullptr)
 			m_root.child_element(nullptr);
 		else
@@ -558,17 +508,17 @@ void visitor_imp::EndElementHandler(const string& name, const string& uri)
 		}
 	}
 	else
-		m_cur = dynamic_cast<element*>(m_cur->parent());
+		m_cur = dynamic_cast<element *>(m_cur->parent());
 }
 
-void process_document_elements(istream& data, const string& element_xpath,
-	boost::function<bool(node* doc_root, element* e)> cb)
+void process_document_elements(std::istream &data, const std::string &element_xpath,
+							   std::function<bool(node *doc_root, element *e)> cb)
 {
 	document doc(new visitor_imp(nullptr, element_xpath, cb));
 	doc.m_impl->m_doc = &doc;
-	
+
 	doc.m_impl->parse(data);
 }
 
-} // xml
-} // zeep
+} // namespace xml
+} // namespace zeep

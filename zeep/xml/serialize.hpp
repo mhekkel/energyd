@@ -12,20 +12,13 @@
 #include <map>
 #include <cassert>
 #include <ctime>
+#include <regex>
 
 #include <zeep/xml/node.hpp>
 #include <zeep/exception.hpp>
 
-#include <boost/config.hpp>
-#include <boost/foreach.hpp>
-#include <boost/mpl/if.hpp>
+#include <boost/type_traits/integral_promotion.hpp>
 #include <boost/serialization/nvp.hpp>
-#include <boost/type_traits/is_arithmetic.hpp>
-#include <boost/type_traits/is_enum.hpp>
-#include <boost/type_traits/remove_pointer.hpp>
-#include <boost/type_traits/remove_reference.hpp>
-#include <boost/type_traits/remove_const.hpp>
-#include <boost/type_traits/integral_promotion.hpp> 
 #include <boost/lexical_cast.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/date_time/gregorian/gregorian.hpp>
@@ -286,7 +279,7 @@ struct schema_creator
 //	and serialize_boost_optional.
 
 // arithmetic types are ints, doubles, etc... simply use lexical_cast to convert these
-template<typename T, int S = sizeof(T), bool = boost::is_unsigned<T>::value> struct arithmetic_schema_name {};
+template<typename T, int S = sizeof(T), bool = std::is_unsigned<T>::value> struct arithmetic_schema_name {};
 
 template<typename T> struct arithmetic_schema_name<T, 1, false> {
 	static const char* type_name() { return "xsd:byte"; }
@@ -329,7 +322,7 @@ struct arithmetic_serializer : public arithmetic_schema_name<T>
 
 	static std::string serialize_value(const value_type& value)
 	{
-		return boost::lexical_cast<std::string>(static_cast<promoted_type>(value));
+		return std::to_string(static_cast<promoted_type>(value));
 	}
 	
 	static value_type deserialize_value(const std::string& value)
@@ -398,7 +391,7 @@ struct boost_posix_time_ptime_serializer
 		//  3: date fields not separated, time fields not separated, eg. 20130217T152520,502104+01:00
 
 		// Apart from the separators, the 3 regexes are basically the same, i.e. they have the same fields
-		// Note: boost::regex is threadsafe, so we can declare these statically
+		// Note: std::regex is threadsafe, so we can declare these statically
 
 		// Format 1:
 		// ^(-?\d{4})-(\d{2})-(\d{2})T(\d{2})(:(\d{2})(:(\d{2})([.,](\d+))?)?)?((Z)|([-+])(\d{2})(:(\d{2}))?)?$
@@ -420,15 +413,15 @@ struct boost_posix_time_ptime_serializer
 		//  |         |       [3] day
 		//  |         [2] month
 		//  [1] year
-		static boost::regex re1("^(-?\\d{4})-(\\d{2})-(\\d{2})T(\\d{2})(:(\\d{2})(:(\\d{2})([.,](\\d+))?)?)?((Z)|([-+])(\\d{2})(:(\\d{2}))?)?$");
+		static std::regex re1("^(-?\\d{4})-(\\d{2})-(\\d{2})T(\\d{2})(:(\\d{2})(:(\\d{2})([.,](\\d+))?)?)?((Z)|([-+])(\\d{2})(:(\\d{2}))?)?$");
 
 		// Format 2:
 		// ^(-?\d{4})(\d{2})(\d{2})T(\d{2})(:(\d{2})(:(\d{2})([.,]\d+)?)?)?((Z)|([-+])(\d{2})(:(\d{2}))?)?$
-		static boost::regex re2("^(-?\\d{4})(\\d{2})(\\d{2})T(\\d{2})(:(\\d{2})(:(\\d{2})([.,]\\d+)?)?)?((Z)|([-+])(\\d{2})(:(\\d{2}))?)?$");
+		static std::regex re2("^(-?\\d{4})(\\d{2})(\\d{2})T(\\d{2})(:(\\d{2})(:(\\d{2})([.,]\\d+)?)?)?((Z)|([-+])(\\d{2})(:(\\d{2}))?)?$");
 
 		// Format 3:
 		// ^(-?\d{4})(\d{2})(\d{2})T(\d{2})((\d{2})((\d{2})([.,]\d+)?)?)?((Z)|([-+])(\d{2})(:(\d{2}))?)?$
-		static boost::regex re3("^(-?\\d{4})(\\d{2})(\\d{2})T(\\d{2})((\\d{2})((\\d{2})([.,]\\d+)?)?)?((Z)|([-+])(\\d{2})(:(\\d{2}))?)?$");
+		static std::regex re3("^(-?\\d{4})(\\d{2})(\\d{2})T(\\d{2})((\\d{2})((\\d{2})([.,]\\d+)?)?)?((Z)|([-+])(\\d{2})(:(\\d{2}))?)?$");
 
 		static const int f_year              =  1;
 		static const int f_month             =  2;
@@ -447,33 +440,33 @@ struct boost_posix_time_ptime_serializer
 		static const int f_have_offs_minutes = 15;
 		static const int f_offs_minutes      = 16;
 
-		boost::smatch m;
-		if (not boost::regex_match(s, m, re1)) {
-			if (not boost::regex_match(s, m, re2)) {
-				if (not boost::regex_match(s, m, re3)) {
+		std::smatch m;
+		if (not std::regex_match(s, m, re1)) {
+			if (not std::regex_match(s, m, re2)) {
+				if (not std::regex_match(s, m, re3)) {
 					throw exception("Bad dateTime format");
 				}
 			}
 		}
 
 		boost::gregorian::date d(
-		  boost::lexical_cast<int>(m[f_year])
-		, boost::lexical_cast<int>(m[f_month])
-		, boost::lexical_cast<int>(m[f_day])
+		  std::stoi(m[f_year])
+		, std::stoi(m[f_month])
+		, std::stoi(m[f_day])
 		);
 
-		int hours = boost::lexical_cast<int>(m[f_hours]);
+		int hours = std::stoi(m[f_hours]);
 		int minutes = 0, seconds = 0;
 		if (m.length(f_have_minutes)) {
-			minutes = boost::lexical_cast<int>(m[f_minutes]);
+			minutes = std::stoi(m[f_minutes]);
 			if (m.length(f_have_seconds)) {
-				seconds = boost::lexical_cast<int>(m[f_seconds]);
+				seconds = std::stoi(m[f_seconds]);
 			}
 		}
 		boost::posix_time::time_duration t(hours, minutes, seconds);
 
 		if (m.length(f_have_frac)) {
-			double frac = boost::lexical_cast<double>(std::string(".").append(std::string(m[f_frac])));
+			double frac = std::stod(std::string(".").append(std::string(m[f_frac])));
 			t += boost::posix_time::microseconds(static_cast<int64_t>((frac + .5) * 1e6));
 		}
 
@@ -482,10 +475,10 @@ struct boost_posix_time_ptime_serializer
 		if (m.length(f_have_tz)) {
 			if (not m.length(f_zulu)) {
 				std::string sign = m[f_offs_sign];
-				int hours = boost::lexical_cast<int>(m[f_offs_hours]);
+				int hours = std::stoi(m[f_offs_hours]);
 				int minutes = 0;
 				if (m.length(f_have_offs_minutes)) {
-					minutes = boost::lexical_cast<int>(m[f_offs_minutes]);
+					minutes = std::stoi(m[f_offs_minutes]);
 				}
 				boost::posix_time::time_duration offs(hours, minutes, 0);
 				if (sign == "+") {
@@ -530,7 +523,7 @@ struct boost_gregorian_date_serializer
 		//  2: date fields not separated, eg. 20130217
 
 		// Apart from the separators, the 2 regexes are basically the same, i.e. they have the same fields
-		// Note: boost::regex is threadsafe, so we can declare these statically
+		// Note: std::regex is threadsafe, so we can declare these statically
 
 		// Format 1:
 		// ^(-?\d{4})-(\d{2})-(\d{2})$
@@ -540,27 +533,27 @@ struct boost_gregorian_date_serializer
 		//  |         |       [3] day
 		//  |         [2] month
 		//  [1] year
-		static boost::regex re1("^(-?\\d{4})-(\\d{2})-(\\d{2})$");
+		static std::regex re1("^(-?\\d{4})-(\\d{2})-(\\d{2})$");
 
 		// Format 2:
 		// ^(-?\d{4})(\d{2})(\d{2})$
-		static boost::regex re2("^(-?\\d{4})(\\d{2})(\\d{2})$");
+		static std::regex re2("^(-?\\d{4})(\\d{2})(\\d{2})$");
 
 		static const int f_year              =  1;
 		static const int f_month             =  2;
 		static const int f_day               =  3;
 
-		boost::smatch m;
-		if (not boost::regex_match(s, m, re1)) {
-			if (not boost::regex_match(s, m, re2)) {
+		std::smatch m;
+		if (not std::regex_match(s, m, re1)) {
+			if (not std::regex_match(s, m, re2)) {
 				throw exception("Bad date format");
 			}
 		}
 
 		return boost::gregorian::date(
-				  boost::lexical_cast<int>(m[f_year])
-				, boost::lexical_cast<int>(m[f_month])
-				, boost::lexical_cast<int>(m[f_day])
+				  std::stoi(m[f_year])
+				, std::stoi(m[f_month])
+				, std::stoi(m[f_day])
 				);
 	}
 };
@@ -587,7 +580,7 @@ struct boost_posix_time_time_duration_serializer
 		//  2: time fields not separated, eg. 152520,502104
 
 		// Apart from the separators, the 2 regexes are basically the same, i.e. they have the same fields
-		// Note: boost::regex is threadsafe, so we can declare these statically
+		// Note: std::regex is threadsafe, so we can declare these statically
 
 		// Format 1:
 		// ^(\d{2})(:(\d{2})(:(\d{2})([.,](\d+))?)?)?$
@@ -600,11 +593,11 @@ struct boost_posix_time_time_duration_serializer
 		//  |      | [3] minutes
 		//  |      [2] have minutes?
 		//  [1] hours
-		static boost::regex re1("^(\\d{2})(:(\\d{2})(:(\\d{2})([.,](\\d+))?)?)?$");
+		static std::regex re1("^(\\d{2})(:(\\d{2})(:(\\d{2})([.,](\\d+))?)?)?$");
 
 		// Format 2:
 		// ^(\d{2})((\d{2})((\d{2})([.,](\d+))?)?)?$
-		static boost::regex re2("^(\\d{2})((\\d{2})((\\d{2})([.,](\\d+))?)?)?$");
+		static std::regex re2("^(\\d{2})((\\d{2})((\\d{2})([.,](\\d+))?)?)?$");
 
 		static const int f_hours             =  1;
 		static const int f_have_minutes      =  2;
@@ -614,26 +607,26 @@ struct boost_posix_time_time_duration_serializer
 		static const int f_have_frac         =  6;
 		static const int f_frac              =  7;
 
-		boost::smatch m;
-		if (not boost::regex_match(s, m, re1)) {
-			if (not boost::regex_match(s, m, re2)) {
+		std::smatch m;
+		if (not std::regex_match(s, m, re1)) {
+			if (not std::regex_match(s, m, re2)) {
 				throw exception("Bad time format");
 			}
 		}
 
-		int hours = boost::lexical_cast<int>(m[f_hours]);
+		int hours = std::stoi(m[f_hours]);
 		int minutes = 0, seconds = 0;
 		if (m.length(f_have_minutes)) {
-			minutes = boost::lexical_cast<int>(m[f_minutes]);
+			minutes = std::stoi(m[f_minutes]);
 			if (m.length(f_have_seconds)) {
-				seconds = boost::lexical_cast<int>(m[f_seconds]);
+				seconds = std::stoi(m[f_seconds]);
 			}
 		}
 
 		boost::posix_time::time_duration result = boost::posix_time::time_duration(hours, minutes, seconds);
 
 		if (m.length(f_have_frac)) {
-			double frac = boost::lexical_cast<double>(std::string(".").append(std::string(m[f_frac])));
+			double frac = std::stod(std::string(".").append(std::string(m[f_frac])));
 			result += boost::posix_time::microseconds(static_cast<int64_t>((frac + .5) * 1e6));
 		}
 		
@@ -916,13 +909,26 @@ struct basic_serializer_type : public Serializer
 // a templated class with a default implementation that derives from
 // basic_serializer_type and a couple of specializations.
 
+template<bool Cond, typename T1, typename T2>
+struct choose_type
+{
+    typedef T1 type;
+};
+
+template<typename T1, typename T2>
+struct choose_type<false,T1,T2>
+{
+    typedef T2 type;
+};
+
+
 template<typename T>
 struct serializer_type : public basic_serializer_type<
-									typename boost::mpl::if_c<
-											boost::is_arithmetic<T>::value,
-											wrapped_serializer<arithmetic_serializer<T> >,
-											typename boost::mpl::if_c<
-												boost::is_enum<T>::value,
+									typename choose_type<
+											std::is_arithmetic<T>::value,
+											wrapped_serializer<arithmetic_serializer<T>>,
+											typename choose_type<
+												std::is_enum<T>::value,
 												enum_serializer<T>,
 												struct_serializer_impl<T>
 											>::type
@@ -1079,7 +1085,7 @@ struct serializer_type<boost::optional<T> >
 template<typename T>
 serializer& serializer::serialize_element(const char* name, const T& value)
 {
-	typedef typename boost::remove_const<typename boost::remove_reference<T>::type>::type	value_type;
+	typedef typename std::remove_const<typename std::remove_reference<T>::type>::type	value_type;
 	typedef serializer_type<value_type>											type_serializer;
 
 	type_serializer::serialize_child(m_node, name, value);
@@ -1090,7 +1096,7 @@ serializer& serializer::serialize_element(const char* name, const T& value)
 template<typename T>
 serializer& serializer::serialize_attribute(const char* name, const T& value)
 {
-	typedef typename boost::remove_const<typename boost::remove_reference<T>::type>::type	value_type;
+	typedef typename std::remove_const<typename std::remove_reference<T>::type>::type	value_type;
 	typedef typename serializer_type<value_type>::type_serializer_type						type_serializer;
 
 	element* e = dynamic_cast<element*>(m_node);
@@ -1104,7 +1110,7 @@ serializer& serializer::serialize_attribute(const char* name, const T& value)
 template<typename T>
 deserializer& deserializer::deserialize_element(const char* name, T& value)
 {
-	typedef typename boost::remove_const<typename boost::remove_reference<T>::type>::type	value_type;
+	typedef typename std::remove_const<typename std::remove_reference<T>::type>::type	value_type;
 	typedef serializer_type<value_type>											type_serializer;
 	
 	type_serializer::deserialize_child(m_node, name, value);
@@ -1115,7 +1121,7 @@ deserializer& deserializer::deserialize_element(const char* name, T& value)
 template<typename T>
 deserializer& deserializer::deserialize_attribute(const char* name, T& value)
 {
-	typedef typename boost::remove_const<typename boost::remove_reference<T>::type>::type	value_type;
+	typedef typename std::remove_const<typename std::remove_reference<T>::type>::type	value_type;
 	typedef typename serializer_type<value_type>::type_serializer_type						type_serializer;
 
 	const element* e = dynamic_cast<const element*>(m_node);
@@ -1134,7 +1140,7 @@ deserializer& deserializer::deserialize_attribute(const char* name, T& value)
 template<typename T>
 schema_creator& schema_creator::add_element(const char* name, const T& value)
 {
-	typedef typename boost::remove_const<typename boost::remove_reference<T>::type>::type	value_type;
+	typedef typename std::remove_const<typename std::remove_reference<T>::type>::type	value_type;
 	typedef serializer_type<value_type>											type_serializer;
 	
 	m_node->append(type_serializer::schema(name));
@@ -1151,7 +1157,7 @@ schema_creator& schema_creator::add_element(const char* name, const T& value)
 template<typename T>
 schema_creator& schema_creator::add_attribute(const char* name, const T& value)
 {
-	typedef typename boost::remove_const<typename boost::remove_reference<T>::type>::type	value_type;
+	typedef typename std::remove_const<typename std::remove_reference<T>::type>::type	value_type;
 	typedef serializer_type<value_type>											type_serializer;
 	
 	element* n(new element("xsd:attribute"));

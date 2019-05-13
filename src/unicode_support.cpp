@@ -4,12 +4,10 @@
 //           http://www.boost.org/LICENSE_1_0.txt)
 
 #include <algorithm>
-
-#include <boost/bind.hpp>
+#include <locale>
+#include <sstream>
 
 #include <zeep/xml/unicode_support.hpp>
-
-using namespace std;
 
 namespace zeep { namespace xml {
 
@@ -59,31 +57,49 @@ bool is_valid_system_literal_char(unicode uc)
 		uc != '#';
 }
 
-bool is_valid_system_literal(const string& s)
+bool is_valid_system_literal(const std::string& s)
 {
 	bool result = true;
-	for (string::const_iterator ch = s.begin(); result == true and ch != s.end(); ++ch)
+	for (std::string::const_iterator ch = s.begin(); result == true and ch != s.end(); ++ch)
 		result = is_valid_system_literal_char(*ch);
 	return result;
 }
 
 bool is_valid_public_id_char(unicode uc)
 {
-	static const string kPubChars(" \r\n-'()+,./:=?;!*#@$_%");
+	static const std::string kPubChars(" \r\n-'()+,./:=?;!*#@$_%");
 	
 	return
 		(uc >= 'a' and uc <= 'z') or
 		(uc >= 'A' and uc <= 'Z') or
 		(uc >= '0' and uc <= '9') or
-		(uc < 128 and kPubChars.find(static_cast<char>(uc)) != string::npos);
+		(uc < 128 and kPubChars.find(static_cast<char>(uc)) != std::string::npos);
 }
 
-bool is_valid_public_id(const string& s)
+bool is_valid_public_id(const std::string& s)
 {
 	bool result = true;
-	for (string::const_iterator ch = s.begin(); result == true and ch != s.end(); ++ch)
+	for (std::string::const_iterator ch = s.begin(); result == true and ch != s.end(); ++ch)
 		result = is_valid_public_id_char(*ch);
 	return result;
+}
+
+bool iequals(const std::string& a, const std::string& b)
+{
+	auto loc = std::locale();
+
+	bool equal = a.length() == b.length();
+	for (std::string::size_type i = 0; equal and i < a.length(); ++i)
+		equal = std::toupper<char>(a[i], loc) == std::toupper<char>(b[i], loc);
+	
+	return equal;
+}
+
+std::string to_hex(int i)
+{
+	std::ostringstream s;
+	s << std::hex << "0x" << i;
+	return s.str();
 }
 
 }

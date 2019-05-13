@@ -12,16 +12,14 @@
 #include <iomanip>
 #include <cmath>
 
-#include <boost/foreach.hpp>
-#define foreach BOOST_FOREACH
-#include <boost/algorithm/string.hpp>
+// #include <boost/algorithm/string.hpp>
 
 #include <zeep/http/webapp.hpp>
 #include <zeep/http/webapp/el.hpp>
 #include <zeep/xml/unicode_support.hpp>
 
 using namespace std;
-namespace ba = boost::algorithm;
+// namespace ba = boost::algorithm;
 
 namespace zeep { namespace http {
 namespace el
@@ -154,7 +152,7 @@ class string_object_impl : public detail::object_impl
 					{
 						stringstream s;
 						s << '"';
-						foreach (char ch, m_v)
+						for (char ch: m_v)
 						{
 							switch (ch)
 							{
@@ -212,13 +210,13 @@ class vector_object_impl : public detail::base_array_object_impl
 
 					vector_object_impl(const vector<string>& v)
 					{
-						foreach (const string& s, v)
+						for (const string& s: v)
 							m_v.push_back(object(s));
 					}
 
 					vector_object_impl(const vector<float>& v)
 					{
-						foreach (float f, v)
+						for (float f: v)
 							m_v.push_back(object(f));
 					}
 
@@ -260,7 +258,7 @@ class vector_object_impl : public detail::base_array_object_impl
 					{
 						os << '[';
 						bool first = true;
-						foreach (const object& o, m_v)
+						for (const object& o: m_v)
 						{
 							if (not first)
 								os << ',';
@@ -306,7 +304,7 @@ class struct_object_impl : public detail::base_struct_object_impl
 						os << '{';
 						bool first = true;
 						typedef pair<string,object> value_type;
-						foreach (const value_type& o, m_v)
+						for (const value_type& o: m_v)
 						{
 							if (not first)
 								os << ',';
@@ -1308,7 +1306,7 @@ void interpreter::get_next_token()
 						else if (zeep::xml::is_name_start_char(ch))
 							state = els_Name;
 						else
-							throw zeep::exception((boost::format("invalid character (%1%) in expression") % ch).str());
+							throw zeep::exception("invalid character (" + xml::to_hex(ch) + ") in expression");
 				}
 				break;
 			
@@ -1678,7 +1676,7 @@ ostream& operator<<(ostream& lhs, const scope& rhs)
 	const scope* s = &rhs;
 	while (s != nullptr)
 	{
-		foreach (scope::data_map::value_type e, s->m_data)
+		for (scope::data_map::value_type e: s->m_data)
 			lhs << e.first << " = " << e.second << endl;
 		s = s->m_next;
 	}

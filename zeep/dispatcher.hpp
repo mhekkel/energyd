@@ -335,7 +335,7 @@ class dispatcher
 							
 							handler_list::iterator cb = std::find_if(
 								m_handlers.begin(), m_handlers.end(),
-								boost::bind(&detail::handler_base::get_action_name, _1) == action);
+								bind(&detail::handler_base::get_action_name, _1) == action);
 
 							if (cb == m_handlers.end())
 								throw exception("Action %s is not defined", action.c_str());
@@ -419,7 +419,7 @@ class dispatcher
 						{
 							handler_list::iterator cb = std::find_if(
 								m_handlers.begin(), m_handlers.end(),
-								boost::bind(&detail::handler_base::get_action_name, _1) == action);
+								bind(&detail::handler_base::get_action_name, _1) == action);
 
 							if (cb == m_handlers.end())
 								throw exception("Action %s is not defined", action.c_str());

@@ -10,13 +10,16 @@
 #include <zeep/envelope.hpp>
 #include <zeep/xml/document.hpp>
 
-using namespace std;
-
-namespace ba = boost::algorithm;
 namespace fs = boost::filesystem;
+namespace ba = boost::algorithm;
 
 namespace zeep {
 	
+inline std::string to_string(const boost::filesystem::path& p)
+{
+	return p.string();
+}
+
 server::server(const std::string& ns, const std::string& service)
 	: dispatcher(ns, service)
 {
@@ -30,21 +33,15 @@ void server::bind(const std::string& address, unsigned short port)
 	{
 		if (port != 80)
 			m_location = "http://" + address + ':' +
-				boost::lexical_cast<string>(port) + '/' + m_service;
+				boost::lexical_cast<std::string>(port) + '/' + m_service;
 		else
 			m_location = "http://" + address + '/' + m_service;
 	}
 }
 
-#if BOOST_FILESYSTEM_VERSION == 2
-inline string to_string(const string& p) { return p; }
-#else
-inline string to_string(const boost::filesystem::path& p) { return p.string(); }
-#endif
-
 void server::handle_request(const http::request& req, http::reply& rep)
 {
-	string action;
+	std::string action;
 	
 	try
 	{
@@ -64,13 +61,13 @@ void server::handle_request(const http::request& req, http::reply& rep)
 		else if (req.method == "GET")
 		{
 			// start by sanitizing the request's URI
-			string uri = req.uri;
+			std::string uri = req.uri;
 	
 			// strip off the http part including hostname and such
 			if (ba::starts_with(uri, "http://"))
 			{
-				string::size_type s = uri.find_first_of('/', 7);
-				if (s != string::npos)
+				std::string::size_type s = uri.find_first_of('/', 7);
+				if (s != std::string::npos)
 					uri.erase(0, s);
 			}
 			
@@ -84,7 +81,7 @@ void server::handle_request(const http::request& req, http::reply& rep)
 			if (p == path.end())
 				throw http::bad_request;
 			
-			string root = to_string(*p++);
+			std::string root = to_string(*p++);
 			
 			if (root == "rest")
 			{
@@ -93,11 +90,11 @@ void server::handle_request(const http::request& req, http::reply& rep)
 				xml::element* request(new xml::element(action));
 				while (p != path.end())
 				{
-					string name = http::decode_url(to_string(*p++));
+					std::string name = http::decode_url(to_string(*p++));
 					if (p == path.end())
 						break;
 					xml::element* param(new xml::element(name));
-					string value = http::decode_url(to_string(*p++));
+					std::string value = http::decode_url(to_string(*p++));
 					param->content(value);
 					request->append(param);
 				}

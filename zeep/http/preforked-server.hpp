@@ -6,10 +6,10 @@
 #ifndef SOAP_HTTP_PREFORKED_SERVER_HPP
 #define SOAP_HTTP_PREFORKED_SERVER_HPP
 
-#include <zeep/http/server.hpp>
+#include <thread>
+#include <mutex>
 
-#include <boost/fusion/container/vector.hpp>
-#include <boost/fusion/include/invoke.hpp>
+#include <zeep/http/server.hpp>
 
 /// preforked server support.
 /// A preforked server means you have a master process that listens to a port
@@ -78,7 +78,7 @@ class preforked_server
 	boost::asio::ip::tcp::socket	m_socket;
 	int								m_fd;
 	int								m_pid;
-	boost::mutex					m_lock;
+	std::mutex						m_lock;
 
 #endif
 };

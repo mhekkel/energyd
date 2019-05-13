@@ -106,7 +106,7 @@ void dump(xml::element& e, int level = 0)
 	cout << level << "> " << e.qname() << endl;
 	for (xml::element::attribute_iterator a = e.attr_begin(); a != e.attr_end(); ++a)
 		cout << level << " (a)> " << a->qname() << endl;
-	foreach (xml::element* c, e)
+	for (xml::element* c: e)
 		dump(*c, level + 1);
 }
 
@@ -293,7 +293,7 @@ void run_test_case(const xml::element* testcase, const string& id,
 	else
 		path = string(".//TEST[@ID='") + id + "']";
 	
-	foreach (const xml::element* n, xml::xpath(path).evaluate<xml::element>(*testcase))
+	for (const xml::element* n: xml::xpath(path).evaluate<xml::element>(*testcase))
 	{
 		if ((id.empty() or id == n->get_attribute("ID")) and
 			(type.empty() or type == n->get_attribute("TYPE")))
@@ -328,7 +328,7 @@ void test_testcases(const fs::path& testFile, const string& id,
 	VERBOSE = saved_verbose;
 	TRACE = saved_trace;
 	
-	foreach (const xml::element* test, doc.find("//TESTCASES"))
+	for (const xml::element* test: doc.find("//TESTCASES"))
 	{
 		run_test_case(test, id, type, base_dir, failed_ids);
 	}
@@ -342,9 +342,6 @@ int main(int argc, char* argv[])
 	    ("verbose", "verbose output")
 		("id", po::value<string>(), "ID for the test to run from the test suite")
 	    ("test", "Run SUN test suite")
-#if SOAP_XML_HAS_EXPAT_SUPPORT
-	    ("expat", "Use expat parser")
-#endif
 	    ("trace", "Trace productions in parser")
 	    ("type", po::value<string>(), "Type of test to run (valid|not-wf|invalid|error)")
 	    ("single", po::value<string>(), "Test a single XML file")
@@ -373,11 +370,6 @@ int main(int argc, char* argv[])
 	
 	try
 	{
-#if SOAP_XML_HAS_EXPAT_SUPPORT
-		if (vm.count("expat"))
-			xml::document::set_parser_type(xml::parser_expat);
-#endif
-		
 		if (vm.count("single"))
 		{
 			fs::path path(vm["single"].as<string>());

@@ -10,10 +10,6 @@
 
 #include <boost/filesystem.hpp>
 
-#include <boost/bind.hpp>
-#include <boost/foreach.hpp>
-#define foreach BOOST_FOREACH
-
 using namespace std;
 namespace zh = zeep::http;
 namespace el = zeep::http::el;
@@ -36,10 +32,10 @@ my_webapp::my_webapp()
 {
 	string realm = "test-realm";
 	
-	mount("", boost::bind(&my_webapp::welcome, this, _1, _2, _3));
-	mount("status", realm, boost::bind(&my_webapp::status, this, _1, _2, _3));
-	mount("error", boost::bind(&my_webapp::error, this, _1, _2, _3));
-	mount("style.css", boost::bind(&my_webapp::handle_file, this, _1, _2, _3));
+	mount("", bind(&my_webapp::welcome, this, _1, _2, _3));
+	mount("status", realm, bind(&my_webapp::status, this, _1, _2, _3));
+	mount("error", bind(&my_webapp::error, this, _1, _2, _3));
+	mount("style.css", bind(&my_webapp::handle_file, this, _1, _2, _3));
 }
 	
 string my_webapp::get_hashed_password(const string& username, const string& realm)
@@ -62,7 +58,7 @@ void my_webapp::status(const zh::request& request, const el::scope& scope, zh::r
 	
 	el::scope sub(scope);
 	vector<el::object> headers;
-	foreach (const zh::header& h, request.headers)
+	for (const zh::header& h: request.headers)
 	{
 		el::object header;
 		header["name"] = h.name;
@@ -106,7 +102,7 @@ int main(int argc, char* const argv[])
 	my_webapp app;
 
 	app.bind("0.0.0.0", 10333);
-    boost::thread t(boost::bind(&my_webapp::run, &app, 2));
+    boost::thread t(bind(&my_webapp::run, &app, 2));
 	t.join();
 	
 	return 0;

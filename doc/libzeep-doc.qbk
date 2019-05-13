@@ -457,7 +457,7 @@ This is a very simple, strict XHTML 1.1 file. We will serve it with our server:[
 	
 	MyWebApp::MyWebApp()
 	{
-	  mount("",      boost::bind(&MyWebApp::handle_welcome, this, _1, _2, _3));
+	  mount("",      bind(&MyWebApp::handle_welcome, this, _1, _2, _3));
 	}
 	
 	void MyWebApp::handle_welcome(const __http_request__& request,
@@ -527,8 +527,8 @@ expression language script. This will be explained below:[c++]
 	
 	MyWebApp::MyWebApp()
 	{
-	  mount("",       boost::bind(&MyWebApp::handle_welcome, this, _1, _2, _3));
-	  mount("salute", boost::bind(&MyWebApp::handle_salute, this, _1, _2, _3));
+	  mount("",       bind(&MyWebApp::handle_welcome, this, _1, _2, _3));
+	  mount("salute", bind(&MyWebApp::handle_salute, this, _1, _2, _3));
 	}
 	
 	void MyWebApp::handle_welcome(const __http_request__& request,

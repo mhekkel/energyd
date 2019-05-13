@@ -7,8 +7,6 @@
 #include <zeep/envelope.hpp>
 #include <zeep/xml/xpath.hpp>
 
-using namespace std;
-
 namespace zeep {
 
 envelope::envelope()
@@ -22,7 +20,7 @@ envelope::envelope(xml::document& data)
 	const xml::xpath
 		sRequestPath("/Envelope[namespace-uri()='http://schemas.xmlsoap.org/soap/envelope/']/Body[position()=1]/*[position()=1]");
 	
-	list<xml::element*> l = sRequestPath.evaluate<xml::element>(*data.root());
+	std::list<xml::element*> l = sRequestPath.evaluate<xml::element>(*data.root());
 	
 	if (l.empty())
 		throw zeep::exception("Empty or invalid SOAP envelope passed");
@@ -41,7 +39,7 @@ xml::element* make_envelope(xml::element* data)
 	return env;
 }
 
-xml::element* make_fault(const string& what)
+xml::element* make_fault(const std::string& what)
 {
 	xml::element* fault(new xml::element("env:Fault"));
 	
@@ -58,7 +56,7 @@ xml::element* make_fault(const string& what)
 
 xml::element* make_fault(const std::exception& ex)
 {
-	return make_fault(string(ex.what()));
+	return make_fault(std::string(ex.what()));
 }
 
 }

@@ -4,12 +4,9 @@
 //          http://www.boost.org/LICENSE_1_0.txt)
 
 #include <iostream>
-#include <boost/algorithm/string.hpp>
-#include <boost/algorithm/string/join.hpp>
-#include <boost/bind.hpp>
+// #include <boost/algorithm/string.hpp>
+// #include <boost/algorithm/string/join.hpp>
 #include <boost/range.hpp>
-#include <boost/foreach.hpp>
-#define foreach BOOST_FOREACH
 #include <vector>
 #include <typeinfo>
 
@@ -17,9 +14,6 @@
 #include <zeep/xml/writer.hpp>
 #include <zeep/xml/xpath.hpp>
 #include <zeep/exception.hpp>
-
-using namespace std;
-namespace ba = boost::algorithm;
 
 namespace zeep { namespace xml {
 
@@ -84,9 +78,9 @@ node* node::clone() const
 	return nullptr;
 }
 
-string node::lang() const
+std::string node::lang() const
 {
-	string result;
+	std::string result;
 	if (m_parent != nullptr)
 		result = m_parent->lang();
 	return result;
@@ -159,57 +153,57 @@ void node::parent(container* n)
 	m_parent = n;
 }
 
-string node::qname() const
+std::string node::qname() const
 {
 	return "";
 }
 
-string node::name() const
+std::string node::name() const
 {
-	string qn = qname();
-	string::size_type s = qn.find(':');
-	if (s != string::npos)
+	std::string qn = qname();
+	std::string::size_type s = qn.find(':');
+	if (s != std::string::npos)
 		qn.erase(0, s + 1);
 	return qn;
 }
 
-string node::prefix() const
+std::string node::prefix() const
 {
-	string qn = qname();
-	string::size_type s = qn.find(':');
+	std::string qn = qname();
+	std::string::size_type s = qn.find(':');
 
-	string p;
+	std::string p;
 
-	if (s != string::npos)
+	if (s != std::string::npos)
 		p = qn.substr(0, s);
 
 	return p;
 }
 
-string node::ns() const
+std::string node::ns() const
 {
-	string result, p = prefix();
+	std::string result, p = prefix();
 	result = namespace_for_prefix(p);
 	return result;
 }
 
-string node::namespace_for_prefix(const string& prefix) const
+std::string node::namespace_for_prefix(const std::string& prefix) const
 {
-	string result;
+	std::string result;
 	if (m_parent != nullptr)
 		result = m_parent->namespace_for_prefix(prefix);
 	return result;
 }
 
-string node::prefix_for_namespace(const string& uri) const
+std::string node::prefix_for_namespace(const std::string& uri) const
 {
-	string result;
+	std::string result;
 	if (m_parent != nullptr)
 		result = m_parent->prefix_for_namespace(uri);
 	return result;
 }
 
-void node::write_content(ostream& os, const char* sep) const
+void node::write_content(std::ostream& os, const char* sep) const
 {
 	// do nothing
 }
@@ -652,9 +646,9 @@ const root_node* root_node::root() const
 	return this;
 }
 
-string root_node::str() const
+std::string root_node::str() const
 {
-	string result;
+	std::string result;
 	element* e = child_element();
 	if (e != nullptr)
 		result = e->str();
@@ -879,9 +873,9 @@ element::~element()
 	delete m_name_space;
 }
 
-string element::str() const
+std::string element::str() const
 {
-	string result;
+	std::string result;
 	
 	const node* child = m_child;
 	while (child != nullptr)
@@ -893,9 +887,9 @@ string element::str() const
 	return result;
 }
 
-string element::content() const
+std::string element::content() const
 {
-	string result;
+	std::string result;
 	
 	const node* child = m_child;
 	while (child != nullptr)
@@ -908,7 +902,7 @@ string element::content() const
 	return result;
 }
 
-void element::content(const string& s)
+void element::content(const std::string& s)
 {
 	node* child = m_child;
 	
@@ -968,9 +962,9 @@ name_space_list element::name_spaces() const
 	return result;
 }
 
-string element::get_attribute(const string& qname) const
+std::string element::get_attribute(const std::string& qname) const
 {
-	string result;
+	std::string result;
 
 	for (attribute* attr = m_attribute; attr != nullptr; attr = static_cast<attribute*>(attr->next()))
 	{
@@ -984,7 +978,7 @@ string element::get_attribute(const string& qname) const
 	return result;
 }
 
-attribute* element::get_attribute_node(const string& qname) const
+attribute* element::get_attribute_node(const std::string& qname) const
 {
 	attribute* attr = m_attribute;
 
@@ -998,7 +992,7 @@ attribute* element::get_attribute_node(const string& qname) const
 	return attr;
 }
 
-void element::set_attribute(const string& qname, const string& value, bool id)
+void element::set_attribute(const std::string& qname, const std::string& value, bool id)
 {
 	attribute* attr = get_attribute_node(qname);
 	if (attr != nullptr)
@@ -1017,7 +1011,7 @@ void element::set_attribute(const string& qname, const string& value, bool id)
 	}
 }
 
-void element::remove_attribute(const string& qname)
+void element::remove_attribute(const std::string& qname)
 {
 	attribute* n = get_attribute_node(qname);
 	
@@ -1036,9 +1030,9 @@ void element::remove_attribute(const string& qname)
 	}	
 }
 
-string element::namespace_for_prefix(const string& prefix) const
+std::string element::namespace_for_prefix(const std::string& prefix) const
 {
-	string result;
+	std::string result;
 	
 	for (name_space* ns = m_name_space; ns != nullptr; ns = static_cast<name_space*>(ns->next()))
 	{
@@ -1055,9 +1049,9 @@ string element::namespace_for_prefix(const string& prefix) const
 	return result;
 }
 
-string element::prefix_for_namespace(const string& uri) const
+std::string element::prefix_for_namespace(const std::string& uri) const
 {
-	string result;
+	std::string result;
 	
 	for (name_space* ns = m_name_space; ns != nullptr; ns = static_cast<name_space*>(ns->next()))
 	{
@@ -1074,7 +1068,7 @@ string element::prefix_for_namespace(const string& uri) const
 	return result;
 }
 
-void element::set_name_space(const string& prefix, const string& uri)
+void element::set_name_space(const std::string& prefix, const std::string& uri)
 {
 	name_space* ns;
 	for (ns = m_name_space; ns != nullptr; ns = static_cast<name_space*>(ns->next()))
@@ -1101,17 +1095,17 @@ void element::add_name_space(name_space* ns)
 		m_name_space->insert_sibling(ns, nullptr);
 }
 
-string element::lang() const
+std::string element::lang() const
 {
-	string result = get_attribute("xml:lang");
+	std::string result = get_attribute("xml:lang");
 	if (result.empty())
 		result = node::lang();
 	return result;
 }
 
-string element::id() const
+std::string element::id() const
 {
-	string result;
+	std::string result;
 	
 	attribute* attr = m_attribute;
 	while (attr != nullptr)
@@ -1127,7 +1121,7 @@ string element::id() const
 	return result;
 }
 
-void element::write_content(ostream& os, const char* sep) const
+void element::write_content(std::ostream& os, const char* sep) const
 {
 	node* child = m_child;
 	while (child != nullptr)
@@ -1157,7 +1151,7 @@ void element::write(writer& w) const
 		if (ns->prefix().empty())
 			w.attribute("xmlns", ns->uri());
 		else
-			w.attribute(string("xmlns:") + ns->prefix(), ns->uri());
+			w.attribute(std::string("xmlns:") + ns->prefix(), ns->uri());
 		ns = static_cast<name_space*>(ns->next());
 	}
 
@@ -1232,28 +1226,28 @@ node* element::clone() const
 // --------------------------------------------------------------------
 // operator<<
 
-ostream& operator<<(ostream& lhs, const node& rhs)
+std::ostream& operator<<(std::ostream& lhs, const node& rhs)
 {
 	if (typeid(rhs) == typeid(node))
-		cout << "base class???";
+		std::cout << "base class???";
 	else if (typeid(rhs) == typeid(root_node))
-		cout << "root_node";
+		std::cout << "root_node";
 	else if (typeid(rhs) == typeid(element))
 	{
-		cout << "element <" << static_cast<const element&>(rhs).qname();
+		std::cout << "element <" << static_cast<const element&>(rhs).qname();
 		
 		const element* e = static_cast<const element*>(&rhs);
-		foreach (const attribute* attr, e->attributes())
-			cout << ' ' << attr->qname() << "=\"" << attr->value() << '"';
+		for (const attribute* attr: e->attributes())
+			std::cout << ' ' << attr->qname() << "=\"" << attr->value() << '"';
 		
-		cout << '>';
+		std::cout << '>';
 	}
 	else if (typeid(rhs) == typeid(comment))
-		cout << "comment";
+		std::cout << "comment";
 	else if (typeid(rhs) == typeid(processing_instruction))
-		cout << "processing_instruction";
+		std::cout << "processing_instruction";
 	else
-		cout << typeid(rhs).name();
+		std::cout << typeid(rhs).name();
 		
 	return lhs;
 }

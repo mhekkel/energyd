@@ -3,22 +3,16 @@
 //    (See accompanying file LICENSE_1_0.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
 
-#include <iostream>
+#include <cassert>
 
-#include <boost/foreach.hpp>
-#define foreach BOOST_FOREACH
-#include <boost/algorithm/string.hpp>
-#include <boost/bind.hpp>
+#include <iostream>
 
 #include <zeep/xml/writer.hpp>
 #include <zeep/exception.hpp>
 
-using namespace std;
-namespace ba = boost::algorithm;
-
 namespace zeep { namespace xml {
 
-string k_empty_string;
+std::string k_empty_string;
 
 writer::writer(std::ostream& os)
 	: m_os(os)
@@ -87,13 +81,13 @@ void writer::xml_decl(bool standalone)
 		m_os << "?>";
 		
 		if (m_wrap_prolog)
-			m_os << endl;
+			m_os << std::endl;
 		
 		m_write_xml_decl = false;
 	}
 }
 
-void writer::doctype(const string& root, const string& pubid, const string& dtd)
+void writer::doctype(const std::string& root, const std::string& pubid, const std::string& dtd)
 {
 	m_os << "<!DOCTYPE " << root;
 	
@@ -105,10 +99,10 @@ void writer::doctype(const string& root, const string& pubid, const string& dtd)
 	m_os << " \"" << dtd << "\">";
 
 	if (m_wrap_prolog)
-		m_os << endl;
+		m_os << std::endl;
 }
 
-void writer::start_doctype(const string& root, const string& dtd)
+void writer::start_doctype(const std::string& root, const std::string& dtd)
 {
 	m_os << "<!DOCTYPE " << root;
 	if (not dtd.empty())
@@ -116,17 +110,17 @@ void writer::start_doctype(const string& root, const string& dtd)
 	m_os << " [";
 
 //	if (m_wrap_prolog)
-		m_os << endl;
+		m_os << std::endl;
 }
 
 void writer::end_doctype()
 {
 	m_os << "]>";
 //	if (m_wrap_prolog)
-		m_os << endl;
+		m_os << std::endl;
 }
 
-void writer::empty_doctype(const string& root, const string& dtd)
+void writer::empty_doctype(const std::string& root, const std::string& dtd)
 {
 	m_os << "<!DOCTYPE " << root;
 	if (not dtd.empty())
@@ -134,11 +128,11 @@ void writer::empty_doctype(const string& root, const string& dtd)
 	m_os << ">";
 
 //	if (m_wrap_prolog)
-		m_os << endl;
+		m_os << std::endl;
 }
 
-void writer::notation(const string& name,
-	const string& sysid, const string& pubid)
+void writer::notation(const std::string& name,
+	const std::string& sysid, const std::string& pubid)
 {
 	m_os << "<!NOTATION " << name;
 	if (not pubid.empty())
@@ -151,17 +145,17 @@ void writer::notation(const string& name,
 		m_os << " SYSTEM \'" << sysid << '\'';
 	m_os << '>';
 //	if (m_wrap_prolog)
-		m_os << endl;
+		m_os << std::endl;
 }
 
-void writer::attribute(const string& name, const string& value)
+void writer::attribute(const std::string& name, const std::string& value)
 {
 	if (not m_element_open)
 		throw exception("no open element to write attribute to");
 
 	if ((m_wrap_attributes and m_level <= m_wrap_attributes_max_level) and m_indent_attr > 0)
 	{
-		m_os << endl;
+		m_os << std::endl;
 		for (int i = 0; i < m_indent_attr; ++i)
 			m_os << ' ';
 	}
@@ -174,7 +168,7 @@ void writer::attribute(const string& name, const string& value)
 	
 	bool last_is_space = false;
 
-	foreach (char c, value)
+	for (char c: value)
 	{
 		switch (c)
 		{
@@ -188,7 +182,7 @@ void writer::attribute(const string& name, const string& value)
 			case ' ':	if (not m_trim or not last_is_space) m_os << ' '; last_is_space = true; break;
 			case 0:		throw exception("Invalid null character in XML content");
 			default:	if ((c >= 1 and c <= 8) or (c >= 0x0b and c <= 0x0c) or (c >= 0x0e and c <= 0x1f) or c == 0x7f)
-							m_os << "&#" << hex << c << ';';
+							m_os << "&#" << std::hex << c << ';';
 						else	
 							m_os << c;
 						last_is_space = false;
@@ -199,13 +193,13 @@ void writer::attribute(const string& name, const string& value)
 	m_os << '"';
 }
 
-void writer::start_element(const string& qname)
+void writer::start_element(const std::string& qname)
 {
 	if (m_element_open)
 	{
 		m_os << '>';
 		if (m_wrap)
-			m_os << endl;
+			m_os << std::endl;
 	}
 	
 	for (int i = 0; i < m_indent * m_level; ++i)
@@ -238,7 +232,7 @@ void writer::end_element()
 	{
 		if ((m_wrap_attributes and m_level < m_wrap_attributes_max_level) and m_indent_attr > 0)
 		{
-			m_os << endl;
+			m_os << std::endl;
 			for (int i = 0; i < m_indent_attr; ++i)
 				m_os << ' ';
 		}
@@ -260,20 +254,20 @@ void writer::end_element()
 	}
 
 	if (m_wrap)
-		m_os << endl;
+		m_os << std::endl;
 
 	m_stack.pop();
 	m_element_open = false;
 	m_wrote_element = true;
 }
 
-void writer::cdata(const string& text)
+void writer::cdata(const std::string& text)
 {
 	if (m_element_open)
 	{
 		m_os << '>';
 		if (m_wrap)
-			m_os << endl;
+			m_os << std::endl;
 	}
 
 	m_element_open = false;
@@ -284,10 +278,10 @@ void writer::cdata(const string& text)
 	m_os << "<![CDATA[" << text << "]]>";
 	
 	if (m_wrap)
-		m_os << endl;
+		m_os << std::endl;
 }
 
-void writer::comment(const string& text)
+void writer::comment(const std::string& text)
 {
 	if (not m_no_comment)
 	{
@@ -295,7 +289,7 @@ void writer::comment(const string& text)
 		{
 			m_os << '>';
 			if (m_wrap)
-				m_os << endl;
+				m_os << std::endl;
 		}
 
 		m_element_open = false;
@@ -307,7 +301,7 @@ void writer::comment(const string& text)
 		m_os << "<!--";
 		
 		bool lastWasHyphen = false;
-		foreach (char ch, text)
+		for (char ch: text)
 		{
 			if (ch == '-' and lastWasHyphen)
 				m_os << ' ';
@@ -325,12 +319,12 @@ void writer::comment(const string& text)
 		m_os << "-->";
 		
 		if ((m_prolog and m_wrap_prolog) or (not m_prolog and m_wrap))
-			m_os << endl;
+			m_os << std::endl;
 	}
 }
 
-void writer::processing_instruction(const string& target,
-					const string& text)
+void writer::processing_instruction(const std::string& target,
+					const std::string& text)
 {
 	if (m_element_open)
 		m_os << '>';
@@ -342,10 +336,10 @@ void writer::processing_instruction(const string& target,
 	m_os << "<?" << target << ' ' << text << "?>";
 
 	if ((m_prolog and m_wrap_prolog) or (not m_prolog and m_wrap))
-		m_os << endl;
+		m_os << std::endl;
 }
 
-void writer::content(const string& text)
+void writer::content(const std::string& text)
 {
 	if (m_element_open)
 		m_os << '>';
@@ -353,7 +347,7 @@ void writer::content(const string& text)
 	
 	bool last_is_space = false;
 	
-	foreach (char c, text)
+	for (char c: text)
 	{
 		switch (c)
 		{
@@ -367,7 +361,7 @@ void writer::content(const string& text)
 			case ' ':	if (not m_trim or not last_is_space) m_os << ' '; last_is_space = true; break;
 			case 0:		throw exception("Invalid null character in XML content");
 			default:	if ((c >= 1 and c <= 8) or (c >= 0x0b and c <= 0x0c) or (c >= 0x0e and c <= 0x1f) or c == 0x7f)
-							m_os << "&#" << hex << c << ';';
+							m_os << "&#" << std::hex << c << ';';
 						else	
 							m_os << c;
 						last_is_space = false;

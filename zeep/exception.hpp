@@ -22,9 +22,6 @@ class exception : public std::exception
 				exception(const std::string& message)
 					: m_message(message) {}
 
-//				exception(
-//					XML_Parser		parser);
-//
 	virtual 	~exception() throw() {}
 
 	virtual const char*

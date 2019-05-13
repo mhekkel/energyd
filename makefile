@@ -24,15 +24,15 @@ BOOST_LIBS          := $(BOOST_LIBS:%=boost_%$(BOOST_LIB_SUFFIX))
 LIBS                = $(BOOST_LIBS) stdc++ m pthread
 LDFLAGS             += $(BOOST_LIB_DIR:%=-L%) $(LIBS:%=-l%) -g
 
-VERSION_MAJOR       = 3.0
-VERSION_MINOR       = 5
+VERSION_MAJOR       = 4.0
+VERSION_MINOR       = 0
 VERSION             = $(VERSION_MAJOR).$(VERSION_MINOR)
 DIST_NAME           = libzeep-$(VERSION)
 SO_NAME             = libzeep.so.$(VERSION_MAJOR)
 LIB_NAME            = $(SO_NAME).$(VERSION_MINOR)
 
 CXX                 ?= c++
-CXXFLAGS            += -O2 $(BOOST_INC_DIR:%=-I%) -I. -fPIC -pthread -std=c++11 
+CXXFLAGS            += -O2 $(BOOST_INC_DIR:%=-I%) -I. -fPIC -pthread -std=c++14
 CXXFLAGS            += -Wall
 CXXFLAGS            += -g
 LD                  ?= ld

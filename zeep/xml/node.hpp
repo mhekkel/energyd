@@ -6,15 +6,17 @@
 #ifndef SOAP_XML_NODE_HPP
 #define SOAP_XML_NODE_HPP
 
+#include <cassert>
+
 #include <iterator>
 #include <string>
 #include <list>
 #include <limits>
 
-#include <boost/range.hpp>
-
 #include <zeep/config.hpp>
 #include <zeep/exception.hpp>
+
+#include <boost/range/iterator_range.hpp>
 
 namespace zeep { namespace xml {
 

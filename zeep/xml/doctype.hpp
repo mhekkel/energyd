@@ -12,9 +12,6 @@
 #include <vector>
 #include <list>
 
-#include <boost/tuple/tuple.hpp>
-#include <boost/filesystem/operations.hpp>
-
 namespace zeep { namespace xml { namespace doctype {
 
 // --------------------------------------------------------------------
@@ -206,8 +203,8 @@ class attribute
 							m_default_value = value;
 						}
 
-	boost::tuple<AttributeDefault,std::string>
-						get_default() const						{ return boost::make_tuple(m_default, m_default_value); }
+	std::tuple<AttributeDefault,std::string>
+						get_default() const						{ return std::make_tuple(m_default, m_default_value); }
 	
 	AttributeType		get_type() const						{ return m_type; }
 	AttributeDefault	get_default_type() const				{ return m_default; }
@@ -238,9 +235,12 @@ class attribute
 
 // --------------------------------------------------------------------
 
-class element : boost::noncopyable
+class element
 {
   public:
+						element(const element&) = delete;
+	element&			operator=(const element&) = delete;
+
 						element(const std::string& name, bool declared, bool external)
 							: m_name(name), m_allowed(nullptr), m_declared(declared), m_external(external) {}
 
@@ -278,9 +278,12 @@ class element : boost::noncopyable
 
 // --------------------------------------------------------------------
 
-class entity : boost::noncopyable
+class entity
 {
   public:
+						entity(const entity&) = delete;
+	entity&				operator=(const entity&) = delete;
+
 	const std::string&	name() const							{ return m_name; }		
 	const std::string&	replacement() const						{ return m_replacement; }		
 	const std::string&	path() const							{ return m_path; }
