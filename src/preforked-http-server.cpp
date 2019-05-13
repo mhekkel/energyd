@@ -113,7 +113,7 @@ void preforked_server::run(const std::string& address, short port, int nr_of_thr
 		m_acceptor.listen();
 	
 		m_acceptor.async_accept(m_socket,
-			[this](boost::system::error_code& ec) { handle_accept(ec); });
+			[this](boost::system::error_code ec) { handle_accept(ec); });
 		
 		// close one end of the pipe, save the other
 		m_fd = sockfd[0];
@@ -340,7 +340,7 @@ void preforked_server::handle_accept(const boost::system::error_code& ec)
 		m_socket.close();
 
 		m_acceptor.async_accept(m_socket,
-			[this](boost::system::error_code& ec) { handle_accept(ec); });
+			[this](boost::system::error_code ec) { handle_accept(ec); });
 	}
 }
 

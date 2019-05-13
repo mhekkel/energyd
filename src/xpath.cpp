@@ -166,14 +166,14 @@ const CoreFunctionInfo kCoreFunctionInfo[cf_CoreFunctionCount] =
 	{ "local-name",			kOptionalArgument },
 	{ "namespace-uri",		kOptionalArgument },
 	{ "name",				kOptionalArgument },
-	{ "std::string",				kOptionalArgument },
+	{ "string",				kOptionalArgument },
 	{ "concat",				-2 },
 	{ "starts-with",		2 },
 	{ "contains",			2 },
 	{ "substring-before",	2 },
 	{ "substring-after",	2 },
 	{ "substring",			-2 },
-	{ "std::string-length",		kOptionalArgument },
+	{ "string-length",		kOptionalArgument },
 	{ "normalize-space",	kOptionalArgument },
 	{ "translate",			3 },
 	{ "boolean",			1 },
@@ -340,7 +340,7 @@ template<>
 const std::string& object::as<const std::string&>() const
 {
 	if (m_type != ot_string)
-		throw exception("object is not of type std::string");
+		throw exception("object is not of type string");
 	return m_string;
 }
 
@@ -412,7 +412,7 @@ std::ostream& operator<<(std::ostream& lhs, object& rhs)
 	{
 		case ot_undef:		lhs << "undef()";						break;
 		case ot_number:		lhs << "number(" << rhs.as<double>() << ')';	break;
-		case ot_string:		lhs << "std::string(" << rhs.as<std::string>() << ')'; break;
+		case ot_string:		lhs << "string(" << rhs.as<std::string>() << ')'; break;
 		case ot_boolean:	lhs << "boolean(" << (rhs.as<bool>() ? "true" : "false") << ')'; break;
 		case ot_node_set:	lhs << "node_set(#" << rhs.as<const node_set&>().size() << ')'; break;
 	}
@@ -1399,7 +1399,7 @@ object core_function_expression<cf_Substring>::evaluate(expression_context& cont
 	object v3 = (*a)->evaluate(context);
 	
 	if (v1.type() != ot_string or v2.type() != ot_number or v3.type() != ot_number)
-		throw exception("expected one std::string and two numbers as argument for substring");
+		throw exception("expected one string and two numbers as argument for substring");
 	
 	return v1.as<std::string>().substr(v2.as<int>() - 1, v3.as<int>());
 }
@@ -2091,7 +2091,7 @@ Token xpath_imp::get_next_token()
 			
 			case xps_Literal:
 				if (ch == 0)
-					throw exception("run-away std::string, missing quote character?");
+					throw exception("run-away string, missing quote character?");
 				else if (ch == quoteChar)
 				{
 					token = xp_Literal;

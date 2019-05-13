@@ -23,7 +23,7 @@ LIBS				= $(BOOST_LIBS)
 LDOPTS				= ../libzeep.a $(BOOST_LIB_DIR:%=-L%) $(LIBS:%=-l%) -g -pthread
 
 CXX					?= c++
-CFLAGS				= $(BOOST_INC_DIR:%=-I%) -iquote ../ -g -fPIC -pthread -std=c++0x
+CFLAGS				= $(BOOST_INC_DIR:%=-I%) -iquote ../ -g -fPIC -pthread -std=c++14
 
 VPATH += src
 

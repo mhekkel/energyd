@@ -21,7 +21,7 @@
         <file>http-server.cpp</file>
         <file>reply.cpp</file>
         <file>preforked-http-server.cpp</file>
-        <file>request_parser.cpp</file>
+        <file>message_parser.cpp</file>
         <file>webapp.cpp</file>
         <file>webapp-el.cpp</file>
       </group>

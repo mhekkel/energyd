@@ -37,7 +37,8 @@ void connection::start()
 	m_request.local_port = m_socket.local_endpoint().port();
 	
 	m_socket.async_read_some(boost::asio::buffer(m_buffer),
-		[this](boost::system::error_code ec, size_t bytes_transferred) { handle_read(ec, bytes_transferred); });
+		[self=shared_from_this()](boost::system::error_code ec, size_t bytes_transferred)
+			{ self->handle_read(ec, bytes_transferred); });
 }
 
 void connection::handle_read(boost::system::error_code ec, size_t bytes_transferred)
@@ -62,8 +63,8 @@ void connection::handle_read(boost::system::error_code ec, size_t bytes_transfer
 			m_reply.to_buffers(buffers);
 
 			boost::asio::async_write(m_socket, buffers,
-				bind(&connection::handle_write, shared_from_this(),
-					boost::asio::placeholders::error));
+				[self=shared_from_this()](boost::system::error_code ec, size_t bytes_transferred)
+					{ self->handle_write(ec, bytes_transferred); });
 		}
 		else if (not result)
 		{
@@ -73,20 +74,19 @@ void connection::handle_read(boost::system::error_code ec, size_t bytes_transfer
 			m_reply.to_buffers(buffers);
 
 			boost::asio::async_write(m_socket, buffers,
-				bind(&connection::handle_write, shared_from_this(),
-					boost::asio::placeholders::error));
+				[self=shared_from_this()](boost::system::error_code ec, size_t bytes_transferred)
+					{ self->handle_write(ec, bytes_transferred); });
 		}
 		else
 		{
 			m_socket.async_read_some(boost::asio::buffer(m_buffer),
-				bind(&connection::handle_read, shared_from_this(),
-					boost::asio::placeholders::error,
-					boost::asio::placeholders::bytes_transferred));
+				[self=shared_from_this()](boost::system::error_code ec, size_t bytes_transferred)
+					{ self->handle_read(ec, bytes_transferred); });
 		}
 	}
 }
 
-void connection::handle_write(boost::system::error_code ec)
+void connection::handle_write(boost::system::error_code ec, size_t bytes_transferred)
 {
 	if (not ec)
 	{
@@ -95,8 +95,8 @@ void connection::handle_write(boost::system::error_code ec)
 		if (m_reply.data_to_buffers(buffers))
 		{
 			boost::asio::async_write(m_socket, buffers,
-				bind(&connection::handle_write, shared_from_this(),
-					boost::asio::placeholders::error));
+				[self=shared_from_this()](boost::system::error_code ec, size_t bytes_transferred)
+					{ self->handle_write(ec, bytes_transferred); });
 		}
 		else if (m_request.http_version_minor >= 1 and not m_request.close)
 		{
@@ -105,9 +105,8 @@ void connection::handle_write(boost::system::error_code ec)
 			m_reply = reply();
 
 			m_socket.async_read_some(boost::asio::buffer(m_buffer),
-				bind(&connection::handle_read, shared_from_this(),
-					boost::asio::placeholders::error,
-					boost::asio::placeholders::bytes_transferred));
+				[self=shared_from_this()](boost::system::error_code ec, size_t bytes_transferred)
+					{ self->handle_read(ec, bytes_transferred); });
 		}
 		else
 			m_socket.close();

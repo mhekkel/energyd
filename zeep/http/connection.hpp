@@ -33,7 +33,7 @@ public:
 
 	void start();
 	void handle_read(boost::system::error_code ec, size_t bytes_transferred);
-	void handle_write(boost::system::error_code ec);
+	void handle_write(boost::system::error_code ec, size_t bytes_transferred);
 
 	boost::asio::ip::tcp::socket &
 	get_socket() { return m_socket; }
