@@ -1,19 +1,46 @@
-# Makefile for libzeep and a test/sample application using libzeep.
+# Makefile for libzeep, the library
 #
 # Copyright Maarten L. Hekkelman, UMC St. Radboud 2008-2013.
+#        Copyright Maarten L. Hekkelman, 2014-2019
 # Distributed under the Boost Software License, Version 1.0.
 #    (See accompanying file LICENSE_1_0.txt or copy at
 #          http://www.boost.org/LICENSE_1_0.txt)
 #
-# You may have to edit the first three defines on top of this
-# makefile to match your current installation.
+# Use the make.config file in the uplevel directory to
+# change the settings for this build
 
-#BOOST_LIB_SUFFIX   = # e.g. '-mt'
-#BOOST              = $(HOME)/projects/boost
+firstTarget: all
+
+# installation prefix
+PREFIX              ?= /usr/local
+
+# main build variables
+CXX                 ?= c++
+CXXFLAGS            += -O2 $(BOOST_INC_DIR:%=-I%) -I. -fPIC -pthread -std=c++14
+CXXFLAGS            += -Wall
+CXXFLAGS            += -g
+LD                  ?= ld
+LDFLAGS				= -g
+
+# default is to only create a static library
+BUILD_STATIC_LIB	= 1
+BUILD_SHARED_LIB	= 0
+
+# Use the DEBUG flag to build debug versions of the code
+DEBUG               = 0
+
+-include ../make.config
+
+VERSION_MAJOR       = 4.0
+VERSION_MINOR       = 0
+VERSION             = $(VERSION_MAJOR).$(VERSION_MINOR)
+DIST_NAME           = libzeep-$(VERSION)
+SO_NAME             = libzeep.so.$(VERSION_MAJOR)
+LIB_NAME            = $(SO_NAME).$(VERSION_MINOR)
+
 BOOST_LIB_DIR       = $(BOOST:%=%/lib)
 BOOST_INC_DIR       = $(BOOST:%=%/include)
 
-PREFIX              ?= /usr/local
 LIBDIR              ?= $(PREFIX)/lib
 INCDIR              ?= $(PREFIX)/include
 MANDIR              ?= $(PREFIX)/man/man3
@@ -24,49 +51,44 @@ BOOST_LIBS          := $(BOOST_LIBS:%=boost_%$(BOOST_LIB_SUFFIX))
 LIBS                = $(BOOST_LIBS) stdc++ m pthread
 LDFLAGS             += $(BOOST_LIB_DIR:%=-L%) $(LIBS:%=-l%) -g
 
-VERSION_MAJOR       = 4.0
-VERSION_MINOR       = 0
-VERSION             = $(VERSION_MAJOR).$(VERSION_MINOR)
-DIST_NAME           = libzeep-$(VERSION)
-SO_NAME             = libzeep.so.$(VERSION_MAJOR)
-LIB_NAME            = $(SO_NAME).$(VERSION_MINOR)
-
-CXX                 ?= c++
-CXXFLAGS            += -O2 $(BOOST_INC_DIR:%=-I%) -I. -fPIC -pthread -std=c++14
-CXXFLAGS            += -Wall
-CXXFLAGS            += -g
-LD                  ?= ld
-LD_CONFIG			?= ldconfig
+# targets
 
 VPATH += src
 
-OBJECTS = \
-	obj/doctype.o \
-	obj/document.o \
-	obj/exception.o \
-	obj/node.o \
-	obj/soap-envelope.o \
-	obj/parser.o \
-	obj/reply.o \
-	obj/request.o \
-	obj/md5.o \
-	obj/message_parser.o \
-	obj/connection.o \
-	obj/http-server.o \
-	obj/preforked-http-server.o \
-	obj/soap-server.o \
-	obj/unicode_support.o \
-	obj/webapp.o \
-	obj/webapp-el.o \
-	obj/xpath.o \
-	obj/writer.o
+CXXFLAGS += -I ../include
 
-lib: libzeep.a # libzeep.so
+OBJDIR = obj
+ifeq "$(DEBUG)" "1"
+	OBJDIR	:= $(OBJDIR).dbg
+endif
+
+$(OBJDIR):
+	mkdir -p $(OBJDIR)
+
+OBJECTS = \
+	$(OBJDIR)/doctype.o \
+	$(OBJDIR)/document.o \
+	$(OBJDIR)/exception.o \
+	$(OBJDIR)/node.o \
+	$(OBJDIR)/soap-envelope.o \
+	$(OBJDIR)/parser.o \
+	$(OBJDIR)/reply.o \
+	$(OBJDIR)/request.o \
+	$(OBJDIR)/md5.o \
+	$(OBJDIR)/message_parser.o \
+	$(OBJDIR)/connection.o \
+	$(OBJDIR)/http-server.o \
+	$(OBJDIR)/preforked-http-server.o \
+	$(OBJDIR)/soap-server.o \
+	$(OBJDIR)/unicode_support.o \
+	$(OBJDIR)/webapp.o \
+	$(OBJDIR)/webapp-el.o \
+	$(OBJDIR)/xpath.o \
+	$(OBJDIR)/writer.o
 
 libzeep.a: $(OBJECTS)
 	ar rc $@ $(OBJECTS)
 	ranlib $@
-#	ld -r -o $@ $(OBJECTS)
 
 $(LIB_NAME): $(OBJECTS)
 	$(CXX) -shared -o $@ -Wl,-soname=$(SO_NAME) $(OBJECTS) $(LDFLAGS)
@@ -77,11 +99,22 @@ $(SO_NAME): $(LIB_NAME)
 libzeep.so: $(SO_NAME)
 	ln -fs $(LIB_NAME) $@
 
-# assuming zeep-test is build when install was not done already
-zeep-test: obj/zeep-test.o libzeep.a
-	$(CXX) $(BOOST_INC_DIR:%=-I%) -o $@ -I. $^ $(LDFLAGS) -lboost_date_time -lboost_regex
+ifeq "$(BUILD_STATIC_LIB)" "1"
+libs: libzeep.a
+endif
 
-install-libs: libzeep.so
+ifeq "$(BUILD_SHARED_LIB)" "1"
+libs: libzeep.so
+endif
+.PHONY: libs
+
+static-lib: libzeep.a
+.PHONY: static-lib
+
+shared-lib: libzeep.so
+.PHONY: shared-lib
+
+install-libs: libs
 	install -d $(LIBDIR)
 	install $(LIB_NAME) $(LIBDIR)/$(LIB_NAME)
 	strip --strip-unneeded $(LIBDIR)/$(LIB_NAME)
@@ -95,42 +128,19 @@ install-dev: libzeep.a
 	install ./libzeep.a $(LIBDIR)/libzeep.a
 	strip -SX $(LIBDIR)/libzeep.a
 
-install-doc: doc
-	install -d $(MANDIR) $(DOCDIR)/html
-	install doc/libzeep.3 $(MANDIR)/libzeep.3
-	cd doc; for d in `find html -type d`; do install -d $(DOCDIR)/$$d; done
-	cd doc; for f in `find html -type f`; do install $$f $(DOCDIR)/$$f; done
-
-install: install-libs install-dev install-doc
-
-dist: doc
-	rm -rf $(DIST_NAME)
-	mkdir -p $(DIST_NAME)
-	git archive master | tar xC $(DIST_NAME)
-	find doc/html -depth | cpio -pd $(DIST_NAME)
-	tar czf $(DIST_NAME).tgz $(DIST_NAME)
-	rm -rf $(DIST_NAME)
-
-doc: FORCE
-	cd doc; bjam
-
-obj/%.o: %.cpp | obj
-	$(CXX) -MD -c -o $@ $< $(CXXFLAGS)
-
-obj:
-	mkdir -p obj
+install: install-libs install-dev
 
 -include $(OBJECTS:%.o=%.d)
 
 $(OBJECTS:.o=.d):
 
-test: libzeep.a
-	make -C tests
+$(OBJDIR)/%.o: %.cpp | $(OBJDIR)
+	@ echo ">>" $<
+	@ $(CXX) -MD -c -o $@ $< $(CFLAGS) $(CXXFLAGS)
 
 clean:
-	rm -rf obj/* libzeep.a libzeep.so* zeep-test $(DIST_NAME) $(DIST_NAME).tgz
-	cd doc; bjam clean
-	rm -rf doc/bin doc/html
-	$(MAKE) -C tests clean
+	rm -rf $(OBJDIR)/* libzeep.a libzeep.so*
+
+dist-clean: clean
 
 FORCE:
