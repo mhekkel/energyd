@@ -165,7 +165,7 @@ protected:
 	virtual void load_template(const std::string &file, xml::document &doc);
 	void load_template(const boost::filesystem::path &file, xml::document &doc)
 	{
-		load_template(file, doc);
+		load_template(file.string(), doc);
 	}
 
 	/// Return a parameter_map containing the cookies as found in the current request

@@ -219,57 +219,35 @@ my_server::my_server(const string& param)
 	// The next call is needed since FindResult is defined in another namespace
 	SOAP_XML_SET_STRUCT_NAME(FindResult);
 
-	const char* kListDatabanksParameterNames[] = {
-		"databank"
-	};
+	// register_action("ListDatabanks", bind(&my_server::ListDatabanks, this), { "databank" });
 
-	register_action("ListDatabanks", this, &my_server::ListDatabanks, kListDatabanksParameterNames);
+	register_action("Count", this, &my_server::Count, { "db", "booleanquery", "response" });
 
-	const char* kCountParameterNames[] = {
-		"db", "booleanquery", "response"
-	};
+// 	// a new way of mapping enum values to strings.
+// 	zeep::xml::enum_map<Algorithm>::instance("Algorithm").add_enum()
+// 		( "Vector", Vector )
+// 		( "Dice", Dice )
+// 		( "Jaccard", Jaccard )
+// 		;
 
-	register_action("Count", this, &my_server::Count, kCountParameterNames);
+// 	// this is the old, macro based way of mapping the enums:
+// //	SOAP_XML_ADD_ENUM(Algorithm, Vector);
+// //	SOAP_XML_ADD_ENUM(Algorithm, Dice);
+// //	SOAP_XML_ADD_ENUM(Algorithm, Jaccard);
 
-	// a new way of mapping enum values to strings.
-	zeep::xml::enum_map<Algorithm>::instance("Algorithm").add_enum()
-		( "Vector", Vector )
-		( "Dice", Dice )
-		( "Jaccard", Jaccard )
-		;
+// 	register_action("Find", this, &my_server::Find, {
+// 		"db", "queryterms", "algorithm",
+// 		"alltermsrequired", "booleanfilter", "resultoffset", "maxresultcount",
+// 		"out"
+// 	});
 
-	// this is the old, macro based way of mapping the enums:
-//	SOAP_XML_ADD_ENUM(Algorithm, Vector);
-//	SOAP_XML_ADD_ENUM(Algorithm, Dice);
-//	SOAP_XML_ADD_ENUM(Algorithm, Jaccard);
+// 	register_action("DateTimeTest", this, &my_server::DateTimeTest, { "in", "out" });
 
-	const char* kFindParameterNames[] = {
-		"db", "queryterms", "algorithm",
-		"alltermsrequired", "booleanfilter", "resultoffset", "maxresultcount",
-		"out"
-	};
+// 	register_action("ForceStop", this, &my_server::ForceStop, { "out" });
 
-	register_action("Find", this, &my_server::Find, kFindParameterNames);
+// 	zeep::xml::struct_serializer_impl<pair<int,int> >::set_struct_name("pair_of_ints");
 
-	const char* kDateTimeTestParameterNames[] = {
-	 "in", "out"
-	};
-
-	register_action("DateTimeTest", this, &my_server::DateTimeTest, kDateTimeTestParameterNames);
-
-	const char* kForceStopParameterNames[] = {
-		"out"
-	};
-
-	register_action("ForceStop", this, &my_server::ForceStop, kForceStopParameterNames);
-
-	const char* kPairTestParameterNames[] = {
-		"in", "out"
-	};
-
-	zeep::xml::struct_serializer_impl<pair<int,int> >::set_struct_name("pair_of_ints");
-
-	register_action("PairTest", this, &my_server::PairTest, kPairTestParameterNames);
+// 	register_action("PairTest", this, &my_server::PairTest, { "in", "out" });
 }
 
 void my_server::ListDatabanks(
@@ -356,7 +334,7 @@ void my_server::ForceStop(
 
 int main(int argc, const char* argv[])
 {
-#if SOAP_SERVER_HAS_PREFORK
+#if 0 //SOAP_SERVER_HAS_PREFORK
  	for (;;)
  	{
  		cout << "restarting server" << endl;
@@ -378,8 +356,7 @@ int main(int argc, const char* argv[])
 			}
 		});
 		
-		boost::thread t(
-			bind(&zeep::http::preforked_server::run, &server, "0.0.0.0", 10333, 2));
+		thread t(bind(&zeep::http::preforked_server::run, &server, "0.0.0.0", 10333, 2));
 		server.start();
 
 	    pthread_sigmask(SIG_SETMASK, &old_mask, 0);
@@ -430,7 +407,7 @@ int main(int argc, const char* argv[])
 
 		my_server server("blabla");
 		server.bind("0.0.0.0", 10333);
-		boost::thread t(bind(&my_server::run, &server, 2));
+		thread t(bind(&my_server::run, &server, 2));
 
 		pthread_sigmask(SIG_SETMASK, &old_mask, 0);
 

@@ -16,7 +16,7 @@ PREFIX              ?= /usr/local
 
 # main build variables
 CXX                 ?= c++
-CXXFLAGS            += -O2 $(BOOST_INC_DIR:%=-I%) -I. -fPIC -pthread -std=c++14
+CXXFLAGS            += $(BOOST_INC_DIR:%=-I%) -I. -fPIC -pthread -std=c++14
 CXXFLAGS            += -Wall
 CXXFLAGS            += -g
 LD                  ?= ld
@@ -50,6 +50,10 @@ BOOST_LIBS          = system thread filesystem regex random
 BOOST_LIBS          := $(BOOST_LIBS:%=boost_%$(BOOST_LIB_SUFFIX))
 LIBS                = $(BOOST_LIBS) stdc++ m pthread
 LDFLAGS             += $(BOOST_LIB_DIR:%=-L%) $(LIBS:%=-l%) -g
+
+ifneq "$(DEBUG)" "1"
+CXXFLAGS			+= -O2
+endif
 
 # targets
 

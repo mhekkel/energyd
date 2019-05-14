@@ -8,7 +8,7 @@
  <SOAP-ENV:Body>
   <ns:Count>
    <ns:db>sprot</ns:db>
-   <ns:booleanquery>bla bla</ns:booleanquery>
+   <ns:booleanquery>sprot</ns:booleanquery>
   </ns:Count>
  </SOAP-ENV:Body>
 </SOAP-ENV:Envelope>

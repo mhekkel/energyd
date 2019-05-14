@@ -308,7 +308,7 @@ void reply::set_content_type(
 void reply::to_buffers(std::vector<boost::asio::const_buffer>& buffers)
 {
 	m_status_line =
-		"HTTP/" + std::to_string(m_version_major) + '/' + std::to_string(m_version_minor) + ' ' + std::to_string(m_status) + ' ' + get_status_text(m_status);
+		"HTTP/" + std::to_string(m_version_major) + '.' + std::to_string(m_version_minor) + ' ' + std::to_string(m_status) + ' ' + get_status_text(m_status) + kCRLF;
 	
 	buffers.push_back(boost::asio::buffer(m_status_line));
 	
@@ -382,8 +382,8 @@ bool reply::data_to_buffers(std::vector<boost::asio::const_buffer>& buffers)
 std::string reply::get_as_text()
 {
 	// for best performance, we pre calculate memory requirements and reserve that first
-	m_status_line = 
-		"HTTP/" + std::to_string(m_version_major) + '/' + std::to_string(m_version_minor) + ' ' + std::to_string(m_status) + ' ' + get_status_text(m_status);
+	m_status_line =
+		"HTTP/" + std::to_string(m_version_major) + '.' + std::to_string(m_version_minor) + ' ' + std::to_string(m_status) + ' ' + get_status_text(m_status) + kCRLF;
 
 	std::string result;
 	result.reserve(get_size());

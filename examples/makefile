@@ -1,59 +1,82 @@
+# Makefile for libzeep, the examples
+#
+# Copyright Maarten L. Hekkelman, UMC St. Radboud 2008-2013.
+#        Copyright Maarten L. Hekkelman, 2014-2019
+# Distributed under the Boost Software License, Version 1.0.
+#    (See accompanying file LICENSE_1_0.txt or copy at
+#          http://www.boost.org/LICENSE_1_0.txt)
+#
+# Use the make.config file in the uplevel directory to
+# change the settings for this build
 
+firstTarget: all
 
-# # assuming zeep-test is build when install was not done already
-# zeep-test: obj/zeep-test.o libzeep.a
-# 	$(CXX) $(BOOST_INC_DIR:%=-I%) -o $@ -I. $^ $(LDFLAGS) -lboost_date_time -lboost_regex
+# installation prefix
+PREFIX              ?= /usr/local
 
-# install-libs: libzeep.so
-# 	install -d $(LIBDIR)
-# 	install $(LIB_NAME) $(LIBDIR)/$(LIB_NAME)
-# 	strip --strip-unneeded $(LIBDIR)/$(LIB_NAME)
-# 	ln -Tfs $(LIB_NAME) $(LIBDIR)/$(SO_NAME)
-# 	ln -Tfs $(LIB_NAME) $(LIBDIR)/libzeep.so
-# 	$(LD_CONFIG) -n $(LIBDIR)
+# main build variables
+CXX                 ?= c++
+CXXFLAGS            += $(BOOST_INC_DIR:%=-I%) -I. -pthread -std=c++14
+CXXFLAGS            += -Wall
+CXXFLAGS            += -g
+LD                  ?= ld
+LDFLAGS				= -g
 
-# install-dev: libzeep.a
-# 	install -d $(LIBDIR) $(INCDIR)/zeep/xml $(INCDIR)/zeep/http $(INCDIR)/zeep/http/webapp
-# 	for f in `find zeep -name "*.hpp"`; do install $$f $(INCDIR)/$$f; done
-# 	install ./libzeep.a $(LIBDIR)/libzeep.a
-# 	strip -SX $(LIBDIR)/libzeep.a
+# Use the DEBUG flag to build debug versions of the code
+DEBUG               = 0
 
-# install-doc: doc
-# 	install -d $(MANDIR) $(DOCDIR)/html
-# 	install doc/libzeep.3 $(MANDIR)/libzeep.3
-# 	cd doc; for d in `find html -type d`; do install -d $(DOCDIR)/$$d; done
-# 	cd doc; for f in `find html -type f`; do install $$f $(DOCDIR)/$$f; done
+-include ../make.config
 
-# install: install-libs install-dev install-doc
+BOOST_LIB_DIR       = $(BOOST:%=%/lib)
+BOOST_INC_DIR       = $(BOOST:%=%/include)
 
-# dist: doc
-# 	rm -rf $(DIST_NAME)
-# 	mkdir -p $(DIST_NAME)
-# 	git archive master | tar xC $(DIST_NAME)
-# 	find doc/html -depth | cpio -pd $(DIST_NAME)
-# 	tar czf $(DIST_NAME).tgz $(DIST_NAME)
-# 	rm -rf $(DIST_NAME)
+BOOST_LIBS          = system thread filesystem regex random
+BOOST_LIBS          := $(BOOST_LIBS:%=boost_%$(BOOST_LIB_SUFFIX))
+LIBS                = zeep $(BOOST_LIBS) stdc++ m pthread
+LDFLAGS             += $(BOOST_LIB_DIR:%=-L%) -L../lib $(LIBS:%=-l%) -g
 
-# doc: FORCE
-# 	cd doc; bjam
+ifneq "$(DEBUG)" "1"
+CXXFLAGS			+= -O2
+endif
 
-# obj/%.o: %.cpp | obj
-# 	$(CXX) -MD -c -o $@ $< $(CXXFLAGS)
+# targets
 
-# obj:
-# 	mkdir -p obj
+VPATH += src
 
-# -include $(OBJECTS:%.o=%.d)
+CXXFLAGS += -I ../include
 
-# $(OBJECTS:.o=.d):
+OBJDIR = obj
+ifeq "$(DEBUG)" "1"
+	OBJDIR	:= $(OBJDIR).dbg
+endif
 
-# test: libzeep.a
-# 	make -C tests
+$(OBJDIR):
+	mkdir -p $(OBJDIR)
 
-# clean:
-# 	rm -rf obj/* libzeep.a libzeep.so* zeep-test $(DIST_NAME) $(DIST_NAME).tgz
-# 	cd doc; bjam clean
-# 	rm -rf doc/bin doc/html
-# 	$(MAKE) -C tests clean
+TEST_APPS = zeep-test webapp-test
 
-# FORCE:
+OBJECTS = $(TEST_APPS:%=$(OBJDIR)/%.o)
+	
+-include $(OBJECTS:%.o=%.d)
+
+$(OBJECTS:.o=.d):
+
+$(OBJDIR)/%.o: %.cpp | $(OBJDIR)
+	@ echo ">>" $<
+	@ $(CXX) -MD -c -o $@ $< $(CFLAGS) $(CXXFLAGS)
+
+all: $(TEST_APPS)
+.PHONY: all
+
+$(TEST_APPS): ../lib/libzeep.a
+
+$(TEST_APPS): %: $(OBJDIR)/%.o
+	@ echo '->' $@
+	@ $(CXX) -o $@ $^ $(LDFLAGS)
+
+clean:
+	rm -rf $(OBJDIR)/* $(TEST_APPS)
+
+dist-clean: clean
+
+FORCE:
