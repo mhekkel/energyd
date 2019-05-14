@@ -442,7 +442,7 @@ this file as =hello.xhtml=.[teletype]
 This is a very simple, strict XHTML 1.1 file. We will serve it with our server:[c++]
 
 	#include <zeep/http/webapp.hpp>
-	#include <boost/bind.hpp>
+	#include <functional>
 	
 	using namespace std;
 	
@@ -457,6 +457,7 @@ This is a very simple, strict XHTML 1.1 file. We will serve it with our server:[
 	
 	MyWebApp::MyWebApp()
 	{
+    using namespace std::placeholders;
 	  mount("",      bind(&MyWebApp::handle_welcome, this, _1, _2, _3));
 	}
 	
