@@ -5,6 +5,8 @@
 
 #include <zeep/config.hpp>
 
+#include <functional>
+
 #include <zeep/http/webapp.hpp>
 #include <zeep/http/md5.hpp>
 
@@ -31,11 +33,13 @@ my_webapp::my_webapp()
 	: webapp("http://www.hekkelman.com/libzeep/ml", fs::current_path() / "docroot")
 {
 	string realm = "test-realm";
-	
-	mount("", bind(&my_webapp::welcome, this, _1, _2, _3));
-	mount("status", realm, bind(&my_webapp::status, this, _1, _2, _3));
-	mount("error", bind(&my_webapp::error, this, _1, _2, _3));
-	mount("style.css", bind(&my_webapp::handle_file, this, _1, _2, _3));
+
+	using namespace placeholders;
+
+	mount("", std::bind(&my_webapp::welcome, this, _1, _2, _3));
+	mount("status", realm, std::bind(&my_webapp::status, this, _1, _2, _3));
+	mount("error", std::bind(&my_webapp::error, this, _1, _2, _3));
+	mount("style.css", std::bind(&my_webapp::handle_file, this, _1, _2, _3));
 }
 	
 string my_webapp::get_hashed_password(const string& username, const string& realm)
@@ -102,7 +106,7 @@ int main(int argc, char* const argv[])
 	my_webapp app;
 
 	app.bind("0.0.0.0", 10333);
-    boost::thread t(bind(&my_webapp::run, &app, 2));
+    thread t(bind(&my_webapp::run, &app, 2));
 	t.join();
 	
 	return 0;

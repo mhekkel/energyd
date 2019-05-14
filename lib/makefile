@@ -70,25 +70,25 @@ $(OBJDIR):
 	mkdir -p $(OBJDIR)
 
 OBJECTS = \
+	$(OBJDIR)/connection.o \
 	$(OBJDIR)/doctype.o \
 	$(OBJDIR)/document.o \
 	$(OBJDIR)/exception.o \
-	$(OBJDIR)/node.o \
-	$(OBJDIR)/soap-envelope.o \
-	$(OBJDIR)/parser.o \
-	$(OBJDIR)/reply.o \
-	$(OBJDIR)/request.o \
+	$(OBJDIR)/http-server.o \
 	$(OBJDIR)/md5.o \
 	$(OBJDIR)/message_parser.o \
-	$(OBJDIR)/connection.o \
-	$(OBJDIR)/http-server.o \
+	$(OBJDIR)/node.o \
+	$(OBJDIR)/parser.o \
 	$(OBJDIR)/preforked-http-server.o \
+	$(OBJDIR)/reply.o \
+	$(OBJDIR)/request.o \
+	$(OBJDIR)/soap-envelope.o \
 	$(OBJDIR)/soap-server.o \
 	$(OBJDIR)/unicode_support.o \
 	$(OBJDIR)/webapp.o \
 	$(OBJDIR)/webapp-el.o \
-	$(OBJDIR)/xpath.o \
-	$(OBJDIR)/writer.o
+	$(OBJDIR)/writer.o \
+	$(OBJDIR)/xpath.o
 
 libzeep.a: $(OBJECTS)
 	ar rc $@ $(OBJECTS)

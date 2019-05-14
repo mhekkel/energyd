@@ -316,11 +316,6 @@ void basic_webapp::create_error_reply(const request& req, status_type status, co
 	rep.set_status(status);
 }
 
-void basic_webapp::mount(const std::string& path, handler_type handler)
-{
-	mount(path, "", handler);
-}
-
 void basic_webapp::mount(const std::string& path, const std::string& realm, handler_type handler)
 {
 	auto mp = find_if(m_dispatch_table.begin(), m_dispatch_table.end(), [path](const mount_point& mp) -> bool { return mp.path == path; });

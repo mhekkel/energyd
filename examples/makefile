@@ -68,6 +68,9 @@ $(OBJDIR)/%.o: %.cpp | $(OBJDIR)
 all: $(TEST_APPS)
 .PHONY: all
 
+../lib/libzeep.a:
+	+$(MAKE) -C ../lib static-lib
+
 $(TEST_APPS): ../lib/libzeep.a
 
 $(TEST_APPS): %: $(OBJDIR)/%.o

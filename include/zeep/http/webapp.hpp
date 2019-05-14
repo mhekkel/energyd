@@ -153,7 +153,10 @@ protected:
 	///
 	/// void my_server::page_handler(const request& request, const el::scope& scope, reply& reply);
 	///
-	void mount(const std::string &path, handler_type handler);
+	void mount(const std::string &path, handler_type handler)
+	{
+		mount(path, "", std::move(handler));
+	}
 
 	/// version of mount that requires authentication
 	void mount(const std::string &path, const std::string &realm, handler_type handler);
