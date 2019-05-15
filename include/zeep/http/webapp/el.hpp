@@ -1,4 +1,5 @@
-// Copyright Maarten L. Hekkelman, Radboud University 2008-2011.
+// Copyright Maarten L. Hekkelman, Radboud University 2008-2013.
+//        Copyright Maarten L. Hekkelman, 2014-2019
 //   Distributed under the Boost Software License, Version 1.0.
 //      (See accompanying file LICENSE_1_0.txt or copy at
 //            http://www.boost.org/LICENSE_1_0.txt)
@@ -473,7 +474,7 @@ typename object::basic_iterator<ObjectType>::pointer object::basic_iterator<Obje
 {
 	if (m_impl == nullptr)
 		throw exception("dereferencing invalid object iterator");
-	return &m_impl->dereference();
+	return& m_impl->dereference();
 }
 
 template<class ObjectType>

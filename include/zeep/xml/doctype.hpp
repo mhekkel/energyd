@@ -1,4 +1,5 @@
-//  Copyright Maarten L. Hekkelman, Radboud University 2010-2011.
+// Copyright Maarten L. Hekkelman, Radboud University 2008-2013.
+//        Copyright Maarten L. Hekkelman, 2014-2019
 // Distributed under the Boost Software License, Version 1.0.
 //    (See accompanying file LICENSE_1_0.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
@@ -12,7 +13,12 @@
 #include <vector>
 #include <list>
 
-namespace zeep { namespace xml { namespace doctype {
+namespace zeep
+{
+namespace xml
+{
+namespace doctype
+{
 
 // --------------------------------------------------------------------
 // doctype support with full validation.
@@ -22,139 +28,138 @@ class attlist;
 class entity;
 class attribute;
 
-typedef std::vector<entity*>	entity_list;
-typedef std::vector<element*>	element_list;
-typedef std::vector<attribute*>	attribute_list;
+typedef std::vector<entity *> entity_list;
+typedef std::vector<element *> element_list;
+typedef std::vector<attribute *> attribute_list;
 
 // --------------------------------------------------------------------
 // validation of elements is done by the validator classes
 
 struct allowed_base;
-typedef allowed_base*					allowed_ptr;
-typedef std::list<allowed_ptr>			allowed_list;
+typedef allowed_base* allowed_ptr;
+typedef std::list<allowed_ptr> allowed_list;
 
 struct state_base;
-typedef state_base*						state_ptr;
+typedef state_base* state_ptr;
 
 class validator
 {
-  public:
-						validator();
-						
-						validator(allowed_ptr allowed);
+public:
+	validator();
 
-						validator(const validator& other);
-	validator&			operator=(const validator& other);
-	
-						~validator();
+	validator(allowed_ptr allowed);
 
-	void				reset();
-	bool				allow(const std::string& name);
-	bool				allow_char_data();
-	bool				done();
+	validator(const validator& other);
+	validator& operator=(const validator& other);
 
-	bool				operator()(const std::string& name)		{ return allow(name); }
+	~validator();
 
-  private:
+	void reset();
+	bool allow(const std::string& name);
+	bool allow_char_data();
+	bool done();
 
+	bool operator()(const std::string& name) { return allow(name); }
+
+private:
 	friend std::ostream& operator<<(std::ostream& lhs, validator& rhs);
 
-	state_ptr			m_state;
-	allowed_ptr			m_allowed;
-	int					m_nr;
-	static int			s_next_nr;
-	bool				m_done;
+	state_ptr m_state;
+	allowed_ptr m_allowed;
+	int m_nr;
+	static int s_next_nr;
+	bool m_done;
 };
 
 std::ostream& operator<<(std::ostream& lhs, validator& rhs);
 
 struct allowed_base
 {
-						allowed_base() {}
-	virtual				~allowed_base() {}
+	allowed_base() {}
+	virtual ~allowed_base() {}
 
-	virtual state_ptr	create_state() const = 0;
-	virtual bool		element_content() const			{ return false; }
+	virtual state_ptr create_state() const = 0;
+	virtual bool element_content() const { return false; }
 
-	virtual void		print(std::ostream& os) = 0;
+	virtual void print(std::ostream& os) = 0;
 };
 
 struct allowed_any : public allowed_base
 {
-	virtual state_ptr	create_state() const;
-	virtual void		print(std::ostream& os);
+	virtual state_ptr create_state() const;
+	virtual void print(std::ostream& os);
 };
 
 struct allowed_empty : public allowed_base
 {
-	virtual state_ptr	create_state() const;
-	virtual void		print(std::ostream& os);
+	virtual state_ptr create_state() const;
+	virtual void print(std::ostream& os);
 };
 
 struct allowed_element : public allowed_base
 {
-						allowed_element(const std::string& name)
-							: m_name(name) {}
+	allowed_element(const std::string& name)
+		: m_name(name) {}
 
-	virtual state_ptr	create_state() const;
-	virtual bool		element_content() const			{ return true; }
+	virtual state_ptr create_state() const;
+	virtual bool element_content() const { return true; }
 
-	virtual void		print(std::ostream& os);
+	virtual void print(std::ostream& os);
 
-	std::string			m_name;	
+	std::string m_name;
 };
 
 struct allowed_repeated : public allowed_base
 {
-						allowed_repeated(allowed_ptr allowed, char repetion)
-							: m_allowed(allowed), m_repetition(repetion)
-						{
-							assert(allowed);
-						}
+	allowed_repeated(allowed_ptr allowed, char repetion)
+		: m_allowed(allowed), m_repetition(repetion)
+	{
+		assert(allowed);
+	}
 
-						~allowed_repeated();
+	~allowed_repeated();
 
-	virtual state_ptr	create_state() const;
-	virtual bool		element_content() const;
+	virtual state_ptr create_state() const;
+	virtual bool element_content() const;
 
-	virtual void		print(std::ostream& os);
+	virtual void print(std::ostream& os);
 
-	allowed_ptr			m_allowed;
-	char				m_repetition;
+	allowed_ptr m_allowed;
+	char m_repetition;
 };
 
 struct allowed_seq : public allowed_base
 {
-						allowed_seq(allowed_ptr a) { add(a); }
-						~allowed_seq();
+	allowed_seq(allowed_ptr a) { add(a); }
+	~allowed_seq();
 
-	void				add(allowed_ptr a);
+	void add(allowed_ptr a);
 
-	virtual state_ptr	create_state() const;
-	virtual bool		element_content() const;
+	virtual state_ptr create_state() const;
+	virtual bool element_content() const;
 
-	virtual void		print(std::ostream& os);
+	virtual void print(std::ostream& os);
 
-	allowed_list		m_allowed;
+	allowed_list m_allowed;
 };
 
 struct allowed_choice : public allowed_base
 {
-						allowed_choice(bool mixed)
-							: m_mixed(mixed) {}
-						allowed_choice(allowed_ptr a, bool mixed)
-							: m_mixed(mixed) { add(a); }
-						~allowed_choice();
+	allowed_choice(bool mixed)
+		: m_mixed(mixed) {}
+	allowed_choice(allowed_ptr a, bool mixed)
+		: m_mixed(mixed) { add(a); }
+	~allowed_choice();
 
-	void				add(allowed_ptr a);
+	void add(allowed_ptr a);
 
-	virtual state_ptr	create_state() const;
-	virtual bool		element_content() const;
+	virtual state_ptr create_state() const;
+	virtual bool element_content() const;
 
-	virtual void		print(std::ostream& os);
+	virtual void print(std::ostream& os);
 
-	allowed_list		m_allowed;
-	bool				m_mixed;
+	allowed_list m_allowed;
+	bool m_mixed;
 };
 
 // --------------------------------------------------------------------
@@ -184,162 +189,159 @@ enum AttributeDefault
 
 class attribute
 {
-  public:
-						attribute(const std::string& name, AttributeType type)
-							: m_name(name), m_type(type), m_default(attDefNone), m_external(false) {}
+public:
+	attribute(const std::string& name, AttributeType type)
+		: m_name(name), m_type(type), m_default(attDefNone), m_external(false) {}
 
-						attribute(const std::string& name, AttributeType type,
-								const std::vector<std::string>& enums)
-							: m_name(name), m_type(type), m_default(attDefNone)
-							, m_enum(enums), m_external(false) {}
+	attribute(const std::string& name, AttributeType type,
+			  const std::vector<std::string> &enums)
+		: m_name(name), m_type(type), m_default(attDefNone), m_enum(enums), m_external(false) {}
 
-	const std::string&	name() const							{ return m_name; }
+	const std::string& name() const { return m_name; }
 
-	bool				validate_value(std::string& value, const entity_list& entities) const;
-	
-	void				set_default(AttributeDefault def, const std::string& value)
-						{
-							m_default = def;
-							m_default_value = value;
-						}
+	bool validate_value(std::string& value, const entity_list& entities) const;
 
-	std::tuple<AttributeDefault,std::string>
-						get_default() const						{ return std::make_tuple(m_default, m_default_value); }
-	
-	AttributeType		get_type() const						{ return m_type; }
-	AttributeDefault	get_default_type() const				{ return m_default; }
-	const std::vector<std::string>&
-						get_enums() const						{ return m_enum; }
+	void set_default(AttributeDefault def, const std::string& value)
+	{
+		m_default = def;
+		m_default_value = value;
+	}
 
-	void				external(bool external)						{ m_external = external; }
-	bool				external() const							{ return m_external; }
-	
-  private:
+	std::tuple<AttributeDefault, std::string>
+	get_default() const { return std::make_tuple(m_default, m_default_value); }
 
+	AttributeType get_type() const { return m_type; }
+	AttributeDefault get_default_type() const { return m_default; }
+	const std::vector<std::string> &
+	get_enums() const { return m_enum; }
+
+	void external(bool external) { m_external = external; }
+	bool external() const { return m_external; }
+
+private:
 	// routines used to check _and_ reformat attribute value strings
-	bool				is_name(std::string& s) const;
-	bool				is_names(std::string& s) const;
-	bool				is_nmtoken(std::string& s) const;
-	bool				is_nmtokens(std::string& s) const;
+	bool is_name(std::string& s) const;
+	bool is_names(std::string& s) const;
+	bool is_nmtoken(std::string& s) const;
+	bool is_nmtokens(std::string& s) const;
 
-	bool				is_unparsed_entity(const std::string& s, const entity_list& l) const;
+	bool is_unparsed_entity(const std::string& s, const entity_list& l) const;
 
-	std::string			m_name;
-	AttributeType		m_type;
-	AttributeDefault	m_default;
-	std::string			m_default_value;
+	std::string m_name;
+	AttributeType m_type;
+	AttributeDefault m_default;
+	std::string m_default_value;
 	std::vector<std::string>
-						m_enum;
-	bool				m_external;
+		m_enum;
+	bool m_external;
 };
 
 // --------------------------------------------------------------------
 
 class element
 {
-  public:
-						element(const element&) = delete;
-	element&			operator=(const element&) = delete;
+public:
+	element(const element &) = delete;
+	element& operator=(const element &) = delete;
 
-						element(const std::string& name, bool declared, bool external)
-							: m_name(name), m_allowed(nullptr), m_declared(declared), m_external(external) {}
+	element(const std::string& name, bool declared, bool external)
+		: m_name(name), m_allowed(nullptr), m_declared(declared), m_external(external) {}
 
-						~element();
+	~element();
 
-	void				add_attribute(attribute* attr);
-	
-	const attribute*	get_attribute(const std::string& name) const;
+	void add_attribute(attribute* attr);
 
-	const std::string&	name() const								{ return m_name; }
-	
-	const attribute_list&
-						attributes() const							{ return m_attlist; }
+	const attribute* get_attribute(const std::string& name) const;
 
-	void				set_allowed(allowed_ptr allowed);
+	const std::string& name() const { return m_name; }
 
-	void				declared(bool declared)						{ m_declared = declared; }
-	bool				declared() const							{ return m_declared; }
+	const attribute_list &
+	attributes() const { return m_attlist; }
 
-	void				external(bool external)						{ m_external = external; }
-	bool				external() const							{ return m_external; }
+	void set_allowed(allowed_ptr allowed);
 
-	bool				empty() const;
-	bool				element_content() const;
+	void declared(bool declared) { m_declared = declared; }
+	bool declared() const { return m_declared; }
 
-	validator			get_validator() const;
+	void external(bool external) { m_external = external; }
+	bool external() const { return m_external; }
 
-  private:
+	bool empty() const;
+	bool element_content() const;
 
-	std::string			m_name;
-	attribute_list		m_attlist;
-	allowed_ptr			m_allowed;
-	bool				m_declared, m_external;
+	validator get_validator() const;
+
+private:
+	std::string m_name;
+	attribute_list m_attlist;
+	allowed_ptr m_allowed;
+	bool m_declared, m_external;
 };
 
 // --------------------------------------------------------------------
 
 class entity
 {
-  public:
-						entity(const entity&) = delete;
-	entity&				operator=(const entity&) = delete;
+public:
+	entity(const entity &) = delete;
+	entity& operator=(const entity &) = delete;
 
-	const std::string&	name() const							{ return m_name; }		
-	const std::string&	replacement() const						{ return m_replacement; }		
-	const std::string&	path() const							{ return m_path; }
-	bool				parameter() const						{ return m_parameter; }		
+	const std::string& name() const { return m_name; }
+	const std::string& replacement() const { return m_replacement; }
+	const std::string& path() const { return m_path; }
+	bool parameter() const { return m_parameter; }
 
-	bool				parsed() const							{ return m_parsed; }
-	void				parsed(bool parsed)						{ m_parsed = parsed; }
+	bool parsed() const { return m_parsed; }
+	void parsed(bool parsed) { m_parsed = parsed; }
 
-	const std::string&	ndata() const							{ return m_ndata; }
-	void				ndata(const std::string& ndata)		{ m_ndata = ndata; }
+	const std::string& ndata() const { return m_ndata; }
+	void ndata(const std::string& ndata) { m_ndata = ndata; }
 
-	bool				external() const						{ return m_external; }
+	bool external() const { return m_external; }
 
-	bool				externally_defined() const				{ return m_externally_defined; }
-	void				externally_defined(bool externally_defined)
-																{ m_externally_defined = externally_defined; }
+	bool externally_defined() const { return m_externally_defined; }
+	void externally_defined(bool externally_defined)
+	{
+		m_externally_defined = externally_defined;
+	}
 
-  protected:
-						entity(const std::string& name, const std::string& replacement,
-								bool external, bool parsed)
-							: m_name(name), m_replacement(replacement), m_parameter(false), m_parsed(parsed), m_external(external)
-							, m_externally_defined(false) {}
+protected:
+	entity(const std::string& name, const std::string& replacement,
+		   bool external, bool parsed)
+		: m_name(name), m_replacement(replacement), m_parameter(false), m_parsed(parsed), m_external(external), m_externally_defined(false) {}
 
-						entity(const std::string& name, const std::string& replacement,
-								const std::string& path)
-							: m_name(name), m_replacement(replacement), m_path(path), m_parameter(true), m_parsed(true), m_external(true)
-							, m_externally_defined(false) {}
+	entity(const std::string& name, const std::string& replacement,
+		   const std::string& path)
+		: m_name(name), m_replacement(replacement), m_path(path), m_parameter(true), m_parsed(true), m_external(true), m_externally_defined(false) {}
 
-	std::string			m_name;
-	std::string			m_replacement;
-	std::string			m_ndata;
-	std::string			m_path;
-	bool				m_parameter;
-	bool				m_parsed;
-	bool				m_external;
-	bool				m_externally_defined;
+	std::string m_name;
+	std::string m_replacement;
+	std::string m_ndata;
+	std::string m_path;
+	bool m_parameter;
+	bool m_parsed;
+	bool m_external;
+	bool m_externally_defined;
 };
 
 class general_entity : public entity
 {
-  public:
-						general_entity(const std::string& name, const std::string& replacement,
-								bool external = false, bool parsed = true)
-							: entity(name, replacement, external, parsed) {}
+public:
+	general_entity(const std::string& name, const std::string& replacement,
+				   bool external = false, bool parsed = true)
+		: entity(name, replacement, external, parsed) {}
 };
 
 class parameter_entity : public entity
 {
-  public:
-						parameter_entity(const std::string& name, const std::string& replacement,
-								const std::string& path)
-							: entity(name, replacement, path) {}
+public:
+	parameter_entity(const std::string& name, const std::string& replacement,
+					 const std::string& path)
+		: entity(name, replacement, path) {}
 };
-	
-}
-}
-}
+
+} // namespace doctype
+} // namespace xml
+} // namespace zeep
 
 #endif

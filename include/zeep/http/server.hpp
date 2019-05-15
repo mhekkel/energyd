@@ -1,4 +1,5 @@
-// Copyright Maarten L. Hekkelman, Radboud University 2008-2012.
+// Copyright Maarten L. Hekkelman, Radboud University 2008-2013.
+//        Copyright Maarten L. Hekkelman, 2014-2019
 //  Distributed under the Boost Software License, Version 1.0.
 //     (See accompanying file LICENSE_1_0.txt or copy at
 //           http://www.boost.org/LICENSE_1_0.txt)
@@ -13,7 +14,10 @@
 #include <zeep/http/request_handler.hpp>
 #include <zeep/http/reply.hpp>
 
-namespace zeep { namespace http {
+namespace zeep
+{
+namespace http
+{
 
 /// The libzeep HTTP server implementation. Based on code found in boost::asio.
 
@@ -31,66 +35,65 @@ std::string encode_url(const std::string& s);
 
 class server : public request_handler
 {
-  public:
-						server();
+public:
+	server();
 
 	/// Bind the server to \a address and \a port
-	virtual void		bind(const std::string& address,
-							unsigned short port);
+	virtual void bind(const std::string& address,
+					  unsigned short port);
 
-	virtual				~server();
+	virtual ~server();
 
-	virtual void		run(int nr_of_threads);
+	virtual void run(int nr_of_threads);
 
-	virtual void		stop();
+	virtual void stop();
 
 	/// to extend the log entry for a current request, use this ostream:
-	static std::ostream&
-						log();
+	static std::ostream &
+	log();
 
 	/// log_forwarded tells the HTTP server to use the last entry in X-Forwarded-For as client log entry
-	void				log_forwarded(bool v)		{ m_log_forwarded = v; }
+	void log_forwarded(bool v) { m_log_forwarded = v; }
 
-	std::string			address() const				{ return m_address; }
-	unsigned short		port() const				{ return m_port; }
+	std::string address() const { return m_address; }
+	unsigned short port() const { return m_port; }
 
 	/// get_io_service has to be public since we need it to call notify_fork from child code
-	boost::asio::io_service&
-						get_io_service()			{ return m_io_service; }
+	boost::asio::io_service &
+	get_io_service() { return m_io_service; }
 
-  protected:
-
-	virtual void		handle_request(const request& req, reply& rep);
+protected:
+	virtual void handle_request(const request& req, reply& rep);
 
 	/// the default entry logger
-	virtual void		log_request(const std::string& client,
-							const request& req, const reply& rep,
-							const boost::posix_time::ptime& start,
-							const std::string& referer, const std::string& userAgent,
-							const std::string& entry);
+	virtual void log_request(const std::string& client,
+							 const request& req, const reply& rep,
+							 const boost::posix_time::ptime& start,
+							 const std::string& referer, const std::string& userAgent,
+							 const std::string& entry);
 
-  private:
+private:
 	friend class preforked_server_base;
 
-						server(const server&);
-	server&				operator=(const server&);
+	server(const server &);
+	server& operator=(const server &);
 
-	virtual void		handle_request(boost::asio::ip::tcp::socket& socket,
-							const request& req, reply& rep);
+	virtual void handle_request(boost::asio::ip::tcp::socket& socket,
+								const request& req, reply& rep);
 
-	void				handle_accept(boost::system::error_code ec);
+	void handle_accept(boost::system::error_code ec);
 
-	boost::asio::io_service			m_io_service;
+	boost::asio::io_service m_io_service;
 	std::shared_ptr<boost::asio::ip::tcp::acceptor>
-									m_acceptor;
-	std::list<std::thread>			m_threads;
-	std::shared_ptr<connection>		m_new_connection;
-	std::string						m_address;
-	unsigned short					m_port;
-	bool							m_log_forwarded;
+		m_acceptor;
+	std::list<std::thread> m_threads;
+	std::shared_ptr<connection> m_new_connection;
+	std::string m_address;
+	unsigned short m_port;
+	bool m_log_forwarded;
 };
 
-}
-}
+} // namespace http
+} // namespace zeep
 
 #endif

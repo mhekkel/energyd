@@ -1,4 +1,5 @@
-// Copyright Maarten L. Hekkelman, Radboud University 2008-2012.
+// Copyright Maarten L. Hekkelman, Radboud University 2008-2013.
+//        Copyright Maarten L. Hekkelman, 2014-2019
 //  Distributed under the Boost Software License, Version 1.0.
 //     (See accompanying file LICENSE_1_0.txt or copy at
 //           http://www.boost.org/LICENSE_1_0.txt)
@@ -17,12 +18,12 @@ namespace xml
 
 struct document_imp
 {
-	document_imp(document *doc);
+	document_imp(document* doc);
 	virtual ~document_imp();
 
-	virtual void parse(std::istream &data) = 0;
+	virtual void parse(std::istream& data) = 0;
 
-	std::string prefix_for_namespace(const std::string &ns);
+	std::string prefix_for_namespace(const std::string& ns);
 
 	root_node m_root;
 	std::string m_dtd_dir;
@@ -40,9 +41,9 @@ struct document_imp
 	bool m_validating;
 	bool m_preserve_cdata;
 
-	std::istream *external_entity_ref(const std::string &base,
-									  const std::string &pubid,
-									  const std::string &sysid);
+	std::istream* external_entity_ref(const std::string& base,
+									  const std::string& pubid,
+									  const std::string& sysid);
 
 	struct notation
 	{
@@ -51,9 +52,9 @@ struct document_imp
 		std::string m_pubid;
 	};
 
-	document *m_doc;
-	element *m_cur; // construction
-	cdata *m_cdata; // only defined in a CDATA section
+	document* m_doc;
+	element* m_cur; // construction
+	cdata* m_cdata; // only defined in a CDATA section
 	std::vector<std::pair<std::string, std::string>>
 		m_namespaces;
 	std::list<notation> m_notations;

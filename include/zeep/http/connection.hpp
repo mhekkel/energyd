@@ -1,4 +1,5 @@
-// Copyright Maarten L. Hekkelman, Radboud University 2008-2012.
+// Copyright Maarten L. Hekkelman, Radboud University 2008-2013.
+//        Copyright Maarten L. Hekkelman, 2014-2019
 //  Distributed under the Boost Software License, Version 1.0.
 //     (See accompanying file LICENSE_1_0.txt or copy at
 //           http://www.boost.org/LICENSE_1_0.txt)
@@ -26,10 +27,10 @@ class connection
 {
 public:
 	connection(connection &) = delete;
-	connection &operator=(connection &) = delete;
+	connection& operator=(connection &) = delete;
 
-	connection(boost::asio::io_service &service,
-			   request_handler &handler);
+	connection(boost::asio::io_service& service,
+			   request_handler& handler);
 
 	void start();
 	void handle_read(boost::system::error_code ec, size_t bytes_transferred);
@@ -41,7 +42,7 @@ public:
 private:
 	boost::asio::ip::tcp::socket m_socket;
 	request_parser m_request_parser;
-	request_handler &m_request_handler;
+	request_handler& m_request_handler;
 	std::array<char, 8192> m_buffer;
 	request m_request;
 	reply m_reply;

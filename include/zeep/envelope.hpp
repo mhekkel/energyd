@@ -1,9 +1,10 @@
-// Copyright Maarten L. Hekkelman, Radboud University 2008-2012.
+// Copyright Maarten L. Hekkelman, Radboud University 2008-2013.
+//        Copyright Maarten L. Hekkelman, 2014-2019
 //  Distributed under the Boost Software License, Version 1.0.
 //     (See accompanying file LICENSE_1_0.txt or copy at
 //           http://www.boost.org/LICENSE_1_0.txt)
 
-/// 
+///
 
 #ifndef SOAP_ENVELOPE_H
 #define SOAP_ENVELOPE_H
@@ -19,19 +20,19 @@ namespace zeep
 
 class envelope : public boost::noncopyable
 {
-  public:
-  	/// \brief Create an empty envelope
-					envelope();
+public:
+	/// \brief Create an empty envelope
+	envelope();
 
-  	/// \brief Parse a SOAP message received from a client,
-  	/// throws an exception if the envelope is empty or invalid.
-					envelope(xml::document& data);
+	/// \brief Parse a SOAP message received from a client,
+	/// throws an exception if the envelope is empty or invalid.
+	envelope(xml::document& data);
 
 	/// \brief The request element as contained in the original SOAP message
-	xml::element*	request()						{ return m_request; }
+	xml::element* request() { return m_request; }
 
-  private:
-	xml::element*	m_request;
+private:
+	xml::element* m_request;
 };
 
 /// Wrap data into a SOAP envelope
@@ -50,6 +51,6 @@ xml::element* make_fault(const std::string& message);
 /// \return   A new xml::element object containing the fault envelope.
 xml::element* make_fault(const std::exception& ex);
 
-}
+} // namespace zeep
 
 #endif

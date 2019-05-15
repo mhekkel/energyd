@@ -1,4 +1,5 @@
-// Copyright Maarten L. Hekkelman, Radboud University 2008-2011.
+// Copyright Maarten L. Hekkelman, Radboud University 2008-2013.
+//        Copyright Maarten L. Hekkelman, 2014-2019
 //   Distributed under the Boost Software License, Version 1.0.
 //      (See accompanying file LICENSE_1_0.txt or copy at
 //            http://www.boost.org/LICENSE_1_0.txt)
@@ -122,13 +123,13 @@ bool auth_info::validate(const std::string& method, const std::string& uri, cons
 		std::string ha2 = md5(method + ':' + info["uri"]).finalise();
 
 		std::string response = md5(
-							  ha1 + ':' +
-							  info["nonce"] + ':' +
-							  info["nc"] + ':' +
-							  info["cnonce"] + ':' +
-							  info["qop"] + ':' +
-							  ha2)
-							  .finalise();
+								   ha1 + ':' +
+								   info["nonce"] + ':' +
+								   info["nc"] + ':' +
+								   info["cnonce"] + ':' +
+								   info["qop"] + ':' +
+								   ha2)
+								   .finalise();
 
 		valid = info["response"] == response;
 
@@ -304,9 +305,7 @@ void basic_webapp::create_error_reply(const request& req, status_type status, co
 
 	el::object request;
 	request["line"] =
-		ba::starts_with(req.uri, "http://") ?
-			(boost::format("%1% %2% HTTP%3%/%4%") % req.method % req.uri % req.http_version_major % req.http_version_minor).str() :
-			(boost::format("%1% http://%2%%3% HTTP%4%/%5%") % req.method % req.get_header("Host") % req.uri % req.http_version_major % req.http_version_minor).str();
+		ba::starts_with(req.uri, "http://") ? (boost::format("%1% %2% HTTP%3%/%4%") % req.method % req.uri % req.http_version_major % req.http_version_minor).str() : (boost::format("%1% http://%2%%3% HTTP%4%/%5%") % req.method % req.get_header("Host") % req.uri % req.http_version_major % req.http_version_minor).str();
 	request["username"] = req.username;
 	error["request"] = request;
 
@@ -314,23 +313,6 @@ void basic_webapp::create_error_reply(const request& req, status_type status, co
 
 	create_reply_from_template("error.html", scope, rep);
 	rep.set_status(status);
-}
-
-void basic_webapp::mount(const std::string& path, const std::string& realm, handler_type handler)
-{
-	auto mp = find_if(m_dispatch_table.begin(), m_dispatch_table.end(), [path](const mount_point& mp) -> bool { return mp.path == path; });
-	if (mp == m_dispatch_table.end())
-	{
-		mount_point p = {path, realm, handler};
-		m_dispatch_table.push_back(p);
-	}
-	else
-	{
-		if (mp->realm != realm)
-			throw std::logic_error("realms not equal");
-
-		mp->handler = handler;
-	}
 }
 
 void basic_webapp::handle_file(
@@ -952,7 +934,7 @@ void basic_webapp::get_parameters(const el::scope& scope, parameter_map& paramet
 //
 
 std::string basic_webapp::validate_authentication(const std::string& authorization,
-											 const std::string& method, const std::string& uri, const std::string& realm)
+												  const std::string& method, const std::string& uri, const std::string& realm)
 {
 	if (authorization.empty())
 		throw unauthorized_exception(false, realm);

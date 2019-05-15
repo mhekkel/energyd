@@ -1,4 +1,5 @@
-// Copyright Maarten L. Hekkelman, Radboud University 2008-2012.
+// Copyright Maarten L. Hekkelman, Radboud University 2008-2013.
+//        Copyright Maarten L. Hekkelman, 2014-2019
 //  Distributed under the Boost Software License, Version 1.0.
 //     (See accompanying file LICENSE_1_0.txt or copy at
 //           http://www.boost.org/LICENSE_1_0.txt)
@@ -50,14 +51,14 @@ using namespace xml;
 // {
 // 	typedef Iterator result_type;
 
-// 	type_map &m_types;
-// 	element *m_node;
+// 	type_map& m_types;
+// 	element* m_node;
 
-// 	parameter_types(type_map &types, element *node)
+// 	parameter_types(type_map& types, element* node)
 // 		: m_types(types), m_node(node) {}
 
 // 	template <typename T>
-// 	Iterator operator()(Iterator i, T &t) const
+// 	Iterator operator()(Iterator i, T& t) const
 // 	{
 // 		xml::schema_creator d(m_types, m_node);
 // 		d.add_element(i->c_str(), t);
@@ -65,7 +66,7 @@ using namespace xml;
 // 	}
 
 // 	template <typename T>
-// 	Iterator operator()(T &t, Iterator i) const
+// 	Iterator operator()(T& t, Iterator i) const
 // 	{
 // 		xml::schema_creator d(m_types, m_node);
 // 		d.add_element(i->c_str(), t);
@@ -156,19 +157,19 @@ typedef std::map<std::string, element *> message_map;
 
 struct handler_base
 {
-	handler_base(const std::string &action)
+	handler_base(const std::string& action)
 		: m_action(action), m_response(action + "Response") {}
 	virtual ~handler_base() {}
 
-	virtual element *call(element *in) = 0;
+	virtual element* call(element* in) = 0;
 
-	virtual void collect(type_map &types, message_map &messages,
-						 element *portType, element *binding) = 0;
+	virtual void collect(type_map& types, message_map& messages,
+						 element* portType, element* binding) = 0;
 
-	const std::string &get_action_name() const { return m_action; }
+	const std::string& get_action_name() const { return m_action; }
 
 	std::string get_response_name() const { return m_response; }
-	void set_response_name(const std::string &name) { m_response = name; }
+	void set_response_name(const std::string& name) { m_response = name; }
 
 	std::string m_action, m_response;
 };
@@ -182,22 +183,22 @@ struct handler<void(Args...)> : public handler_base
 	typedef typename handler_traits_type::result_type response_type;
 
 	static constexpr std::size_t name_count = sizeof...(Args);
-	typedef const char *names_type[name_count];
+	typedef const char* names_type[name_count];
 
-	handler(const char *action, std::function<void(Args...)>&& callback, std::initializer_list<const char*> names)
+	handler(const char* action, std::function<void(Args...)>&& callback, std::initializer_list<const char*> names)
 		: handler_base(action), m_method(callback)
 	{
 		std::copy(names.begin(), names.end(), m_names.begin());
 	}
 
-	virtual element *call(element *in)
+	virtual element* call(element* in)
 	{
 		// call the actual server code
 		response_type response;
 		handler_traits_type::invoke(m_method, in, m_names.data(), response);
 
 		// and serialize the result back into XML
-		element *result(new element(get_response_name()));
+		element* result(new element(get_response_name()));
 		serializer sr(result);
 		sr.serialize_element(m_names[name_count - 1], response);
 
@@ -205,25 +206,25 @@ struct handler<void(Args...)> : public handler_base
 		return result;
 	}
 
-	virtual void collect(type_map &types, message_map &messages,
-						 element *portType, element *binding)
+	virtual void collect(type_map& types, message_map& messages,
+						 element* portType, element* binding)
 	{
 		// the request type
-		element *requestType(new element("xsd:element"));
+		element* requestType(new element("xsd:element"));
 		requestType->set_attribute("name", get_action_name());
 		types[get_action_name()] = requestType;
 
-		element *complexType(new element("xsd:complexType"));
+		element* complexType(new element("xsd:complexType"));
 		requestType->append(complexType);
 
-		element *sequence(new element("xsd:sequence"));
+		element* sequence(new element("xsd:sequence"));
 		complexType->append(sequence);
 
 		schema_creator sc(types, sequence);
 		handler_traits_type::collect_types(sc, m_names.data());
 
 		// and the response type
-		element *responseType(new element("xsd:element"));
+		element* responseType(new element("xsd:element"));
 		responseType->set_attribute("name", get_response_name());
 		types[get_response_name()] = responseType;
 
@@ -239,9 +240,9 @@ struct handler<void(Args...)> : public handler_base
 		wc.add_element(m_names[name_count - 1], response);
 
 		// now the wsdl operations
-		element *message = new element("wsdl:message");
+		element* message = new element("wsdl:message");
 		message->set_attribute("name", get_action_name() + "RequestMessage");
-		element *n = new element("wsdl:part");
+		element* n = new element("wsdl:part");
 		n->set_attribute("name", "parameters");
 		n->set_attribute("element", kPrefix + ':' + get_action_name());
 		message->append(n);
@@ -256,14 +257,14 @@ struct handler<void(Args...)> : public handler_base
 		messages[message->get_attribute("name")] = message;
 
 		// port type
-		element *operation(new element("wsdl:operation"));
+		element* operation(new element("wsdl:operation"));
 		operation->set_attribute("name", get_action_name());
 
-		element *input(new element("wsdl:input"));
+		element* input(new element("wsdl:input"));
 		input->set_attribute("message", kPrefix + ':' + get_action_name() + "RequestMessage");
 		operation->append(input);
 
-		element *output(new element("wsdl:output"));
+		element* output(new element("wsdl:output"));
 		output->set_attribute("message", kPrefix + ':' + get_response_name() + "Message");
 		operation->append(output);
 
@@ -273,7 +274,7 @@ struct handler<void(Args...)> : public handler_base
 		operation = new element("wsdl:operation");
 		operation->set_attribute("name", get_action_name());
 		binding->append(operation);
-		element *soapOperation(new element("soap:operation"));
+		element* soapOperation(new element("soap:operation"));
 		soapOperation->set_attribute("soapAction", "");
 		soapOperation->set_attribute("style", "document");
 		operation->append(soapOperation);
@@ -284,7 +285,7 @@ struct handler<void(Args...)> : public handler_base
 		output = new element("wsdl:output");
 		operation->append(output);
 
-		element *body(new element("soap:body"));
+		element* body(new element("soap:body"));
 		body->set_attribute("use", "literal");
 		input->append(body);
 
@@ -322,17 +323,17 @@ class dispatcher
 public:
 	typedef std::vector<detail::handler_base *> handler_list;
 
-	dispatcher(const std::string &ns, const std::string &service)
+	dispatcher(const std::string& ns, const std::string& service)
 		: m_ns(ns), m_service(service) {}
 
 	virtual ~dispatcher()
 	{
 		for (handler_list::iterator cb = m_handlers.begin(); cb != m_handlers.end(); ++cb)
-			delete *cb;
+			delete* cb;
 	}
 
 	template <typename Class, typename Method>
-	void register_action(const char *action, Class* server, Method method, std::initializer_list<const char*> names)
+	void register_action(const char* action, Class* server, Method method, std::initializer_list<const char*> names)
 	{
 		typedef typename detail::handler_factory<Class, Method> handler_factory;
 		typedef typename handler_factory::handler_type handler_type;
@@ -341,13 +342,13 @@ public:
 	}
 
 	/// \brief Dispatch a SOAP message and return the result
-	xml::element *dispatch(xml::element *in)
+	xml::element* dispatch(xml::element* in)
 	{
 		return dispatch(in->name(), in);
 	}
 
 	/// \brief Dispatch a SOAP message and return the result
-	xml::element *dispatch(const std::string &action, xml::element *in)
+	xml::element* dispatch(const std::string& action, xml::element* in)
 	{
 		//							if (in->ns() != m_ns)
 		//								throw exception("Invalid request, no match for namespace");
@@ -359,27 +360,27 @@ public:
 		if (cb == m_handlers.end())
 			throw exception("Action %s is not defined", action.c_str());
 
-		xml::element *result = (*cb)->call(in);
+		xml::element* result = (*cb)->call(in);
 		result->set_name_space("", m_ns);
 		return result;
 	}
 
 	/// \brief Create a WSDL based on the registered actions
-	xml::element *make_wsdl(const std::string &address)
+	xml::element* make_wsdl(const std::string& address)
 	{
 		// start by making the root node: wsdl:definitions
-		xml::element *wsdl(new xml::element("wsdl:definitions"));
+		xml::element* wsdl(new xml::element("wsdl:definitions"));
 		wsdl->set_attribute("targetNamespace", m_ns);
 		wsdl->set_name_space("wsdl", "http://schemas.xmlsoap.org/wsdl/");
 		wsdl->set_name_space(xml::kPrefix, m_ns);
 		wsdl->set_name_space("soap", "http://schemas.xmlsoap.org/wsdl/soap/");
 
 		// add wsdl:types
-		xml::element *types(new xml::element("wsdl:types"));
+		xml::element* types(new xml::element("wsdl:types"));
 		wsdl->append(types);
 
 		// add xsd:schema
-		xml::element *schema(new xml::element("xsd:schema"));
+		xml::element* schema(new xml::element("xsd:schema"));
 		schema->set_attribute("targetNamespace", m_ns);
 		schema->set_name_space("xsd", "http://www.w3.org/2001/XMLSchema");
 		schema->set_attribute("elementFormDefault", "qualified");
@@ -387,18 +388,18 @@ public:
 		types->append(schema);
 
 		// add wsdl:binding
-		xml::element *binding(new xml::element("wsdl:binding"));
+		xml::element* binding(new xml::element("wsdl:binding"));
 		binding->set_attribute("name", m_service);
 		binding->set_attribute("type", xml::kPrefix + ':' + m_service + "PortType");
 
 		// add soap:binding
-		xml::element *soapBinding(new xml::element("soap:binding"));
+		xml::element* soapBinding(new xml::element("soap:binding"));
 		soapBinding->set_attribute("style", "document");
 		soapBinding->set_attribute("transport", "http://schemas.xmlsoap.org/soap/http");
 		binding->append(soapBinding);
 
 		// add wsdl:portType
-		xml::element *portType(new xml::element("wsdl:portType"));
+		xml::element* portType(new xml::element("wsdl:portType"));
 		portType->set_attribute("name", m_service + "PortType");
 
 		// and the types
@@ -418,23 +419,23 @@ public:
 		wsdl->append(binding);
 
 		// finish with the wsdl:service
-		xml::element *service(new xml::element("wsdl:service"));
+		xml::element* service(new xml::element("wsdl:service"));
 		service->set_attribute("name", m_service);
 		wsdl->append(service);
 
-		xml::element *port(new xml::element("wsdl:port"));
+		xml::element* port(new xml::element("wsdl:port"));
 		port->set_attribute("name", m_service);
 		port->set_attribute("binding", xml::kPrefix + ':' + m_service);
 		service->append(port);
 
-		xml::element *soapAddress(new xml::element("soap:address"));
+		xml::element* soapAddress(new xml::element("soap:address"));
 		soapAddress->set_attribute("location", address);
 		port->append(soapAddress);
 
 		return wsdl;
 	}
 
-	void set_response_name(const std::string &action, const std::string &name)
+	void set_response_name(const std::string& action, const std::string& name)
 	{
 		handler_list::iterator cb = std::find_if(
 			m_handlers.begin(), m_handlers.end(),

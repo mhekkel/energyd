@@ -1,4 +1,5 @@
-// Copyright Maarten L. Hekkelman, Radboud University 2008-2012.
+// Copyright Maarten L. Hekkelman, Radboud University 2008-2013.
+//        Copyright Maarten L. Hekkelman, 2014-2019
 //  Distributed under the Boost Software License, Version 1.0.
 //     (See accompanying file LICENSE_1_0.txt or copy at
 //           http://www.boost.org/LICENSE_1_0.txt)
@@ -32,10 +33,10 @@ namespace
 template <typename T>
 struct value_saver
 {
-	T &m_ref;
+	T& m_ref;
 	T m_value;
 
-	value_saver(T &value, const T &new_value) : m_ref(value), m_value(value) { m_ref = new_value; }
+	value_saver(T& value, const T& new_value) : m_ref(value), m_value(value) { m_ref = new_value; }
 	~value_saver() { m_ref = m_value; }
 };
 
@@ -72,7 +73,7 @@ private:
 	int m_ix;
 };
 
-bool is_absolute_path(const std::string &s)
+bool is_absolute_path(const std::string& s)
 {
 	bool result = false;
 
@@ -105,7 +106,7 @@ class data_source;
 class source_exception : public zeep::exception
 {
 public:
-	source_exception(const std::string &msg) : exception(msg), m_wmsg(msg) {}
+	source_exception(const std::string& msg) : exception(msg), m_wmsg(msg) {}
 	~source_exception() throw() {}
 
 	std::string m_wmsg;
@@ -130,7 +131,7 @@ public:
 	virtual unicode get_next_char() = 0;
 
 	// to avoid recursively nested entity values, we have a check:
-	virtual bool is_entity_on_stack(const std::string &name)
+	virtual bool is_entity_on_stack(const std::string& name)
 	{
 		bool result = false;
 		if (m_next != nullptr)
@@ -138,8 +139,8 @@ public:
 		return result;
 	}
 
-	void base(const std::string &dir) { m_base = dir; }
-	const std::string &base() const { return m_base; }
+	void base(const std::string& dir) { m_base = dir; }
+	const std::string& base() const { return m_base; }
 
 	virtual bool auto_discard() const { return false; }
 
@@ -153,7 +154,7 @@ public:
 
 protected:
 	data_source(const data_source &);
-	data_source &operator=(const data_source &);
+	data_source& operator=(const data_source &);
 
 	data_source *m_next; // generates a linked list of data_sources
 	std::string m_base;
@@ -168,7 +169,7 @@ protected:
 class istream_data_source : public data_source
 {
 public:
-	istream_data_source(std::istream &data, data_source *next = nullptr)
+	istream_data_source(std::istream& data, data_source *next = nullptr)
 		: data_source(next), m_data(data), m_char_buffer(0), m_has_bom(false)
 	{
 		guess_encoding();
@@ -199,7 +200,7 @@ private:
 
 	unsigned char next_byte();
 
-	std::istream &m_data;
+	std::istream& m_data;
 	std::unique_ptr<std::istream>
 		m_data_ptr;
 	unicode m_char_buffer; // used in detecting \r\n algorithm
@@ -379,7 +380,7 @@ unicode istream_data_source::get_next_char()
 class string_data_source : public data_source
 {
 public:
-	string_data_source(const std::string &data, data_source *next = nullptr)
+	string_data_source(const std::string& data, data_source *next = nullptr)
 		: data_source(next), m_data(data), m_ptr(m_data.begin())
 	{
 	}
@@ -442,14 +443,14 @@ unicode string_data_source::get_next_char()
 class entity_data_source : public string_data_source
 {
 public:
-	entity_data_source(const std::string &entity_name, const std::string &entity_path,
-					   const std::string &text, data_source *next = nullptr)
+	entity_data_source(const std::string& entity_name, const std::string& entity_path,
+					   const std::string& text, data_source *next = nullptr)
 		: string_data_source(text, next), m_entity_name(entity_name)
 	{
 		base(entity_path);
 	}
 
-	virtual bool is_entity_on_stack(const std::string &name)
+	virtual bool is_entity_on_stack(const std::string& name)
 	{
 		bool result = m_entity_name == name;
 		if (result == false and m_next != nullptr)
@@ -466,7 +467,7 @@ protected:
 class parameter_entity_data_source : public string_data_source
 {
 public:
-	parameter_entity_data_source(const std::string &data, const std::string &base_dir, data_source *next = nullptr)
+	parameter_entity_data_source(const std::string& data, const std::string& base_dir, data_source *next = nullptr)
 		: string_data_source(std::string(" ") + data + " ", next)
 	{
 		base(base_dir);
@@ -498,8 +499,8 @@ private:
 struct parser_imp
 {
 	parser_imp(
-		std::istream &data,
-		parser &parser);
+		std::istream& data,
+		parser& parser);
 
 	~parser_imp();
 
@@ -515,8 +516,8 @@ struct parser_imp
 	void s(bool at_least_one = false);
 	void eq();
 	void misc();
-	void element(doctype::validator &valid);
-	void content(doctype::validator &valid, bool check_for_whitespace);
+	void element(doctype::validator& valid);
+	void content(doctype::validator& valid, bool check_for_whitespace);
 
 	void comment();
 	void pi();
@@ -534,7 +535,7 @@ struct parser_imp
 	void ignoresectcontents();
 	void markup_decl();
 	void element_decl();
-	void contentspec(doctype::element &element);
+	void contentspec(doctype::element& element);
 	doctype::allowed_ptr
 	cp();
 	void attlist_decl();
@@ -545,11 +546,11 @@ struct parser_imp
 	void entity_value();
 
 	// at several locations we need to parse out entity references from strings:
-	void parse_parameter_entity_declaration(std::string &s);
-	void parse_general_entity_declaration(std::string &s);
+	void parse_parameter_entity_declaration(std::string& s);
+	void parse_general_entity_declaration(std::string& s);
 
 	// same goes for attribute values
-	std::string normalize_attribute_value(const std::string &s)
+	std::string normalize_attribute_value(const std::string& s)
 	{
 		string_data_source data(s);
 		return normalize_attribute_value(&data);
@@ -612,15 +613,15 @@ struct parser_imp
 	float parse_version();
 
 	// error handling routines
-	void not_well_formed(const std::string &msg) const;
+	void not_well_formed(const std::string& msg) const;
 	// void			not_well_formed(const boost::format& msg) const			{ not_well_formed(msg.str()); }
-	void not_valid(const std::string &msg) const;
+	void not_valid(const std::string& msg) const;
 	// void			not_valid(const boost::format& msg) const				{ not_valid(msg.str()); }
 
 	// doctype support
-	const doctype::entity &get_general_entity(const std::string &name) const;
-	const doctype::entity &get_parameter_entity(const std::string &name) const;
-	const doctype::element *get_element(const std::string &name) const;
+	const doctype::entity& get_general_entity(const std::string& name) const;
+	const doctype::entity& get_parameter_entity(const std::string& name) const;
+	const doctype::element *get_element(const std::string& name) const;
 
 	// Sometimes we need to reuse our parser/scanner to parse an external entity e.g.
 	// We use stack based state objects to store the current state.
@@ -692,7 +693,7 @@ struct parser_imp
 			return result;
 		}
 
-		std::string ns_for_prefix(const std::string &prefix)
+		std::string ns_for_prefix(const std::string& prefix)
 		{
 			std::string result;
 
@@ -714,7 +715,7 @@ struct parser_imp
 	float m_version;
 	encoding_type m_encoding;
 	bool m_standalone;
-	parser &m_parser;
+	parser& m_parser;
 	ns_state *m_ns;
 	bool m_in_doctype; // used to keep track where we are (parameter entities are only recognized inside a doctype section)
 	bool m_external_subset;
@@ -755,8 +756,8 @@ inline void parser_imp::eq()
 // --------------------------------------------------------------------
 
 parser_imp::parser_imp(
-	std::istream &data,
-	parser &parser)
+	std::istream& data,
+	parser& parser)
 	: m_validating(true), m_has_dtd(false), m_lookahead(xml_Eof), m_data_source(new istream_data_source(data, nullptr)), m_version(1.0f), m_standalone(false), m_parser(parser), m_ns(nullptr), m_in_doctype(false), m_external_subset(false), m_in_element(false), m_in_content(false), m_in_external_dtd(false), m_allow_parameter_entity_references(false)
 {
 	m_token.reserve(10000);
@@ -794,7 +795,7 @@ parser_imp::~parser_imp()
 	delete m_data_source;
 }
 
-const doctype::entity &parser_imp::get_general_entity(const std::string &name) const
+const doctype::entity& parser_imp::get_general_entity(const std::string& name) const
 {
 	auto e = std::find_if(m_general_entities.begin(), m_general_entities.end(),
 						  [name](auto e) { return e->name() == name; });
@@ -805,7 +806,7 @@ const doctype::entity &parser_imp::get_general_entity(const std::string &name) c
 	return **e;
 }
 
-const doctype::entity &parser_imp::get_parameter_entity(const std::string &name) const
+const doctype::entity& parser_imp::get_parameter_entity(const std::string& name) const
 {
 	auto e = find_if(m_parameter_entities.begin(), m_parameter_entities.end(),
 					 [name](auto e) { return e->name() == name; });
@@ -826,7 +827,7 @@ const doctype::entity &parser_imp::get_parameter_entity(const std::string &name)
 	return **e;
 }
 
-const doctype::element *parser_imp::get_element(const std::string &name) const
+const doctype::element *parser_imp::get_element(const std::string& name) const
 {
 	const doctype::element *result = nullptr;
 
@@ -856,7 +857,7 @@ unicode parser_imp::get_next_char()
 			{
 				result = m_data_source->get_next_char();
 			}
-			catch (source_exception &e)
+			catch (source_exception& e)
 			{
 				not_well_formed(e.m_wmsg);
 			}
@@ -953,14 +954,14 @@ void parser_imp::match(int token)
 	}
 }
 
-void parser_imp::not_well_formed(const std::string &msg) const
+void parser_imp::not_well_formed(const std::string& msg) const
 {
 	std::stringstream s;
 	s << "Document (line: " << m_data_source->get_line_nr() << ") not well-formed: " << msg;
 	throw not_wf_exception(s.str());
 }
 
-void parser_imp::not_valid(const std::string &msg) const
+void parser_imp::not_valid(const std::string& msg) const
 {
 	if (m_validating)
 	{
@@ -1208,7 +1209,7 @@ int parser_imp::get_next_content()
 			else if (uc == '<')
 				state = state_Tag; // beginning of a tag
 			else if (uc == '&')
-				state = state_Reference; // a &reference;
+				state = state_Reference; // a& reference;
 			else if (uc == ']')
 				state = state_Illegal; // avoid ]]> in text
 			else if (is_char(uc))
@@ -1795,7 +1796,7 @@ void parser_imp::doctypedecl()
 			if (attr->get_type() != doctype::attTypeNotation)
 				continue;
 
-			for (const std::string &n : attr->get_enums())
+			for (const std::string& n : attr->get_enums())
 			{
 				if (m_notations.count(n) == 0)
 					not_valid("Undefined NOTATION '" + n + "'");
@@ -1806,7 +1807,7 @@ void parser_imp::doctypedecl()
 
 void parser_imp::pereference()
 {
-	const doctype::entity &e = get_parameter_entity(m_token);
+	const doctype::entity& e = get_parameter_entity(m_token);
 
 	m_data_source = new parameter_entity_data_source(e.replacement(), e.path(), m_data_source);
 
@@ -1852,7 +1853,7 @@ void parser_imp::declsep()
 	{
 	case xml_PEReference:
 	{
-		const doctype::entity &e = get_parameter_entity(m_token);
+		const doctype::entity& e = get_parameter_entity(m_token);
 
 		{
 			parameter_entity_data_source source(e.replacement(), e.path());
@@ -2093,7 +2094,7 @@ void parser_imp::element_decl()
 	match('>');
 }
 
-void parser_imp::contentspec(doctype::element &element)
+void parser_imp::contentspec(doctype::element& element)
 {
 	if (m_lookahead == xml_Name)
 	{
@@ -2146,7 +2147,7 @@ void parser_imp::contentspec(doctype::element &element)
 			}
 
 			doctype::allowed_choice *choice = new doctype::allowed_choice(true);
-			for (const std::string &c : seen)
+			for (const std::string& c : seen)
 				choice->add(new doctype::allowed_element(c));
 			allowed.reset(choice);
 		}
@@ -2575,7 +2576,7 @@ void parser_imp::attlist_decl()
 
 		if (attribute->get_type() == doctype::attTypeTokenizedID)
 		{
-			const doctype::attribute_list &atts = (*dte)->attributes();
+			const doctype::attribute_list& atts = (*dte)->attributes();
 			if (std::find_if(atts.begin(), atts.end(),
 							 [](auto a) { return a->get_type() == doctype::attTypeTokenizedID; }) != atts.end())
 				not_valid("only one attribute per element can have the ID type");
@@ -2726,7 +2727,7 @@ std::tuple<std::string, std::string> parser_imp::read_external_id()
 	return std::make_tuple(path, result);
 }
 
-void parser_imp::parse_parameter_entity_declaration(std::string &s)
+void parser_imp::parse_parameter_entity_declaration(std::string& s)
 {
 	std::string result;
 
@@ -2837,7 +2838,7 @@ void parser_imp::parse_parameter_entity_declaration(std::string &s)
 		case 20:
 			if (c == ';')
 			{
-				const doctype::entity &e = get_parameter_entity(name);
+				const doctype::entity& e = get_parameter_entity(name);
 				result += e.replacement();
 				state = 0;
 			}
@@ -2861,7 +2862,7 @@ void parser_imp::parse_parameter_entity_declaration(std::string &s)
 
 // parse out the general and parameter entity references in a value std::string
 // for a general entity reference which is about to be stored.
-void parser_imp::parse_general_entity_declaration(std::string &s)
+void parser_imp::parse_general_entity_declaration(std::string& s)
 {
 	std::string result;
 
@@ -2987,7 +2988,7 @@ void parser_imp::parse_general_entity_declaration(std::string &s)
 		case 20:
 			if (c == ';')
 			{
-				const doctype::entity &e = get_parameter_entity(name);
+				const doctype::entity& e = get_parameter_entity(name);
 				result += e.replacement();
 				state = 0;
 			}
@@ -3134,7 +3135,7 @@ std::string parser_imp::normalize_attribute_value(data_source *data)
 				if (data->is_entity_on_stack(name))
 					not_well_formed("infinite recursion in nested entity references");
 
-				const doctype::entity &e = get_general_entity(name);
+				const doctype::entity& e = get_general_entity(name);
 
 				if (e.external())
 					not_well_formed("attribute value may not contain external entity reference");
@@ -3166,7 +3167,7 @@ std::string parser_imp::normalize_attribute_value(data_source *data)
 	return result;
 }
 
-void parser_imp::element(doctype::validator &valid)
+void parser_imp::element(doctype::validator& valid)
 {
 	value_saver<bool> in_element(m_in_element, true);
 	value_saver<bool> in_content(m_in_content, false);
@@ -3341,7 +3342,7 @@ void parser_imp::element(doctype::validator &valid)
 			std::string attr_name = dta->name();
 
 			std::list<detail::attr>::iterator attr = find_if(attrs.begin(), attrs.end(),
-															 [attr_name](auto &a) { return a.m_name == attr_name; });
+															 [attr_name](auto& a) { return a.m_name == attr_name; });
 
 			doctype::AttributeDefault defType;
 			std::string defValue;
@@ -3396,7 +3397,7 @@ void parser_imp::element(doctype::validator &valid)
 		uri = ns.default_ns();
 
 	// sort the attributes (why? disabled to allow similar output)
-	attrs.sort([](auto &a, auto &b) { return a.m_name < b.m_name; });
+	attrs.sort([](auto& a, auto& b) { return a.m_name < b.m_name; });
 
 	if (m_lookahead == '/')
 	{
@@ -3438,7 +3439,7 @@ void parser_imp::element(doctype::validator &valid)
 	s();
 }
 
-void parser_imp::content(doctype::validator &valid, bool check_for_whitespace)
+void parser_imp::content(doctype::validator& valid, bool check_for_whitespace)
 {
 	do
 	{
@@ -3463,7 +3464,7 @@ void parser_imp::content(doctype::validator &valid, bool check_for_whitespace)
 
 		case xml_Reference:
 		{
-			const doctype::entity &e = get_general_entity(m_token);
+			const doctype::entity& e = get_general_entity(m_token);
 
 			if (m_data_source->is_entity_on_stack(m_token))
 				not_well_formed("infinite recursion of entity references");
@@ -3669,12 +3670,12 @@ void parser_imp::pi()
 
 // --------------------------------------------------------------------
 
-parser::parser(std::istream &data)
+parser::parser(std::istream& data)
 	: m_impl(new parser_imp(data, *this)), m_istream(nullptr)
 {
 }
 
-parser::parser(const std::string &data)
+parser::parser(const std::string& data)
 {
 	m_istream = new std::istringstream(data);
 	m_impl = new parser_imp(*m_istream, *this);
@@ -3691,31 +3692,31 @@ void parser::parse(bool validate)
 	m_impl->parse(validate);
 }
 
-void parser::start_element(const std::string &name, const std::string &uri, const std::list<detail::attr> &atts)
+void parser::start_element(const std::string& name, const std::string& uri, const std::list<detail::attr> &atts)
 {
 	if (start_element_handler)
 		start_element_handler(name, uri, atts);
 }
 
-void parser::end_element(const std::string &name, const std::string &uri)
+void parser::end_element(const std::string& name, const std::string& uri)
 {
 	if (end_element_handler)
 		end_element_handler(name, uri);
 }
 
-void parser::character_data(const std::string &data)
+void parser::character_data(const std::string& data)
 {
 	if (character_data_handler)
 		character_data_handler(data);
 }
 
-void parser::processing_instruction(const std::string &target, const std::string &data)
+void parser::processing_instruction(const std::string& target, const std::string& data)
 {
 	if (processing_instruction_handler)
 		processing_instruction_handler(target, data);
 }
 
-void parser::comment(const std::string &data)
+void parser::comment(const std::string& data)
 {
 	if (comment_handler)
 		comment_handler(data);
@@ -3733,25 +3734,25 @@ void parser::end_cdata_section()
 		end_cdata_section_handler();
 }
 
-void parser::start_namespace_decl(const std::string &prefix, const std::string &uri)
+void parser::start_namespace_decl(const std::string& prefix, const std::string& uri)
 {
 	if (start_namespace_decl_handler)
 		start_namespace_decl_handler(prefix, uri);
 }
 
-void parser::end_namespace_decl(const std::string &prefix)
+void parser::end_namespace_decl(const std::string& prefix)
 {
 	if (end_namespace_decl_handler)
 		end_namespace_decl_handler(prefix);
 }
 
-void parser::notation_decl(const std::string &name, const std::string &systemId, const std::string &publicId)
+void parser::notation_decl(const std::string& name, const std::string& systemId, const std::string& publicId)
 {
 	if (notation_decl_handler)
 		notation_decl_handler(name, systemId, publicId);
 }
 
-std::istream *parser::external_entity_ref(const std::string &base, const std::string &pubid, const std::string &uri)
+std::istream *parser::external_entity_ref(const std::string& base, const std::string& pubid, const std::string& uri)
 {
 	std::istream *result = nullptr;
 	if (external_entity_ref_handler)
@@ -3759,7 +3760,7 @@ std::istream *parser::external_entity_ref(const std::string &base, const std::st
 	return result;
 }
 
-void parser::report_invalidation(const std::string &msg)
+void parser::report_invalidation(const std::string& msg)
 {
 	if (report_invalidation_handler)
 		report_invalidation_handler(msg);

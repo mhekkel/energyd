@@ -1,4 +1,5 @@
-// Copyright Maarten L. Hekkelman, Radboud University 2008-2012.
+// Copyright Maarten L. Hekkelman, Radboud University 2008-2013.
+//        Copyright Maarten L. Hekkelman, 2014-2019
 //  Distributed under the Boost Software License, Version 1.0.
 //     (See accompanying file LICENSE_1_0.txt or copy at
 //           http://www.boost.org/LICENSE_1_0.txt)
@@ -7,7 +8,10 @@
 
 #include <zeep/xml/node.hpp>
 
-namespace zeep { namespace xml {
+namespace zeep
+{
+namespace xml
+{
 
 class document;
 
@@ -19,27 +23,26 @@ class document;
 
 class context
 {
-  public:
+public:
 #ifndef LIBZEEP_DOXYGEN_INVOKED
-							context();
-	virtual					~context();
+	context();
+	virtual ~context();
 #endif
 
-	template<typename T>
-	void					set(const std::string& name, const T& value);
+	template <typename T>
+	void set(const std::string& name, const T& value);
 
-	template<typename T>
-	T						get(const std::string& name);
+	template <typename T>
+	T get(const std::string& name);
 
 #ifndef LIBZEEP_DOXYGEN_INVOKED
-  private:
-
-							context(const context&);
-	context&				operator=(const context&);
+private:
+	context(const context &);
+	context& operator=(const context &);
 
 	friend class xpath;
 
-	struct context_imp*		m_impl;
+	struct context_imp* m_impl;
 #endif
 };
 
@@ -49,80 +52,80 @@ class context
 
 class xpath
 {
-  public:
-							xpath(const std::string& path);
-							xpath(const char* path);
-							xpath(const xpath& rhs);
-	xpath&					operator=(const xpath&);
+public:
+	xpath(const std::string& path);
+	xpath(const char* path);
+	xpath(const xpath& rhs);
+	xpath& operator=(const xpath &);
 
 #ifndef LIBZEEP_DOXYGEN_INVOKED
-	virtual					~xpath();
+	virtual ~xpath();
 #endif
 
 	/// evaluate returns a node_set. If you're only interested in zeep::xml::element
 	/// results, you should call the evaluate<element>() instantiation.
-	template<typename NODE_TYPE>
-	std::list<NODE_TYPE*>	evaluate(const node& root) const;
+	template <typename NODE_TYPE>
+	std::list<NODE_TYPE *> evaluate(const node& root) const;
 
 	/// The second evaluate method is used for xpaths that contain variables.
-	template<typename NODE_TYPE>
-	std::list<NODE_TYPE*>	evaluate(const node& root, context& ctxt) const;
+	template <typename NODE_TYPE>
+	std::list<NODE_TYPE *> evaluate(const node& root, context& ctxt) const;
 
 	/// Returns true if the \a n node matches the XPath
-	bool					matches(const node* n) const;
+	bool matches(const node* n) const;
 
 #ifndef LIBZEEP_DOXYGEN_INVOKED
-  private:
-	struct xpath_imp*		m_impl;
+private:
+	struct xpath_imp* m_impl;
 #endif
 };
 
 #ifndef LIBZEEP_DOXYGEN_INVOKED
 
 // --------------------------------------------------------------------
-// template specialisations. 
+// template specialisations.
 
-template<typename T>
+template <typename T>
 void context::set(const std::string& name, const T& value)
 {
 	// only implemented for the cases specialised below
 	assert(false);
 }
 
-template<>
+template <>
 void context::set<double>(const std::string& name, const double& value);
 
-template<>
+template <>
 void context::set<std::string>(const std::string& name, const std::string& value);
 
-template<typename T>
+template <typename T>
 T context::get(const std::string& name)
 {
 	// only implemented for the cases specialised below
 	assert(false);
 }
 
-template<>
+template <>
 double context::get<double>(const std::string& name);
 
-template<>
+template <>
 std::string context::get<std::string>(const std::string& name);
 
 // --------------------------------------------------------------------
 
-template<>
+template <>
 node_set xpath::evaluate<node>(const node& root) const;
 
-template<>
+template <>
 element_set xpath::evaluate<element>(const node& root) const;
-	
-template<>
+
+template <>
 node_set xpath::evaluate<node>(const node& root, context& ctxt) const;
 
-template<>
+template <>
 element_set xpath::evaluate<element>(const node& root, context& ctxt) const;
 
 #endif
-	
-}
-}
+
+} // namespace xml
+} // namespace zeep

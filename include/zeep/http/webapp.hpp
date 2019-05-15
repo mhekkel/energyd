@@ -1,4 +1,5 @@
-// Copyright Maarten L. Hekkelman, Radboud University 2008-2011.
+// Copyright Maarten L. Hekkelman, Radboud University 2008-2013.
+//        Copyright Maarten L. Hekkelman, 2014-2019
 //   Distributed under the Boost Software License, Version 1.0.
 //      (See accompanying file LICENSE_1_0.txt or copy at
 //            http://www.boost.org/LICENSE_1_0.txt)
@@ -31,7 +32,7 @@ class parameter_value
 {
 public:
 	parameter_value() : m_defaulted(false) {}
-	parameter_value(const std::string &v, bool defaulted)
+	parameter_value(const std::string& v, bool defaulted)
 		: m_v(v), m_defaulted(defaulted) {}
 
 	template <class T>
@@ -51,20 +52,20 @@ class parameter_map : public std::multimap<std::string, parameter_value>
 {
 public:
 	/// add a name/value pair as a string formatted as 'name=value'
-	void add(const std::string &param);
+	void add(const std::string& param);
 	void add(std::string name, std::string value);
 	void replace(std::string name, std::string value);
 
 	template <class T>
-	const parameter_value &
-	get(const std::string &name, T defaultValue);
+	const parameter_value& 
+	get(const std::string& name, T defaultValue);
 };
 
 /// webapps can use authentication, this exception is thrown for unauthorized access
 
 struct unauthorized_exception : public std::exception
 {
-	unauthorized_exception(bool stale, const std::string &realm)
+	unauthorized_exception(bool stale, const std::string& realm)
 		: m_stale(stale)
 	{
 		std::string::size_type n = realm.length();
@@ -98,51 +99,51 @@ class basic_webapp
 public:
 	/// first parameter to constructor is the
 	/// namespace to use in template XHTML files.
-	basic_webapp(const std::string &ns = "http://www.cmbi.ru.nl/libzeep/ml",
-				 const boost::filesystem::path &docroot = ".");
+	basic_webapp(const std::string& ns = "http://www.cmbi.ru.nl/libzeep/ml",
+				 const boost::filesystem::path& docroot = ".");
 
 	virtual ~basic_webapp();
 
-	virtual void set_docroot(const boost::filesystem::path &docroot);
+	virtual void set_docroot(const boost::filesystem::path& docroot);
 	boost::filesystem::path get_docroot() const { return m_docroot; }
 
 	/// Support for HTTP Authentication, sets the username field in the request
-	virtual void validate_authentication(request &request, const std::string &realm)
+	virtual void validate_authentication(request& request, const std::string& realm)
 	{
 		request.username = validate_authentication(request.get_header("Authorization"), request.method, request.uri, realm);
 	}
 
 	/// Support for HTTP Authentication, returns the validated user name
-	virtual std::string validate_authentication(const std::string &authorization,
-												const std::string &method, const std::string &uri, const std::string &realm);
+	virtual std::string validate_authentication(const std::string& authorization,
+												const std::string& method, const std::string& uri, const std::string& realm);
 
 	/// Subclasses should implement this to return the password for the user,
 	/// result should be the MD5 hash of the string username + ':' + realm + ':' + password
-	virtual std::string get_hashed_password(const std::string &username, const std::string &realm);
+	virtual std::string get_hashed_password(const std::string& username, const std::string& realm);
 
 	/// Create an error reply for the error containing a validation header
-	virtual void create_unauth_reply(const request &req, bool stale, const std::string &realm,
-									 const std::string &authentication, reply &rep);
+	virtual void create_unauth_reply(const request& req, bool stale, const std::string& realm,
+									 const std::string& authentication, reply& rep);
 
 	/// Create an error reply for the error
-	virtual void create_error_reply(const request &req, status_type status, reply &rep);
+	virtual void create_error_reply(const request& req, status_type status, reply& rep);
 
 	/// Create an error reply for the error with an additional message for the user
-	virtual void create_error_reply(const request &req, status_type status, const std::string &message, reply &rep);
+	virtual void create_error_reply(const request& req, status_type status, const std::string& message, reply& rep);
 
 	/// Dispatch and handle the request
-	virtual void handle_request(const request &req, reply &rep);
+	virtual void handle_request(const request& req, reply& rep);
 
 protected:
-	virtual void create_unauth_reply(const request &req, bool stale, const std::string &realm,
-									 reply &rep)
+	virtual void create_unauth_reply(const request& req, bool stale, const std::string& realm,
+									 reply& rep)
 	{
 		create_unauth_reply(req, stale, realm, "WWW-Authenticate", rep);
 	}
 
 	// webapp works with 'handlers' that are methods 'mounted' on a path in the requested URI
 
-	typedef std::function<void(const request &request, const el::scope &scope, reply &reply)> handler_type;
+	typedef std::function<void(const request& request, const el::scope& scope, reply& reply)> handler_type;
 
 	/// assign a handler function to a path in the server's namespace
 	/// Usually called like this:
@@ -153,77 +154,106 @@ protected:
 	///
 	/// void my_server::page_handler(const request& request, const el::scope& scope, reply& reply);
 	///
-	void mount(const std::string &path, handler_type handler)
+
+	template<class Class>
+	void mount(const std::string& path, void(Class::*callback)(const request& request, const el::scope& scope, reply& reply))
+	{
+		static_assert(std::is_base_of<basic_webapp,Class>::value, "This call can only be used for methods in classed derived from basic_webapp");
+		mount(path, [server = static_cast<Class*>(this), callback](const request& request, const el::scope& scope, reply& reply)
+			{ (server->*callback)(request, scope, reply); });
+	}
+
+	template<class Class>
+	void mount(const std::string& path, const std::string& realm, void(Class::*callback)(const request& request, const el::scope& scope, reply& reply))
+	{
+		static_assert(std::is_base_of<basic_webapp,Class>::value, "This call can only be used for methods in classed derived from basic_webapp");
+		mount(path, realm, [server = static_cast<Class*>(this), callback](const request& request, const el::scope& scope, reply& reply)
+			{ (server->*callback)(request, scope, reply); });
+	}
+
+	void mount(const std::string& path, handler_type handler)
 	{
 		mount(path, "", std::move(handler));
 	}
 
 	/// version of mount that requires authentication
-	void mount(const std::string &path, const std::string &realm, handler_type handler);
+	void mount(const std::string& path, const std::string& realm, handler_type handler)
+	{
+		auto mp = std::find_if(m_dispatch_table.begin(), m_dispatch_table.end(), [path](auto& mp) -> bool { return mp.path == path; });
+		if (mp == m_dispatch_table.end())
+			m_dispatch_table.push_back({path, realm, handler});
+		else
+		{
+			if (mp->realm != realm)
+				throw std::logic_error("realms not equal");
+
+			mp->handler = handler;
+		}
+	}
 
 	/// Default handler for serving files out of our doc root
-	virtual void handle_file(const request &request, const el::scope &scope, reply &reply);
+	virtual void handle_file(const request& request, const el::scope& scope, reply& reply);
 
 	/// Use load_template to fetch the XHTML template file
-	virtual void load_template(const std::string &file, xml::document &doc);
-	void load_template(const boost::filesystem::path &file, xml::document &doc)
+	virtual void load_template(const std::string& file, xml::document& doc);
+	void load_template(const boost::filesystem::path& file, xml::document& doc)
 	{
 		load_template(file.string(), doc);
 	}
 
 	/// Return a parameter_map containing the cookies as found in the current request
-	virtual void get_cookies(const el::scope &scope, parameter_map &cookies);
+	virtual void get_cookies(const el::scope& scope, parameter_map& cookies);
 
 	/// create a reply based on a template
-	virtual void create_reply_from_template(const std::string &file, const el::scope &scope, reply &reply);
+	virtual void create_reply_from_template(const std::string& file, const el::scope& scope, reply& reply);
 
 	/// process xml parses the XHTML and fills in the special tags and evaluates the el constructs
-	virtual void process_xml(xml::node *node, const el::scope &scope, boost::filesystem::path dir);
+	virtual void process_xml(xml::node* node, const el::scope& scope, boost::filesystem::path dir);
 
 	/// The type of the callback for processing tags
-	typedef std::function<void(xml::element *node, const el::scope &scope, boost::filesystem::path dir)> processor_type;
+	typedef std::function<void(xml::element* node, const el::scope& scope, boost::filesystem::path dir)> processor_type;
 
 	/// To add additional processors
-	virtual void add_processor(const std::string &name, processor_type processor);
+	virtual void add_processor(const std::string& name, processor_type processor);
 
 	/// default handler for mrs:include tags
-	virtual void process_include(xml::element *node, const el::scope &scope, boost::filesystem::path dir);
+	virtual void process_include(xml::element* node, const el::scope& scope, boost::filesystem::path dir);
 
 	/// default handler for mrs:if tags
-	virtual void process_if(xml::element *node, const el::scope &scope, boost::filesystem::path dir);
+	virtual void process_if(xml::element* node, const el::scope& scope, boost::filesystem::path dir);
 
 	/// default handler for mrs:iterate tags
-	virtual void process_iterate(xml::element *node, const el::scope &scope, boost::filesystem::path dir);
+	virtual void process_iterate(xml::element* node, const el::scope& scope, boost::filesystem::path dir);
 
 	/// default handler for mrs:for tags
-	virtual void process_for(xml::element *node, const el::scope &scope, boost::filesystem::path dir);
+	virtual void process_for(xml::element* node, const el::scope& scope, boost::filesystem::path dir);
 
 	/// default handler for mrs:number tags
-	virtual void process_number(xml::element *node, const el::scope &scope, boost::filesystem::path dir);
+	virtual void process_number(xml::element* node, const el::scope& scope, boost::filesystem::path dir);
 
 	/// default handler for mrs:options tags
-	virtual void process_options(xml::element *node, const el::scope &scope, boost::filesystem::path dir);
+	virtual void process_options(xml::element* node, const el::scope& scope, boost::filesystem::path dir);
 
 	/// default handler for mrs:option tags
-	virtual void process_option(xml::element *node, const el::scope &scope, boost::filesystem::path dir);
+	virtual void process_option(xml::element* node, const el::scope& scope, boost::filesystem::path dir);
 
 	/// default handler for mrs:checkbox tags
-	virtual void process_checkbox(xml::element *node, const el::scope &scope, boost::filesystem::path dir);
+	virtual void process_checkbox(xml::element* node, const el::scope& scope, boost::filesystem::path dir);
 
 	/// default handler for mrs:url tags
-	virtual void process_url(xml::element *node, const el::scope &scope, boost::filesystem::path dir);
+	virtual void process_url(xml::element* node, const el::scope& scope, boost::filesystem::path dir);
 
 	/// default handler for mrs:param tags
-	virtual void process_param(xml::element *node, const el::scope &scope, boost::filesystem::path dir);
+	virtual void process_param(xml::element* node, const el::scope& scope, boost::filesystem::path dir);
 
 	/// default handler for mrs:embed tags
-	virtual void process_embed(xml::element *node, const el::scope &scope, boost::filesystem::path dir);
+	virtual void process_embed(xml::element* node, const el::scope& scope, boost::filesystem::path dir);
 
 	/// Initialize the el::scope object
-	virtual void init_scope(el::scope &scope);
+	virtual void init_scope(el::scope& scope);
 
 	/// Return the original parameters as found in the current request
-	virtual void get_parameters(const el::scope &scope, parameter_map &parameters);
+	virtual void get_parameters(const el::scope& scope, parameter_map& parameters);
 
 private:
 	struct mount_point
@@ -252,11 +282,11 @@ private:
 class webapp : public http::server, public basic_webapp
 {
 public:
-	webapp(const std::string &ns = "http://www.cmbi.ru.nl/libzeep/ml",
-		   const boost::filesystem::path &docroot = ".");
+	webapp(const std::string& ns = "http://www.cmbi.ru.nl/libzeep/ml",
+		   const boost::filesystem::path& docroot = ".");
 	virtual ~webapp();
 
-	virtual void handle_request(const request &req, reply &rep);
+	virtual void handle_request(const request& req, reply& rep);
 };
 
 // --------------------------------------------------------------------
@@ -305,9 +335,9 @@ inline bool parameter_value::as<bool>() const
 }
 
 template <class T>
-inline const parameter_value &
+inline const parameter_value& 
 parameter_map::get(
-	const std::string &name,
+	const std::string& name,
 	T defaultValue)
 {
 	iterator i = lower_bound(name);
@@ -318,10 +348,10 @@ parameter_map::get(
 
 // specialisation for const char*
 template <>
-inline const parameter_value &
+inline const parameter_value& 
 parameter_map::get(
-	const std::string &name,
-	const char *defaultValue)
+	const std::string& name,
+	const char* defaultValue)
 {
 	if (defaultValue == nullptr)
 		defaultValue = "";
@@ -337,9 +367,9 @@ parameter_map::get(
 
 // specialisation for bool (if missing, value is false)
 template <>
-inline const parameter_value &
+inline const parameter_value& 
 parameter_map::get(
-	const std::string &name,
+	const std::string& name,
 	bool defaultValue)
 {
 	iterator i = lower_bound(name);

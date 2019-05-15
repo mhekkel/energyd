@@ -34,12 +34,10 @@ my_webapp::my_webapp()
 {
 	string realm = "test-realm";
 
-	using namespace placeholders;
-
-	mount("", std::bind(&my_webapp::welcome, this, _1, _2, _3));
-	mount("status", realm, std::bind(&my_webapp::status, this, _1, _2, _3));
-	mount("error", std::bind(&my_webapp::error, this, _1, _2, _3));
-	mount("style.css", std::bind(&my_webapp::handle_file, this, _1, _2, _3));
+	mount("", &my_webapp::welcome);
+	mount("status", realm, &my_webapp::status);
+	mount("error", &my_webapp::error);
+	mount("style.css", &my_webapp::handle_file);
 }
 	
 string my_webapp::get_hashed_password(const string& username, const string& realm)
