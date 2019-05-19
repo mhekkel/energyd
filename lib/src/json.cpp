@@ -161,6 +161,7 @@ void serialize(std::ostream& os, const json_value& v)
                     os << ',';
                 os << '"' << kv.first << "\":";
                 serialize(os, kv.second);
+                first = false;
             }
             os << '}';
             break;

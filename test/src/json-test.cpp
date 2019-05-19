@@ -40,17 +40,24 @@ int main()
 		json j_number4(3UL);
 
 		json j_array2(std::vector<int>{ 1, 2, 3});
+		// json j_array3({ 1, 2, 3});
+
+		std::map<std::string,int> m = {
+			{ "een", 1 }, { "twee", 2 }
+		};
+		json j_object2(m);
 
 		static_assert(std::experimental::is_detected_exact
 			<void, zeep::detail::to_json_function, zeep::json_serializer<int,void>, zeep::json_value&, int>::value, "moet!");
 		static_assert(not zeep::detail::is_json_value<int>::value, "wowo");
 		static_assert(zeep::detail::is_json_value<decltype(j_null)>::value, "wowo");
-		static_assert(zeep::detail::has_to_json<bool>::value, "Oeps");
+		// static_assert(zeep::detail::has_to_json<bool>::value, "Oeps");
 
 		std::cout << j_null << std::endl
 				  << j_array << std::endl
 				  << j_array2 << std::endl
 				  << j_object << std::endl
+				  << j_object2 << std::endl
 				  << j_string << std::endl
 				  << j_string2 << std::endl
 				  << j_number << std::endl

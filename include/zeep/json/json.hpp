@@ -36,10 +36,65 @@ enum class value_type : std::uint8_t
 	boolean
 };
 
+template<typename T>
+class value_reference
+{
+public:
+	using value_type = T;
+
+	value_reference(value_type&& value)
+		: m_owned(std::move(value)), m_reference(&m_owned), m_rvalue(true) {}
+
+	value_reference(const value_type& value)
+		: m_reference(const_cast<value_type*>(&value)), m_rvalue(false) {}
+	
+	value_reference(std::initializer_list<value_reference> init)
+		: m_owned(init), m_reference(&m_owned), m_rvalue(true) {}
+	
+    template <typename... Args, std::enable_if_t<std::is_constructible<value_type, Args...>::value, int> = 0>
+    value_reference(Args&& ... args)
+        : m_owned(std::forward<Args>(args)...), m_reference(&m_owned), m_rvalue(true) {}
+
+    // class should be movable only
+    value_reference(value_reference&&) = default;
+    value_reference(const value_reference&) = delete;
+    value_reference& operator=(const value_reference&) = delete;
+    value_reference& operator=(value_reference&&) = delete;
+    ~value_reference() = default;
+
+    value_type data() const
+    {
+        if (m_rvalue)
+            return std::move(*m_reference);
+        return *m_reference;
+    }
+
+    value_type const& operator*() const
+    {
+        return *static_cast<value_type const*>(m_reference);
+    }
+
+    value_type const* operator->() const
+    {
+        return static_cast<value_type const*>(m_reference);
+    }
+
+private:
+	mutable value_type m_owned = nullptr;
+	value_type* m_reference = nullptr;
+	bool m_rvalue;
+};
+
 template<value_type> struct constructor {};
 
 template<typename> struct is_json_value : std::false_type {};
 template<> struct is_json_value<json_value> : std::true_type {};
+
+template <typename T>
+using mapped_type_t = typename T::mapped_type;
+
+template <typename T>
+using key_type_t = typename T::key_type;
 
 template <typename T>
 using value_type_t = typename T::value_type;
@@ -78,6 +133,20 @@ struct is_array_type<T,
 {
     static constexpr bool value =
         std::is_constructible<json_value, typename T::value_type>::value;
+};
+
+template<typename J, typename T, typename = void>
+struct is_object_type : std::false_type {};
+
+template<typename J, typename T>
+struct is_object_type<J, T, std::enable_if_t<
+	std::experimental::is_detected<mapped_type_t, T>::value and
+	std::experimental::is_detected<key_type_t, T>::value>>
+{
+	using map_t = typename J::object_type;
+	static constexpr bool value = 
+		std::is_constructible<std::string,typename map_t::key_type>::value and
+		std::is_constructible<json_value,typename map_t::mapped_type>::value; 
 };
 
 template<typename T, typename = void>
@@ -220,6 +289,19 @@ struct constructor<value_type::object>
 		j.m_data = std::move(obj);
 		j.validate();
 	}
+
+    template<typename J, typename M,
+             std::enable_if_t<not std::is_same<M, typename J::object_type>::value, int> = 0>
+    static void construct(J& j, const M& obj)
+    {
+        using std::begin;
+        using std::end;
+
+        j.m_type = value_type::object;
+        j.m_data.m_object = j.template create<typename J::object_type>(begin(obj), end(obj));
+        j.validate();
+    }
+
 };
 
 template<typename T, std::enable_if_t<std::is_same<T, bool>::value, int> = 0>
@@ -275,6 +357,36 @@ void to_json(json_value& j, const T& arr)
 	constructor<value_type::array>::construct(j, arr);
 }
 
+template<typename T, std::enable_if_t<std::is_convertible<json_value,T>::value, int> = 0>
+void to_json(json_value& j, const std::valarray<T>& arr)
+{
+	constructor<value_type::array>::construct(j, std::move(arr));
+}
+
+template<typename J>
+void to_json(json_value& j, const typename J::array_type& arr)
+{
+	constructor<value_type::array>::construct(j, std::move(arr));
+}
+
+template<typename J, typename T, size_t N,
+	std::enable_if_t<not std::is_constructible<typename J::string_type, const T(&)[N]>::value, int> = 0>
+void to_json(J& j, const T(&arr)[N])
+{
+	constructor<value_type::array>::construct(j, std::move(arr));
+} 
+
+template<typename T, std::enable_if_t<is_object_type<json_value,T>::value, int> = 0>
+void to_json(json_value& j, const T& obj)
+{
+	constructor<value_type::object>::construct(j, std::move(obj));
+}
+
+inline void to_json(json_value& j, const json_value& obj)
+{
+	// constructor<value_type::object>::construct(j, std::move(obj));
+}
+
 struct to_json_fn
 {
     template<typename T>
@@ -319,6 +431,8 @@ public:
 	typedef std::vector<json_value>				array_type;
 	typedef std::string							string_type;
 
+    using initializer_list_t = std::initializer_list<detail::value_reference<json_value>>;
+
     template<value_type> friend struct detail::constructor;
 
 	/// empty constructor with a certain type
@@ -343,6 +457,32 @@ public:
 		json_serializer<U,void>::to_json(*this, std::forward<T>(v));
 	}
 
+	json_value(initializer_list_t init)
+	{
+		bool isAnObject = std::all_of(init.begin(), init.end(), [](auto& ref)
+			{ return ref->is_array() and ref->m_data.m_array->size() == 2 and ref->m_data.m_array->front().is_string(); });
+
+		if (isAnObject)
+		{
+			m_type = value_type::object;
+			m_data = value_type::object;
+
+			for (auto& ref: init)
+			{
+				auto element = ref.data();
+				m_data.m_object->emplace(
+					std::move(*element.m_data.m_array->front().m_data.m_string),
+					std::move(element.m_data.m_array->back())
+				);
+			}
+		}
+		else
+		{
+			m_type = value_type::array;
+			m_data = create<array_type>(init.begin(), init.end());
+		}
+	}
+
 	~json_value()
 	{
 		validate();
@@ -360,6 +500,41 @@ public:
 	constexpr bool is_true() const noexcept						{ return is_boolean() and m_data.m_boolean == true; }
 	constexpr bool is_false() const noexcept					{ return is_boolean() and m_data.m_boolean == false; }
 	constexpr bool is_boolean() const noexcept					{ return m_type == value_type::boolean; }
+
+	std::string type_name() const;
+
+	struct iterator : public std::iterator<std::bidirectional_iterator_tag, json_value>
+	{
+
+	};
+
+
+
+	template<typename... Args>
+	std::pair<iterator,bool> emplace(Args&&... args)
+	{
+		if (is_null())
+		{
+			m_type = value_type::object;
+			m_data = value_type::object;
+		}
+		else if (not is_object())
+			throw std::runtime_error("Cannot emplace with json value of type " + type_name());
+		
+		validate();
+
+		auto r = m_data.m_object->emplace(std::forward<Args>(args)...);
+		auto i = begin();
+
+		// TODO: set i.iter to r.first
+
+		return { i, r.second };
+	}
+
+	iterator begin();
+	iterator end();
+
+
 
 private:
 
@@ -450,13 +625,6 @@ private:
         return object.release();
 	}
 
-	// struct iterator : public std::iterator<std::bidirectional_iterator_tag, json_value>
-	// {
-
-	// };
-
-	// iterator begin();
-	// iterator end();
 	// size_t size() const;
 
 	// json_value& operator[](size_t index);
