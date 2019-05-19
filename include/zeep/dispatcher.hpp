@@ -350,8 +350,8 @@ public:
 	/// \brief Dispatch a SOAP message and return the result
 	xml::element* dispatch(const std::string& action, xml::element* in)
 	{
-		//							if (in->ns() != m_ns)
-		//								throw exception("Invalid request, no match for namespace");
+		if (in->ns() != m_ns)
+			throw exception("Invalid request, no match for namespace");
 
 		handler_list::iterator cb = std::find_if(
 			m_handlers.begin(), m_handlers.end(),

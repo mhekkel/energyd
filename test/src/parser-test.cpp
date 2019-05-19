@@ -8,7 +8,6 @@
 #include <string>
 #include <list>
 
-#include <boost/foreach.hpp>
 #include <boost/filesystem/fstream.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <boost/program_options.hpp>
@@ -23,11 +22,10 @@
 
 using namespace std;
 using namespace zeep;
+
 namespace po = boost::program_options;
 namespace fs = boost::filesystem;
 namespace ba = boost::algorithm;
-
-#define foreach BOOST_FOREACH
 
 int VERBOSE;
 int TRACE;

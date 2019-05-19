@@ -8,34 +8,77 @@
 # You may have to edit the first three defines on top of this
 # makefile to match your current installation.
 
-LDOPTS				+= ../libzeep.a
-CFLAGS				+= -iquote ../include/
+firstTarget: all
+
+# installation prefix
+PREFIX              ?= /usr/local
+
+# main build variables
+CXX                 ?= c++
+CXXFLAGS            += $(BOOST_INC_DIR:%=-I%) -I. -pthread -std=c++14
+CXXFLAGS            += -Wall
+CXXFLAGS            += -g
+LD                  ?= ld
+LDFLAGS				= -g
+
+# Use the DEBUG flag to build debug versions of the code
+DEBUG               = 0
+
+-include ../make.config
+
+BOOST_LIB_DIR       = $(BOOST:%=%/lib)
+BOOST_INC_DIR       = $(BOOST:%=%/include)
+
+BOOST_LIBS          = system thread filesystem regex random program_options
+BOOST_LIBS          := $(BOOST_LIBS:%=boost_%$(BOOST_LIB_SUFFIX))
+LIBS                = zeep $(BOOST_LIBS) stdc++ m pthread
+LDFLAGS             += $(BOOST_LIB_DIR:%=-L%) -L../lib $(LIBS:%=-l%) -g
+
+ifneq "$(DEBUG)" "1"
+CXXFLAGS			+= -O2
+endif
+
+# targets
 
 VPATH += src
 
-test: parser-test xpath-test
-	test -d XML-Test-Suite || tar xjf XML-Test-Suite.tbz
-	./parser-test
-	./xpath-test
+CXXFLAGS += -I ../include
 
-parser-test: obj/parser-test.o
-	$(CXX) -o $@ $^ -L.. $(LDOPTS)
+OBJDIR = obj
+ifeq "$(DEBUG)" "1"
+	OBJDIR	:= $(OBJDIR).dbg
+endif
 
-xpath-test: obj/xpath-test.o
-	$(CXX) -o $@ $? -L.. $(LDOPTS)
+$(OBJDIR):
+	mkdir -p $(OBJDIR)
 
-obj/%.o: %.cpp
-	@ test -d obj || mkdir obj
-	$(CXX) -MD -c -o $@ -I .. $< $(CFLAGS)
+PROGRAMS			= parser-test xpath-test json-test
 
-include $(OBJECTS:%.o=%.d)
+OBJECTS = $(PROGRAMS:%=$(OBJDIR)/%.o)
+	
+-include $(OBJECTS:%.o=%.d)
 
 $(OBJECTS:.o=.d):
 
+$(OBJDIR)/%.o: %.cpp | $(OBJDIR)
+	@ echo ">>" $<
+	@ $(CXX) -MD -c -o $@ $< $(CFLAGS) $(CXXFLAGS)
+
+all: $(PROGRAMS)
+.PHONY: all
+
+../lib/libzeep.a: FORCE
+	+$(MAKE) -C ../lib static-lib
+
+$(PROGRAMS): ../lib/libzeep.a
+
+$(PROGRAMS): %: $(OBJDIR)/%.o
+	@ echo '->' $@
+	@ $(CXX) -o $@ $^ $(LDFLAGS)
+
 clean:
-	rm -rf obj/* libzeep.a libzeep.so zeep-test XML-Test-Suite/
+	rm -rf obj/* libzeep.a libzeep.so XML-Test-Suite/ $(PROGRAMS)
 
 dist-clean: clean
 
-
-
+FORCE:
