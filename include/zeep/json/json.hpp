@@ -41,6 +41,12 @@ template<value_type> struct constructor {};
 template<typename> struct is_json_value : std::false_type {};
 template<> struct is_json_value<json_value> : std::true_type {};
 
+template <typename T>
+using value_type_t = typename T::value_type;
+
+template <typename T>
+using iterator_t = typename T::iterator;
+
 template <typename T, typename... Args>
 using to_json_function = decltype(T::to_json(std::declval<Args>()...));
 
@@ -60,6 +66,19 @@ struct is_complete_type : std::false_type {};
 
 template<typename T>
 struct is_complete_type<T, decltype(void(sizeof(T)))> : std::true_type {};
+
+template<typename T, typename = void>
+struct is_array_type : std::false_type {};
+
+template<typename T>
+struct is_array_type<T,
+	std::enable_if_t<
+		std::experimental::is_detected<value_type_t, T>::value and
+		std::experimental::is_detected<iterator_t, T>::value>>
+{
+    static constexpr bool value =
+        std::is_constructible<json_value, typename T::value_type>::value;
+};
 
 template<typename T, typename = void>
 struct is_compatible_type_impl : std::false_type {};
@@ -173,7 +192,7 @@ struct constructor<value_type::array>
 
 	template<typename J, typename T,
 		typename std::enable_if_t<std::is_convertible<T, json_value>::value, int> = 0>
-	static void construct(J& j, const std::vector<bool>& arr)
+	static void construct(J& j, const std::vector<T>& arr)
 	{
 		j.m_type = value_type::array;
 		j.m_data = value_type::array;
@@ -218,6 +237,42 @@ void to_json(json_value& v, const T& s)
 inline void to_json(json_value& v, std::string&& s)
 {
 	constructor<value_type::string>::construct(v, std::move(s));
+}
+
+template<typename T, std::enable_if_t<std::is_floating_point<T>::value, int> = 0>
+void to_json(json_value& v, T f)
+{
+	constructor<value_type::number_float>::construct(v, f);
+}
+
+template<typename T, std::enable_if_t<std::is_integral<T>::value and std::is_signed<T>::value and not std::is_same<T, bool>::value, int> = 0>
+void to_json(json_value& v, T i)
+{
+	constructor<value_type::number_int>::construct(v, i);
+}
+
+template<typename T, std::enable_if_t<std::is_integral<T>::value and std::is_unsigned<T>::value and not std::is_same<T, bool>::value, int> = 0>
+void to_json(json_value& v, T u)
+{
+	constructor<value_type::number_uint>::construct(v, u);
+}
+
+template<typename T, std::enable_if_t<std::is_enum<T>::value, int> = 0>
+void to_json(json_value& v, T e)
+{
+	using int_type = typename std::underlying_type<T>::type;
+	constructor<value_type::number_int>::construct(v, static_cast<int_type>(e));
+}
+
+inline void to_json(json_value& j, const std::vector<bool>& v)
+{
+	constructor<value_type::array>::construct(j, v);
+}
+
+template<typename T, std::enable_if_t<is_array_type<T>::value, int> = 0>
+void to_json(json_value& j, const T& arr)
+{
+	constructor<value_type::array>::construct(j, arr);
 }
 
 struct to_json_fn

@@ -35,19 +35,28 @@ int main()
 		json j_number(json::value_type::number_int);
 
 		json j_string2("aap");
+		json j_number2(1.0f);
+		json j_number3(2L);
+		json j_number4(3UL);
+
+		json j_array2(std::vector<int>{ 1, 2, 3});
 
 		static_assert(std::experimental::is_detected_exact
-			<void, zeep::detail::to_json_function, zeep::json_serializer<bool,void>, zeep::json_value&, bool>::value, "moet!");
+			<void, zeep::detail::to_json_function, zeep::json_serializer<int,void>, zeep::json_value&, int>::value, "moet!");
 		static_assert(not zeep::detail::is_json_value<int>::value, "wowo");
 		static_assert(zeep::detail::is_json_value<decltype(j_null)>::value, "wowo");
 		static_assert(zeep::detail::has_to_json<bool>::value, "Oeps");
 
 		std::cout << j_null << std::endl
 				  << j_array << std::endl
+				  << j_array2 << std::endl
 				  << j_object << std::endl
 				  << j_string << std::endl
 				  << j_string2 << std::endl
 				  << j_number << std::endl
+				  << j_number2 << std::endl
+				  << j_number3 << std::endl
+				  << j_number4 << std::endl
 				  ;
 	}
 	catch(const std::exception& e)
