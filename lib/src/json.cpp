@@ -275,6 +275,24 @@ void serialize(std::ostream& os, const json_value& v)
 
 // --------------------------------------------------------------------
 
+json_value& json_value::operator=(json_value j) noexcept(
+        std::is_nothrow_move_constructible<value_type>::value and
+        std::is_nothrow_move_assignable<value_type>::value and
+        std::is_nothrow_move_constructible<json_value>::value and
+        std::is_nothrow_move_assignable<json_value>::value)
+{
+    j.validate();
+
+    using std::swap;
+
+    swap(m_type, j.m_type);
+    swap(m_data, j.m_data);
+
+    validate();
+
+    return *this; 
+}
+
 json_value parse(const std::string& s)
 {
     return json_value();
@@ -282,8 +300,8 @@ json_value parse(const std::string& s)
 
 std::ostream& operator<<(std::ostream& os, const json_value& v)
 {
-    int indentation = os.width();
-    os.width(0);
+    // int indentation = os.width();
+    // os.width(0);
 
     serialize(os, v);
 

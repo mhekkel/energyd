@@ -382,9 +382,10 @@ void to_json(json_value& j, const T& obj)
 	constructor<value_type::object>::construct(j, std::move(obj));
 }
 
-inline void to_json(json_value& j, const json_value& obj)
+template<typename J>
+void to_json(J& j, const J& obj)
 {
-	// constructor<value_type::object>::construct(j, std::move(obj));
+	constructor<value_type::object>::construct(j, std::move(obj));
 }
 
 struct to_json_fn
@@ -449,6 +450,41 @@ public:
 		validate();
 	}
 
+	json_value(const json_value& j)
+		: m_type(j.m_type)
+	{
+		j.validate();
+		switch (m_type)
+		{
+			case value_type::null:			break;
+			case value_type::array:			m_data = *j.m_data.m_array; break;
+			case value_type::object:		m_data = *j.m_data.m_object; break;
+			case value_type::string:		m_data = *j.m_data.m_string; break;
+			case value_type::number_int:	m_data = j.m_data.m_int; break;
+			case value_type::number_uint:	m_data = j.m_data.m_uint; break;
+			case value_type::number_float:	m_data = j.m_data.m_float; break;
+			case value_type::boolean:		m_data = j.m_data.m_boolean; break;
+		}
+		validate();
+	}
+
+	json_value(json_value&& j)
+		: m_type(std::move(j.m_type)), m_data(std::move(j.m_data))
+	{
+		j.validate();
+
+		j.m_type = value_type::null;
+		j.m_data = {};
+
+		validate();
+	}
+
+	json_value(const detail::value_reference<json_value>& r)
+		: json_value(r.data())
+	{
+		validate();
+	}
+
 	template<typename T,
 		typename U = typename std::remove_cv<typename std::remove_reference<T>::type>::type,
 		std::enable_if_t<not std::is_same<U,json_value>::value and detail::is_compatible_type<T>::value, int> = 0>
@@ -456,7 +492,7 @@ public:
 	{
 		json_serializer<U,void>::to_json(*this, std::forward<T>(v));
 	}
-
+ 
 	json_value(initializer_list_t init)
 	{
 		bool isAnObject = std::all_of(init.begin(), init.end(), [](auto& ref)
@@ -479,9 +515,22 @@ public:
 		else
 		{
 			m_type = value_type::array;
-			m_data = create<array_type>(init.begin(), init.end());
+			m_data.m_array = create<array_type>(init.begin(), init.end());
 		}
 	}
+
+	json_value(size_t cnt, const json_value& v)
+		: m_type(value_type::array)
+	{
+		m_data.m_array = create<array_type>(cnt, v);
+		validate();
+	}
+
+	json_value& operator=(json_value j) noexcept(
+        std::is_nothrow_move_constructible<value_type>::value and
+        std::is_nothrow_move_assignable<value_type>::value and
+        std::is_nothrow_move_constructible<json_value>::value and
+        std::is_nothrow_move_assignable<json_value>::value);
 
 	~json_value()
 	{
@@ -636,7 +685,7 @@ private:
 
 private:
 
-	void validate()
+	void validate() const
 	{
         assert(m_type != value_type::object or m_data.m_object != nullptr);
         assert(m_type != value_type::array or m_data.m_array != nullptr);
