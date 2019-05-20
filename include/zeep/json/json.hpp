@@ -269,6 +269,17 @@ struct constructor<value_type::array>
 		std::copy(arr.begin(), arr.end(), j.m_data.m_array->begin());
 		j.validate();
 	}
+
+	template<typename J, typename T, size_t N,
+		std::enable_if_t<std::is_convertible<T, J>::value, int> = 0>
+	static void construct(J& j, const T(&a)[N])
+	{
+		j.m_type = value_type::array;
+		j.m_data = value_type::array;
+		j.m_data.m_array->resize(N);
+		std::copy(a, a + N, j.m_data.m_array->begin());
+		j.validate();
+	}
 };
 
 template<>

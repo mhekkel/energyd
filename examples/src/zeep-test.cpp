@@ -58,8 +58,8 @@ struct Hit
 	long long		v_longlong;
 	unsigned long long
 					v_ulonglong;
-	int64			v_longlong2;
-	uint64			v_ulonglong2;
+	int64_t			v_longlong2;
+	uint64_t			v_ulonglong2;
 	long int			v_longlong3;
 	unsigned long int	v_ulonglong3;
 	boost::posix_time::ptime v_ptime;

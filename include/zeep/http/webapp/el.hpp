@@ -17,17 +17,6 @@
 #include <zeep/http/request.hpp>
 #include <zeep/exception.hpp>
 
-#if not (defined(LIBZEEP_DOXYGEN_INVOKED) or defined(NO_STDINT))
-typedef boost::int8_t		int8;
-typedef boost::uint8_t		uint8;
-typedef boost::int16_t		int16;
-typedef boost::uint16_t		uint16;
-typedef boost::int32_t		int32;
-typedef boost::uint32_t		uint32;
-typedef boost::int64_t		int64;
-typedef boost::uint64_t		uint64;
-#endif
-
 namespace zeep {
 namespace http {
 namespace el
@@ -69,14 +58,14 @@ class object
 
 				/// construct an object directly from some basic types
 	explicit	object(bool v);
-	explicit	object(int8 v);
-	explicit	object(uint8 v);
-	explicit	object(int16 v);
-	explicit	object(uint16 v);
-	explicit	object(int32 v);
-	explicit	object(uint32 v);
-	explicit	object(int64 v);
-	explicit	object(uint64 v);
+	explicit	object(int8_t v);
+	explicit	object(uint8_t v);
+	explicit	object(int16_t v);
+	explicit	object(uint16_t v);
+	explicit	object(int32_t v);
+	explicit	object(uint32_t v);
+	explicit	object(int64_t v);
+	explicit	object(uint64_t v);
 	explicit	object(float v);
 	explicit	object(double v);
 	explicit	object(const char* v);
@@ -90,14 +79,14 @@ class object
 
 				/// and assign some basic types
 	object&		operator=(bool v);
-	object&		operator=(int8 v);
-	object&		operator=(uint8 v);
-	object&		operator=(int16 v);
-	object&		operator=(uint16 v);
-	object&		operator=(int32 v);
-	object&		operator=(uint32 v);
-	object&		operator=(int64 v);
-	object&		operator=(uint64 v);
+	object&		operator=(int8_t v);
+	object&		operator=(uint8_t v);
+	object&		operator=(int16_t v);
+	object&		operator=(uint16_t v);
+	object&		operator=(int32_t v);
+	object&		operator=(uint32_t v);
+	object&		operator=(int64_t v);
+	object&		operator=(uint64_t v);
 	object&		operator=(float v);
 	object&		operator=(double v);
 	object&		operator=(const char* v);
@@ -305,7 +294,7 @@ class object_impl
 	virtual void			print(std::ostream& os) const = 0;
 	virtual int				compare(object_impl* rhs) const = 0;
 
-	virtual int64			to_int() const;
+	virtual int64_t			to_int() const;
 	virtual double			to_double() const;
 	virtual std::string		to_str() const;
 	virtual std::string		to_JSON() const;
@@ -328,7 +317,7 @@ class object_impl
 							object_impl(const object_impl&);
 	object_impl&			operator=(const object_impl&);
 
-	int32					m_refcount;
+	int32_t					m_refcount;
 	object::object_type		m_type;
 };
 
@@ -341,8 +330,8 @@ class base_array_object_impl : public object_impl
 	virtual object_iterator_impl*
 							create_iterator(bool begin) const = 0;
 
-	virtual object&			at(uint32 ix);
-	virtual const object	at(uint32 ix) const;
+	virtual object&			at(uint32_t ix);
+	virtual const object	at(uint32_t ix) const;
 
   protected:
 							base_array_object_impl()

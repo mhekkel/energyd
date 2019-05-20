@@ -54,12 +54,12 @@ class md5
 		m_buffer[3] = 0x10325476;
 	}
 	
-	void transform(const uint8* data);
+	void transform(const uint8_t* data);
 	
-	uint32 m_buffer[4];
-	uint8 m_data[64];
-	uint32 m_data_length;
-	int64 m_bit_length;
+	uint32_t	m_buffer[4];
+	uint8_t		m_data[64];
+	uint32_t	m_data_length;
+	int64_t		m_bit_length;
 };
 
 }

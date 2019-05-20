@@ -37,19 +37,19 @@ template<> T object::as<T>() const					\
 	return result;									\
 }
 
-ZEEP_DEFINE_AS_INT(int8)
-ZEEP_DEFINE_AS_INT(uint8)
-ZEEP_DEFINE_AS_INT(int16)
-ZEEP_DEFINE_AS_INT(uint16)
-ZEEP_DEFINE_AS_INT(int32)
-ZEEP_DEFINE_AS_INT(uint32)
-ZEEP_DEFINE_AS_INT(int64)
-ZEEP_DEFINE_AS_INT(uint64)	
+ZEEP_DEFINE_AS_INT(int8_t)
+ZEEP_DEFINE_AS_INT(uint8_t)
+ZEEP_DEFINE_AS_INT(int16_t)
+ZEEP_DEFINE_AS_INT(uint16_t)
+ZEEP_DEFINE_AS_INT(int32_t)
+ZEEP_DEFINE_AS_INT(uint32_t)
+ZEEP_DEFINE_AS_INT(int64_t)
+ZEEP_DEFINE_AS_INT(uint64_t)	
 	
 namespace detail
 {
 
-int64 object_impl::to_int() const
+int64_t object_impl::to_int() const
 {
 	throw exception("cannot convert to requested type");
 }
@@ -69,12 +69,12 @@ string object_impl::to_JSON() const
 	throw exception("cannot convert to JSON string");
 }
 
-object& base_array_object_impl::at(uint32 ix)
+object& base_array_object_impl::at(uint32_t ix)
 {
 	throw exception("method 'at' not implemented");
 }
 
-const object base_array_object_impl::at(uint32 ix) const
+const object base_array_object_impl::at(uint32_t ix) const
 {
 	throw exception("method 'at' not implemented");
 }
@@ -84,19 +84,19 @@ const object base_array_object_impl::at(uint32 ix) const
 class int_object_impl : public detail::object_impl
 {
   public:
-					int_object_impl(int64 v)
+					int_object_impl(int64_t v)
 						: detail::object_impl(object::number_type)
 						, m_v(v)	{}
 
 	virtual void	print(ostream& os) const			{ os << m_v; }
 	virtual int		compare(object_impl* rhs) const;
 
-	virtual int64	to_int() const						{ return m_v; }
+	virtual int64_t	to_int() const						{ return m_v; }
 	virtual double	to_double() const					{ return static_cast<double>(m_v); }
 	virtual string	to_str() const						{ return boost::lexical_cast<string>(m_v); }
 	virtual string	to_JSON() const						{ return boost::lexical_cast<string>(m_v); }
 
-	int64			m_v;
+	int64_t			m_v;
 };
 
 class bool_object_impl : public int_object_impl
@@ -120,7 +120,7 @@ class float_object_impl : public detail::object_impl
 	virtual void	print(ostream& os) const		{ os << m_v; }
 	virtual int		compare(object_impl* rhs) const;
 
-	virtual int64	to_int() const						{ return static_cast<int64>(round(m_v)); }
+	virtual int64_t	to_int() const						{ return static_cast<int64_t>(round(m_v)); }
 	virtual double	to_double() const					{ return m_v; }
 	virtual string	to_str() const						{ return boost::lexical_cast<string>(m_v); }
 	virtual string	to_JSON() const
@@ -146,7 +146,7 @@ class string_object_impl : public detail::object_impl
 	virtual void	print(ostream& os) const		{ os << '"' << m_v << '"'; }
 	virtual int		compare(object_impl* rhs) const;
 
-	virtual int64	to_int() const						{ return boost::lexical_cast<int64>(m_v); }
+	virtual int64_t	to_int() const						{ return boost::lexical_cast<int64_t>(m_v); }
 	virtual double	to_double() const					{ return boost::lexical_cast<double>(m_v); }
 	virtual string	to_str() const						{ return m_v; }
 	virtual string	to_JSON() const
@@ -221,7 +221,7 @@ class vector_object_impl : public detail::base_array_object_impl
 							m_v.push_back(object(f));
 					}
 
-	virtual object&	at(uint32 ix)
+	virtual object&	at(uint32_t ix)
 					{
 						if (ix >= m_v.size())
 							throw logic_error("index out of bounds");
@@ -229,7 +229,7 @@ class vector_object_impl : public detail::base_array_object_impl
 					}
 					
 	virtual const object
-					at(uint32 ix) const
+					at(uint32_t ix) const
 					{
 						object result;
 						if (ix < m_v.size())
@@ -239,7 +239,7 @@ class vector_object_impl : public detail::base_array_object_impl
 
 	virtual object&	operator[](const object& index)
 					{
-						uint32 ix = index.as<uint32>();
+						uint32_t ix = index.as<uint32_t>();
 						if (ix >= m_v.size())
 							throw logic_error("index out of bounds");
 						return m_v[ix];
@@ -249,7 +249,7 @@ class vector_object_impl : public detail::base_array_object_impl
 					operator[](const object& index) const
 					{
 						object result;
-						uint32 ix = index.as<uint32>();
+						uint32_t ix = index.as<uint32_t>();
 						if (ix < m_v.size())
 							result = m_v[ix];
 						return result;
@@ -284,7 +284,7 @@ class vector_object_impl : public detail::base_array_object_impl
 					{
 						stringstream s;
 						s << '[';
-						for (uint32 ix = 0; ix < m_v.size(); ++ix)
+						for (uint32_t ix = 0; ix < m_v.size(); ++ix)
 						{
 							if (ix > 0)
 								s << ',';
@@ -555,42 +555,42 @@ object::object(bool v)
 {
 }
 
-object::object(int8 v)
+object::object(int8_t v)
 	: m_impl(new int_object_impl(v))
 {
 }
 
-object::object(uint8 v)
+object::object(uint8_t v)
 	: m_impl(new int_object_impl(v))
 {
 }
 
-object::object(int16 v)
+object::object(int16_t v)
 	: m_impl(new int_object_impl(v))
 {
 }
 
-object::object(uint16 v)
+object::object(uint16_t v)
 	: m_impl(new int_object_impl(v))
 {
 }
 
-object::object(int32 v)
+object::object(int32_t v)
 	: m_impl(new int_object_impl(v))
 {
 }
 
-object::object(uint32 v)
+object::object(uint32_t v)
 	: m_impl(new int_object_impl(v))
 {
 }
 
-object::object(int64 v)
+object::object(int64_t v)
 	: m_impl(new int_object_impl(v))
 {
 }
 
-object::object(uint64 v)
+object::object(uint64_t v)
 	: m_impl(new int_object_impl(v))
 {
 }
@@ -642,7 +642,7 @@ object& object::operator=(bool v)
 	return *this;
 }
 
-object& object::operator=(int8 v)
+object& object::operator=(int8_t v)
 {
 	if (m_impl != nullptr)
 		m_impl->release();
@@ -650,7 +650,7 @@ object& object::operator=(int8 v)
 	return *this;
 }
 
-object& object::operator=(uint8 v)
+object& object::operator=(uint8_t v)
 {
 	if (m_impl != nullptr)
 		m_impl->release();
@@ -658,7 +658,7 @@ object& object::operator=(uint8 v)
 	return *this;
 }
 
-object& object::operator=(int16 v)
+object& object::operator=(int16_t v)
 {
 	if (m_impl != nullptr)
 		m_impl->release();
@@ -666,7 +666,7 @@ object& object::operator=(int16 v)
 	return *this;
 }
 
-object& object::operator=(uint16 v)
+object& object::operator=(uint16_t v)
 {
 	if (m_impl != nullptr)
 		m_impl->release();
@@ -674,7 +674,7 @@ object& object::operator=(uint16 v)
 	return *this;
 }
 
-object& object::operator=(int32 v)
+object& object::operator=(int32_t v)
 {
 	if (m_impl != nullptr)
 		m_impl->release();
@@ -682,7 +682,7 @@ object& object::operator=(int32 v)
 	return *this;
 }
 
-object& object::operator=(uint32 v)
+object& object::operator=(uint32_t v)
 {
 	if (m_impl != nullptr)
 		m_impl->release();
@@ -690,7 +690,7 @@ object& object::operator=(uint32 v)
 	return *this;
 }
 
-object& object::operator=(int64 v)
+object& object::operator=(int64_t v)
 {
 	if (m_impl != nullptr)
 		m_impl->release();
@@ -698,7 +698,7 @@ object& object::operator=(int64 v)
 	return *this;
 }
 
-object& object::operator=(uint64 v)
+object& object::operator=(uint64_t v)
 {
 	if (m_impl != nullptr)
 		m_impl->release();
@@ -840,8 +840,8 @@ const object object::operator[](const object& index) const
 		case array_type:
 		{
 			const detail::base_array_object_impl* impl = static_cast<const detail::base_array_object_impl*>(m_impl);
-			if (impl != nullptr and index.as<uint32>() < impl->count())
-				result = impl->at(index.as<uint32>());
+			if (impl != nullptr and index.as<uint32_t>() < impl->count())
+				result = impl->at(index.as<uint32_t>());
 			break;
 		}
 		
@@ -878,7 +878,7 @@ object& object::operator[](const object& index)
 	if (type() == array_type)
 	{
 		vector_object_impl* impl = static_cast<vector_object_impl*>(m_impl);
-		return impl->at(index.as<uint32>());
+		return impl->at(index.as<uint32_t>());
 	}
 	else if (type() == struct_type)
 	{
@@ -975,7 +975,7 @@ object operator+(const object& a, const object& b)
 	else if (dynamic_cast<float_object_impl*>(a.m_impl) or dynamic_cast<float_object_impl*>(b.m_impl))
 		result = a.as<double>() + b.as<double>();
 	else
-		result = a.as<int64>() + b.as<int64>();
+		result = a.as<int64_t>() + b.as<int64_t>();
 	
 	return result;
 }
@@ -987,7 +987,7 @@ object operator-(const object& a, const object& b)
 	if (dynamic_cast<float_object_impl*>(a.m_impl) or dynamic_cast<float_object_impl*>(b.m_impl))
 		result = a.as<double>() - b.as<double>();
 	else
-		result = a.as<int64>() - b.as<int64>();
+		result = a.as<int64_t>() - b.as<int64_t>();
 	
 	return result;
 }
@@ -999,7 +999,7 @@ object operator*(const object& a, const object& b)
 	if (dynamic_cast<float_object_impl*>(a.m_impl) or dynamic_cast<float_object_impl*>(b.m_impl))
 		result = a.as<double>() * b.as<double>();
 	else
-		result = a.as<int64>() * b.as<int64>();
+		result = a.as<int64_t>() * b.as<int64_t>();
 	
 	return result;
 }
@@ -1014,7 +1014,7 @@ object operator%(const object& a, const object& b)
 	object result;
 	
 	if (dynamic_cast<int_object_impl*>(a.m_impl) or dynamic_cast<int_object_impl*>(b.m_impl))
-		result = a.as<int64>() % b.as<int64>();
+		result = a.as<int64_t>() % b.as<int64_t>();
 	
 	return result;
 }
@@ -1026,7 +1026,7 @@ object operator-(const object& a)
 	if (dynamic_cast<float_object_impl*>(a.m_impl))
 		result = - a.as<double>();
 	else
-		result = - a.as<int64>();
+		result = - a.as<int64_t>();
 	
 	return result;
 }
@@ -1044,7 +1044,7 @@ bool compare_object::operator()(const object& a, const object& b) const
 
 struct interpreter
 {
-	typedef uint32	unicode;
+	typedef uint32_t	unicode;
 	
 					interpreter(
 						const scope&			scope)
@@ -1060,7 +1060,7 @@ struct interpreter
 						string&			s);
 	
 	void			match(
-						uint32					t);
+						uint32_t					t);
 
 	unsigned char	next_byte();
 	unicode			get_next_char();
@@ -1078,7 +1078,7 @@ struct interpreter
 	object			parse_primary_expr();			// '(' expr ')' | number | string
 	
 	const scope&	m_scope;
-	uint32			m_lookahead;
+	uint32_t			m_lookahead;
 	string		m_token_string;
 	double			m_token_number;
 	string::const_iterator
@@ -1167,7 +1167,7 @@ void interpreter::process(
 }
 
 void interpreter::match(
-	uint32		t)
+	uint32_t		t)
 {
 	if (t != m_lookahead)
 		throw zeep::exception("syntax error");
@@ -1577,7 +1577,7 @@ object interpreter::parse_primary_expr()
 				{
 					match(m_lookahead);
 					if (result.type() == object::array_type and (m_token_string == "count" or m_token_string == "length"))
-						result = object((uint32)result.count());
+						result = object((uint32_t)result.count());
 					else
 						result = const_cast<const object&>(result)[m_token_string];
 					match(elt_object);

@@ -13,13 +13,13 @@ void md5::update(const void* data, size_t length)
 {
 	m_bit_length += length * 8;
 	
-	const uint8* p = reinterpret_cast<const uint8*>(data);
+	const uint8_t* p = reinterpret_cast<const uint8_t*>(data);
 	
 	if (m_data_length > 0)
 	{
-		uint32 n = 64 - m_data_length;
+		uint32_t n = 64 - m_data_length;
 		if (n > length)
-			n = static_cast<uint32>(length);
+			n = static_cast<uint32_t>(length);
 		
 		memcpy(m_data + m_data_length, p, n);
 		
@@ -43,7 +43,7 @@ void md5::update(const void* data, size_t length)
 	if (length > 0)
 	{
 		memcpy(m_data, p, length);
-		m_data_length += static_cast<uint32>(length);
+		m_data_length += static_cast<uint32_t>(length);
 	}
 }
 
@@ -59,9 +59,9 @@ string md5::finalise()
 		fill(m_data, m_data + 56, 0);
 	}
 	
-	uint8* p = m_data + 56;
+	uint8_t* p = m_data + 56;
 	for (int i = 0; i < 8; ++i)
-		*p++ = static_cast<uint8>((m_bit_length >> (i * 8)));
+		*p++ = static_cast<uint8_t>((m_bit_length >> (i * 8)));
 	
 	transform(m_data);
 	fill(m_data, m_data + 64, 0);
@@ -75,7 +75,7 @@ string md5::finalise()
 	{
 		for (int j = 0; j < 4; ++j)
 		{
-			uint8 b = m_buffer[i] >> (j * 8);
+			uint8_t b = m_buffer[i] >> (j * 8);
 			result += kHexChars[b >> 4];
 			result += kHexChars[b & 0x0f];
 		}
@@ -94,17 +94,17 @@ string md5::finalise()
 	w = w << s | w >> (32 - s);	\
 	w += x;
 
-void md5::transform(const uint8* data)
+void md5::transform(const uint8_t* data)
 {
-	uint32 a = m_buffer[0], b = m_buffer[1], c = m_buffer[2], d = m_buffer[3];
-	uint32 in[16];
+	uint32_t a = m_buffer[0], b = m_buffer[1], c = m_buffer[2], d = m_buffer[3];
+	uint32_t in[16];
 	
 	for (int i = 0; i < 16; ++i)
 	{
-		in[i] = static_cast<uint32>(data[0]) <<  0 |
-				static_cast<uint32>(data[1]) <<  8 |
-				static_cast<uint32>(data[2]) << 16 |
-				static_cast<uint32>(data[3]) << 24;
+		in[i] = static_cast<uint32_t>(data[0]) <<  0 |
+				static_cast<uint32_t>(data[1]) <<  8 |
+				static_cast<uint32_t>(data[2]) << 16 |
+				static_cast<uint32_t>(data[3]) << 24;
 		data += 4;
 	}
 	

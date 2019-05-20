@@ -84,7 +84,7 @@ struct auth_info
 	bool stale() const;
 
 	std::string m_nonce, m_realm;
-	std::set<uint32> m_replay_check;
+	std::set<uint32_t> m_replay_check;
 	pt::ptime m_created;
 };
 
@@ -94,7 +94,7 @@ auth_info::auth_info(const std::string& realm)
 	using namespace boost::gregorian;
 
 	boost::random::random_device rng;
-	uint32 data[4] = {rng(), rng(), rng(), rng()};
+	uint32_t data[4] = {rng(), rng(), rng(), rng()};
 
 	m_nonce = md5(data, sizeof(data)).finalise();
 	m_created = pt::second_clock::local_time();
@@ -117,7 +117,7 @@ bool auth_info::validate(const std::string& method, const std::string& uri, cons
 {
 	bool valid = false;
 
-	uint32 nc = strtol(info["nc"].c_str(), nullptr, 16);
+	uint32_t nc = strtol(info["nc"].c_str(), nullptr, 16);
 	if (not m_replay_check.count(nc))
 	{
 		std::string ha2 = md5(method + ':' + info["uri"]).finalise();
@@ -630,7 +630,7 @@ void basic_webapp::process_for(xml::element *node, const el::scope& scope, fs::p
 	if (var.empty())
 		throw exception("missing var attribute in mrs:iterate");
 
-	for (int32 i = b.as<int32>(); i <= e.as<int32>(); ++i)
+	for (int32_t i = b.as<int32_t>(); i <= e.as<int32_t>(); ++i)
 	{
 		el::scope s(scope);
 		s.put(var, el::object(i));
@@ -667,7 +667,7 @@ void basic_webapp::process_number(xml::element *node, const el::scope& scope, fs
 		el::object n;
 		evaluate_el(scope, number, n);
 
-		uint64 nr = n.as<uint64>();
+		uint64_t nr = n.as<uint64_t>();
 		int base = 0;
 
 		while (nr > 1024)
@@ -690,7 +690,7 @@ void basic_webapp::process_number(xml::element *node, const el::scope& scope, fs
 		el::object n;
 		evaluate_el(scope, number, n);
 
-		uint64 nr = n.as<uint64>();
+		uint64_t nr = n.as<uint64_t>();
 
 		std::locale mylocale(std::locale(), new with_thousands);
 

@@ -42,6 +42,12 @@ int main()
 		json j_array2(std::vector<int>{ 1, 2, 3});
 		json j_array3({ 1, 2, 3});
 
+		int a[5] = { 4, 5, 6, 7, 8 };
+		const char* b[3] = { "een", "twee", "drie" };
+
+		json j_array5(a);
+		json j_array6(b);
+
 		std::map<std::string,int> m = {
 			{ "een", 1 }, { "twee", 2 }
 		};
@@ -68,6 +74,8 @@ int main()
 				  << j_number3 << std::endl
 				  << j_number4 << std::endl
 				  << j_array4 << std::endl
+				  << j_array5 << std::endl
+				  << j_array6 << std::endl
 				  ;
 	}
 	catch(const std::exception& e)
