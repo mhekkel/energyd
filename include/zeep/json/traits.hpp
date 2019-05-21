@@ -24,6 +24,9 @@ namespace detail
 template<typename> struct is_element : std::false_type {};
 template<> struct is_element<element> : std::true_type {};
 
+template <typename T, typename = void>
+struct is_iterator_traits : std::false_type {};
+
 template <typename T>
 using mapped_type_t = typename T::mapped_type;
 
@@ -36,11 +39,38 @@ using value_type_t = typename T::value_type;
 template <typename T>
 using iterator_t = typename T::iterator;
 
+template <typename T>
+using iterator_category_t = typename T::iterator_category;
+
+template <typename T>
+using difference_type_t = typename T::difference_type;
+
+template <typename T>
+using reference_t = typename T::reference;
+
+template <typename T>
+using pointer_t = typename T::pointer;
+
 template <typename T, typename... Args>
 using to_element_function = decltype(T::to_element(std::declval<Args>()...));
 
 template <typename T, typename... Args>
 using from_element_function = decltype(T::from_element(std::declval<Args>()...));
+
+template <typename T>
+struct is_iterator_traits<std::iterator_traits<T>>
+{
+  private:
+    using traits = std::iterator_traits<T>;
+
+  public:
+    static constexpr auto value =
+        std::experimental::is_detected<value_type_t, traits>::value &&
+        std::experimental::is_detected<difference_type_t, traits>::value &&
+        std::experimental::is_detected<pointer_t, traits>::value &&
+        std::experimental::is_detected<iterator_category_t, traits>::value &&
+        std::experimental::is_detected<reference_t, traits>::value;
+};
 
 template<typename T, typename = void>
 struct has_to_element : std::false_type {};
@@ -81,6 +111,24 @@ struct is_array_type<T,
 {
     static constexpr bool value =
         std::is_constructible<element, typename T::value_type>::value;
+};
+
+template<typename E, typename T, typename = void>
+struct is_constructible_array_type : std::false_type {};
+
+template<typename E, typename T>
+struct is_constructible_array_type<E, T,
+	std::enable_if_t<
+		std::experimental::is_detected<value_type_t, T>::value and
+		std::experimental::is_detected<iterator_t, T>::value and
+		is_complete_type<std::experimental::detected_t<value_type_t, T>>::value >>
+{
+    static constexpr bool value =
+		not is_iterator_traits<std::iterator_traits<T>>::value and
+		(
+			std::is_same<typename T::value_type, typename E::array_type::value_type>::value or
+			has_from_element<typename T::value_type>::value
+		);
 };
 
 template<typename J, typename T, typename = void>

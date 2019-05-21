@@ -19,6 +19,7 @@
 #include <zeep/json/to_element.hpp>
 #include <zeep/json/from_element.hpp>
 #include <zeep/json/serializer.hpp>
+#include <zeep/json/iterator.hpp>
 
 namespace zeep
 {
@@ -28,15 +29,29 @@ class element
 public:
 	using value_type = detail::value_type;
 
-	typedef std::nullptr_t					nullptr_type;
-	typedef std::map<std::string,element>	object_type;
-	typedef std::vector<element>			array_type;
-	typedef std::string						string_type;
-	typedef int64_t							int_type;
-	typedef uint64_t						uint_type;
-	typedef double							float_type;
-	typedef bool							boolean_type;
+	using nullptr_type = std::nullptr_t;
+	using object_type = std::map<std::string,element>;
+	using array_type = std::vector<element>;
+	using string_type = std::string;
+	using int_type = int64_t;
+	using uint_type = uint64_t;
+	using float_type = double;
+	using boolean_type = bool;
 
+	using pointer = element*;
+	using const_pointer = const element*;
+
+	using difference_type = std::ptrdiff_t;
+
+	using reference = element&;
+	using const_reference = const element&;
+
+	using iterator = detail::iterator_impl<element>;
+	using const_iterator = detail::iterator_impl<const element>;
+
+	template<typename E>
+	friend class detail::iterator_impl;
+	
     using initializer_list_t = std::initializer_list<detail::element_reference>;
 
     template<value_type> friend struct detail::factory;
@@ -83,10 +98,36 @@ public:
 	constexpr value_type type() const							{ return m_type; }
 	std::string type_name() const;
 
-	struct iterator : public std::iterator<std::bidirectional_iterator_tag, element>
-	{
+	// access to object elements
+	reference at(const typename object_type::key_type& key);
+	const_reference at(const typename object_type::key_type& key) const;
 
-	};
+	reference operator[](const typename object_type::key_type& key);
+	const_reference operator[](const typename object_type::key_type& key) const;
+
+
+	// access to array elements
+	reference at(size_t index);
+	const_reference at(size_t index) const;
+
+	reference operator[](size_t index);
+	const_reference operator[](size_t index) const;
+
+	iterator begin() noexcept									{ return iterator(this); }
+	iterator end() noexcept										{ return iterator(this, -1); }
+
+	const_iterator begin() const noexcept						{ return cbegin(); }
+	const_iterator end() const noexcept							{ return cend(); }
+
+	const_iterator cbegin() const noexcept						{ return const_iterator(this); }
+	const_iterator cend() const noexcept						{ return const_iterator(this, -1); }
+
+	reference front()											{ return *begin(); }
+	const_reference front() const								{ return *cbegin(); }
+
+	reference back()											{ auto tmp = end(); --tmp; return *tmp; }
+	const_reference back() const								{ auto tmp = cend(); --tmp; return *tmp; }
+
 
 
 
@@ -111,8 +152,8 @@ public:
 		return { i, r.second };
 	}
 
-	iterator begin();
-	iterator end();
+	bool empty() const;
+	size_t size() const;
 
 private:
 
@@ -160,8 +201,6 @@ public:
 		element_serializer<U>::from_element(*this, ret);
 		return ret;
 	}
-
-	// size_t size() const;
 
 	// element& operator[](size_t index);
 	// element& operator[](const std::string& name);

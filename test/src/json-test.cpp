@@ -85,7 +85,28 @@ int main()
 		std::string s = *j_string2.get_ptr<std::string*>();
 		assert(s == "aap");
 
-		assert(j_string2.get<std::string>() == "aap");
+		s = j_string2.get<std::string>();
+
+		// assert(j_string2.get<std::string>() == "aap");
+
+		std::cout << std::endl;
+		
+		std::cout << j_number2.get<float>() << std::endl
+				  << j_number3.get<float>() << std::endl
+				  << j_number4.get<float>() << std::endl
+				  << std::endl;
+		
+
+		auto a = j_array3.get<std::vector<float>>();
+
+		for (float f: a)
+			std::cout << f << std::endl;
+
+		std::cout << std::endl
+				  << j_object2["een"] << std::endl
+				  << j_array4[2]["twee"] << std::endl
+				  << std::endl;
+				  
 	}
 	catch(const std::exception& e)
 	{
