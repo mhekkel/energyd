@@ -208,6 +208,7 @@ void basic_webapp::handle_request(const request& req, reply& rep)
 
 		// set up the scope by putting some globals in it
 		el::scope scope(req);
+
 		scope.put("action", el::object(action));
 		scope.put("uri", el::object(uri));
 		s = uri.find('?');
@@ -593,8 +594,10 @@ void basic_webapp::process_if(xml::element *node, const el::scope& scope, fs::pa
 
 void basic_webapp::process_iterate(xml::element *node, const el::scope& scope, fs::path dir)
 {
+	using detail::value_type;
+
 	el::object collection = scope[node->get_attribute("collection")];
-	if (collection.type() != el::object::array_type)
+	if (collection.type() != value_type::array)
 		evaluate_el(scope, node->get_attribute("collection"), collection);
 
 	std::string var = node->get_attribute("var");
@@ -708,8 +711,10 @@ void basic_webapp::process_number(xml::element *node, const el::scope& scope, fs
 
 void basic_webapp::process_options(xml::element *node, const el::scope& scope, fs::path dir)
 {
+	using ::zeep::detail::value_type;
+
 	el::object collection = scope[node->get_attribute("collection")];
-	if (collection.type() != el::object::array_type)
+	if (collection.type() != value_type::array)
 		evaluate_el(scope, node->get_attribute("collection"), collection);
 
 	std::string value = node->get_attribute("value");

@@ -170,6 +170,173 @@ public:
 	bool empty() const;
 	size_t size() const;
 
+	friend bool operator==(const_reference& lhs, const_reference& rhs);
+
+	template<typename T, std::enable_if_t<std::is_scalar<T>::value, int> = 0>
+	friend bool operator==(const_reference& lhs, const T& rhs)
+	{
+		return lhs == element(rhs);
+	}
+
+	template<typename T, std::enable_if_t<std::is_scalar<T>::value, int> = 0>
+	friend bool operator==(const T& lhs, const_reference& rhs)
+	{
+		return element(lhs) == rhs;
+	}
+
+	friend bool operator!=(const_reference& lhs, const_reference& rhs);
+
+	template<typename T, std::enable_if_t<std::is_scalar<T>::value, int> = 0>
+	friend bool operator!=(const_reference& lhs, const T& rhs)
+	{
+		return lhs != element(rhs);
+	}
+
+	template<typename T, std::enable_if_t<std::is_scalar<T>::value, int> = 0>
+	friend bool operator!=(const T& rhs, const_reference& lhs)
+	{
+		return element(lhs) == rhs;
+	}
+
+	friend bool operator<(const_reference& lhs, const_reference& rhs);
+
+	template<typename T, std::enable_if_t<std::is_scalar<T>::value, int> = 0>
+	friend bool operator<(const_reference& lhs, const T& rhs)
+	{
+		return lhs < element(rhs);
+	}
+
+	template<typename T, std::enable_if_t<std::is_scalar<T>::value, int> = 0>
+	friend bool operator<(const T& lhs, const_reference& rhs)
+	{
+		return element(lhs) < rhs;
+	}
+
+	friend bool operator<=(const_reference& lhs, const_reference& rhs)
+	{
+		return not (rhs < lhs);
+	}
+
+	template<typename T, std::enable_if_t<std::is_scalar<T>::value, int> = 0>
+	friend bool operator<=(const_reference& lhs, const T& rhs)
+	{
+		return lhs <= element(rhs);
+	}
+
+	template<typename T, std::enable_if_t<std::is_scalar<T>::value, int> = 0>
+	friend bool operator<=(const T& lhs, const_reference& rhs)
+	{
+		return element(lhs) <= rhs;
+	}
+
+	friend bool operator>(const_reference& lhs, const_reference& rhs)
+	{
+		return not (lhs <= rhs);
+	}
+
+	template<typename T, std::enable_if_t<std::is_scalar<T>::value, int> = 0>
+	friend bool operator>(const_reference& lhs, const T& rhs)
+	{
+		return lhs > element(rhs);
+	}
+
+	template<typename T, std::enable_if_t<std::is_scalar<T>::value, int> = 0>
+	friend bool operator>(const T& lhs, const_reference& rhs)
+	{
+		return element(lhs) > rhs;
+	}
+
+	friend bool operator>=(const_reference& lhs, const_reference& rhs)
+	{
+		return not (lhs < rhs);
+	}
+
+	template<typename T, std::enable_if_t<std::is_scalar<T>::value, int> = 0>
+	friend bool operator>=(const_reference& lhs, const T& rhs)
+	{
+		return lhs >= element(rhs);
+	}
+
+	template<typename T, std::enable_if_t<std::is_scalar<T>::value, int> = 0>
+	friend bool operator>=(const T& lhs, const_reference& rhs)
+	{
+		return element(lhs) >= rhs;
+	}
+
+	// arithmetic operators
+
+	element& operator-();
+
+	friend element operator+(const_reference& lhs, const_reference& rhs);
+
+	template<typename T, std::enable_if_t<std::is_scalar<T>::value, int> = 0>
+	friend element operator+(const_reference& lhs, const T& rhs)
+	{
+		return lhs + element(rhs);
+	}
+
+	template<typename T, std::enable_if_t<std::is_scalar<T>::value, int> = 0>
+	friend element operator+(const T& lhs, const_reference& rhs)
+	{
+		return element(lhs) + rhs;
+	}
+
+	friend element operator-(const_reference& lhs, const_reference& rhs);
+
+	template<typename T, std::enable_if_t<std::is_scalar<T>::value, int> = 0>
+	friend element operator-(const_reference& lhs, const T& rhs)
+	{
+		return lhs - element(rhs);
+	}
+
+	template<typename T, std::enable_if_t<std::is_scalar<T>::value, int> = 0>
+	friend element operator-(const T& lhs, const_reference& rhs)
+	{
+		return element(lhs) - rhs;
+	}
+
+	friend element operator*(const_reference& lhs, const_reference& rhs);
+
+	template<typename T, std::enable_if_t<std::is_scalar<T>::value, int> = 0>
+	friend element operator*(const_reference& lhs, const T& rhs)
+	{
+		return lhs * element(rhs);
+	}
+
+	template<typename T, std::enable_if_t<std::is_scalar<T>::value, int> = 0>
+	friend element operator*(const T& lhs, const_reference& rhs)
+	{
+		return element(lhs) * rhs;
+	}
+
+	friend element operator/(const_reference& lhs, const_reference& rhs);
+
+	template<typename T, std::enable_if_t<std::is_scalar<T>::value, int> = 0>
+	friend element operator/(const_reference& lhs, const T& rhs)
+	{
+		return lhs / element(rhs);
+	}
+
+	template<typename T, std::enable_if_t<std::is_scalar<T>::value, int> = 0>
+	friend element operator/(const T& lhs, const_reference& rhs)
+	{
+		return element(lhs) / rhs;
+	}
+
+	friend element operator%(const_reference& lhs, const_reference& rhs);
+
+	template<typename T, std::enable_if_t<std::is_scalar<T>::value, int> = 0>
+	friend element operator%(const_reference& lhs, const T& rhs)
+	{
+		return lhs % element(rhs);
+	}
+
+	template<typename T, std::enable_if_t<std::is_scalar<T>::value, int> = 0>
+	friend element operator%(const T& lhs, const_reference& rhs)
+	{
+		return element(lhs) % rhs;
+	}
+
 private:
 
 	// get_impl_ptr
@@ -208,7 +375,7 @@ public:
 	template<typename T,
 		typename U = typename std::remove_cv<typename std::remove_reference<T>::type>::type,
 		std::enable_if_t<not std::is_same<U,element>::value and detail::has_from_element<U>::value, int> = 0>
-	T get() const noexcept(noexcept(element_serializer<U>::from_element(std::declval<const element&>(), std::declval<U&>())))
+	T as() const noexcept(noexcept(element_serializer<U>::from_element(std::declval<const element&>(), std::declval<U&>())))
 	{
 		static_assert(std::is_default_constructible<U>::value, "Type must be default constructible to use with get()");
 

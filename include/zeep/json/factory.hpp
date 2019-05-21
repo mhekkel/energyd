@@ -54,6 +54,15 @@ struct factory<value_type::string>
 		j.m_data = std::move(s);
 		j.validate();
 	}
+
+	template<typename J, typename T,
+		std::enable_if_t<not std::is_same<T, typename J::string_type>::value, int> = 0>
+	static void construct(J& j, const T& s)
+	{
+		j.m_type = value_type::string;
+		j.m_data = j.template create<typename J::string_type>(s);
+		j.validate();
+	}
 };
 
 template<>

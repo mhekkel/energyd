@@ -426,11 +426,11 @@ auto get(const ::zeep::detail::iteration_proxy_value<Iterator>& i) -> decltype(i
 namespace std
 {
 template <typename IteratorType>
-class tuple_size<::zeep::detail::iteration_proxy_value<IteratorType>>
+struct tuple_size<::zeep::detail::iteration_proxy_value<IteratorType>>
             : public std::integral_constant<std::size_t, 2> {};
 
 template <std::size_t N, typename IteratorType>
-class tuple_element<N, ::zeep::detail::iteration_proxy_value<IteratorType >>
+struct tuple_element<N, ::zeep::detail::iteration_proxy_value<IteratorType >>
 {
   public:
     using type = decltype(

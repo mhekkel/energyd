@@ -28,8 +28,13 @@ void to_element(element& v, T b)
 	factory<value_type::boolean>::construct(v, b);
 }
 
-template<typename T, std::enable_if_t<std::is_constructible<T, std::string>::value, int> = 0>
-void to_element(element& v, const T& s)
+template<typename E, typename T, std::enable_if_t<std::is_constructible<typename E::string_type, T>::value, int> = 0>
+void to_element(E& v, const T& s)
+{
+	factory<value_type::string>::construct(v, s);
+}
+
+inline void to_element(element& v, const std::string& s)
 {
 	factory<value_type::string>::construct(v, s);
 }
@@ -69,7 +74,11 @@ inline void to_element(element& j, const std::vector<bool>& v)
 	factory<value_type::array>::construct(j, v);
 }
 
-template<typename T, std::enable_if_t<is_array_type<T>::value, int> = 0>
+template<typename T, std::enable_if_t<
+	is_array_type<T>::value and
+	not is_compatible_object_type<element,T>::value and
+	not is_compatible_string<element,T>::value and
+	not is_element<T>::value, int> = 0>
 void to_element(element& j, const T& arr)
 {
 	factory<value_type::array>::construct(j, arr);

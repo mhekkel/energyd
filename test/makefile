@@ -77,7 +77,7 @@ $(PROGRAMS): %: $(OBJDIR)/%.o
 	@ $(CXX) -o $@ $^ $(LDFLAGS)
 
 clean:
-	rm -rf obj/* libzeep.a libzeep.so XML-Test-Suite/ $(PROGRAMS)
+	rm -rf $(OBJDIR) libzeep.a libzeep.so XML-Test-Suite/ $(PROGRAMS)
 
 dist-clean: clean
 

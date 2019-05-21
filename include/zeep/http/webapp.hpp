@@ -19,6 +19,7 @@
 #include <zeep/exception.hpp>
 #include <zeep/http/request.hpp>
 #include <zeep/http/server.hpp>
+#include <zeep/http/webapp/el.hpp>
 
 // --------------------------------------------------------------------
 //
@@ -77,14 +78,6 @@ struct unauthorized_exception : public std::exception
 	bool m_stale;	  ///< Is true when the authorization information is valid but stale (too old)
 	char m_realm[256]; ///< Realm for which the authorization failed
 };
-
-#ifndef BOOST_XPRESSIVE_DOXYGEN_INVOKED
-namespace el
-{
-class scope;
-class object;
-} // namespace el
-#endif
 
 /// basic_webapp is used to create XHTML web pages based on the contents of a
 /// template file and the parameters passed in the request and calculated data stored

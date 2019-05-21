@@ -157,5 +157,37 @@ struct is_compatible_type_impl<T, std::enable_if_t<is_complete_type<T>::value>>
 template<typename T>
 struct is_compatible_type : is_compatible_type_impl<T> {};
 
+// compatible string
+
+template<typename E, typename T, typename = void>
+struct is_compatible_string : std::false_type {};
+
+template<typename E, typename T>
+struct is_compatible_string<E, T,
+	std::enable_if_t<
+		std::experimental::is_detected_exact<typename E::string_type::value_type, value_type_t, T>::value>>
+{
+	static constexpr bool value =
+		std::is_constructible<typename E::string_type, T>::value;
+};
+
+// compatible object
+
+template<typename J, typename T, typename = void>
+struct is_compatible_object_type : std::false_type {};
+
+template<typename J, typename T>
+struct is_compatible_object_type<J, T, std::enable_if_t<
+	std::experimental::is_detected<mapped_type_t, T>::value and
+	std::experimental::is_detected<key_type_t, T>::value>>
+{
+	using map_t = typename J::object_type;
+	static constexpr bool value = 
+		std::is_constructible<typename J::object_type::key_type,typename map_t::key_type>::value and
+		(std::is_same<typename J::value_type,typename map_t::mapped_type>::value or
+			has_from_element<typename T::mapped_type>::value); 
+};
+
+
 }
 }

@@ -249,6 +249,78 @@ size_t element::size() const
 	}
 }
 
+bool operator==(element::const_reference& lhs, element::const_reference& rhs)
+{
+	using detail::value_type;
+
+	auto lhs_type = lhs.type();
+	auto rhs_type = rhs.type();
+
+	if (lhs_type == rhs_type)
+	{
+		switch (lhs_type)
+		{
+			case value_type::array:			return *lhs.m_data.m_array == *rhs.m_data.m_array;
+			case value_type::object:		return *lhs.m_data.m_object == *rhs.m_data.m_object;
+			case value_type::string:		return *lhs.m_data.m_string == *rhs.m_data.m_string;
+			case value_type::number_int:	return lhs.m_data.m_int == rhs.m_data.m_int;
+			case value_type::number_uint:	return lhs.m_data.m_uint == rhs.m_data.m_uint;
+			case value_type::number_float:	return lhs.m_data.m_float == rhs.m_data.m_float;
+			case value_type::boolean:		return lhs.m_data.m_boolean == rhs.m_data.m_boolean;
+		}
+	}
+	else if (lhs_type == value_type::number_float and rhs_type == value_type::number_int)
+		return lhs.m_data.m_float == static_cast<element::float_type>(rhs.m_data.m_int);
+	else if (lhs_type == value_type::number_int and rhs_type == value_type::number_float)
+		return static_cast<element::float_type>(lhs.m_data.m_int) == rhs.m_data.m_float;
+	else if (lhs_type == value_type::number_float and rhs_type == value_type::number_uint)
+		return lhs.m_data.m_float == static_cast<element::float_type>(rhs.m_data.m_uint);
+	else if (lhs_type == value_type::number_uint and rhs_type == value_type::number_float)
+		return static_cast<element::float_type>(lhs.m_data.m_uint) == rhs.m_data.m_float;
+	else if (lhs_type == value_type::number_int and rhs_type == value_type::number_uint)
+		return lhs.m_data.m_int == static_cast<element::int_type>(rhs.m_data.m_uint);
+	else if (lhs_type == value_type::number_uint and rhs_type == value_type::number_int)
+		return static_cast<element::int_type>(lhs.m_data.m_uint) == rhs.m_data.m_int;
+	
+	return false;
+}
+
+bool operator<(element::const_reference& lhs, element::const_reference& rhs)
+{
+	using detail::value_type;
+
+	auto lhs_type = lhs.type();
+	auto rhs_type = rhs.type();
+
+	if (lhs_type == rhs_type)
+	{
+		switch (lhs_type)
+		{
+			case value_type::array:			return *lhs.m_data.m_array < *rhs.m_data.m_array;
+			case value_type::object:		return *lhs.m_data.m_object < *rhs.m_data.m_object;
+			case value_type::string:		return *lhs.m_data.m_string < *rhs.m_data.m_string;
+			case value_type::number_int:	return lhs.m_data.m_int < rhs.m_data.m_int;
+			case value_type::number_uint:	return lhs.m_data.m_uint < rhs.m_data.m_uint;
+			case value_type::number_float:	return lhs.m_data.m_float < rhs.m_data.m_float;
+			case value_type::boolean:		return lhs.m_data.m_boolean < rhs.m_data.m_boolean;
+		}
+	}
+	else if (lhs_type == value_type::number_float and rhs_type == value_type::number_int)
+		return lhs.m_data.m_float < static_cast<element::float_type>(rhs.m_data.m_int);
+	else if (lhs_type == value_type::number_int and rhs_type == value_type::number_float)
+		return static_cast<element::float_type>(lhs.m_data.m_int) < rhs.m_data.m_float;
+	else if (lhs_type == value_type::number_float and rhs_type == value_type::number_uint)
+		return lhs.m_data.m_float < static_cast<element::float_type>(rhs.m_data.m_uint);
+	else if (lhs_type == value_type::number_uint and rhs_type == value_type::number_float)
+		return static_cast<element::float_type>(lhs.m_data.m_uint) < rhs.m_data.m_float;
+	else if (lhs_type == value_type::number_int and rhs_type == value_type::number_uint)
+		return lhs.m_data.m_int < static_cast<element::int_type>(rhs.m_data.m_uint);
+	else if (lhs_type == value_type::number_uint and rhs_type == value_type::number_int)
+		return static_cast<element::int_type>(lhs.m_data.m_uint) < rhs.m_data.m_int;
+	
+	return false;
+}
+
 // --------------------------------------------------------------------
 
 void serialize(std::ostream& os, const element& v)
