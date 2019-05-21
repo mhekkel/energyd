@@ -17,6 +17,7 @@
 #include <zeep/json/traits.hpp>
 #include <zeep/json/factory.hpp>
 #include <zeep/json/to_element.hpp>
+#include <zeep/json/from_element.hpp>
 #include <zeep/json/serializer.hpp>
 
 namespace zeep
@@ -26,9 +27,15 @@ class element
 {
 public:
 	using value_type = detail::value_type;
+
+	typedef std::nullptr_t					nullptr_type;
 	typedef std::map<std::string,element>	object_type;
 	typedef std::vector<element>			array_type;
 	typedef std::string						string_type;
+	typedef int64_t							int_type;
+	typedef uint64_t						uint_type;
+	typedef double							float_type;
+	typedef bool							boolean_type;
 
     using initializer_list_t = std::initializer_list<detail::element_reference>;
 
@@ -107,7 +114,61 @@ public:
 	iterator begin();
 	iterator end();
 
+private:
 
+	// get_impl_ptr
+	object_type* get_impl_ptr(object_type*) noexcept								{ return is_object() ? m_data.m_object : nullptr; }
+	constexpr const object_type* get_impl_ptr(const object_type*) const noexcept	{ return is_object() ? m_data.m_object : nullptr; }
+	array_type* get_impl_ptr(array_type*) noexcept									{ return is_array() ? m_data.m_array : nullptr; }
+	constexpr const array_type* get_impl_ptr(const array_type*) const noexcept		{ return is_array() ? m_data.m_array : nullptr; }
+	string_type* get_impl_ptr(string_type*) noexcept								{ return is_string() ? m_data.m_string : nullptr; }
+	constexpr const string_type* get_impl_ptr(const string_type*) const noexcept	{ return is_string() ? m_data.m_string : nullptr; }
+	int_type* get_impl_ptr(int_type*) noexcept										{ return is_number_int() ? &m_data.m_int : nullptr; }
+	constexpr const int_type* get_impl_ptr(const int_type*) const noexcept			{ return is_number_int() ? &m_data.m_int : nullptr; }
+	uint_type* get_impl_ptr(uint_type*) noexcept									{ return is_number_uint() ? &m_data.m_uint : nullptr; }
+	constexpr const uint_type* get_impl_ptr(const uint_type*) const noexcept		{ return is_number_uint() ? &m_data.m_uint : nullptr; }
+	float_type* get_impl_ptr(float_type*) noexcept									{ return is_number_float() ? &m_data.m_float : nullptr; }
+	constexpr const float_type* get_impl_ptr(const float_type*) const noexcept		{ return is_number_float() ? &m_data.m_float : nullptr; }
+	boolean_type* get_impl_ptr(boolean_type*) noexcept								{ return is_boolean() ? &m_data.m_boolean : nullptr; }
+	constexpr const boolean_type* get_impl_ptr(const boolean_type*) const noexcept	{ return is_boolean() ? &m_data.m_boolean : nullptr; }
+
+
+public:
+
+	// access to data
+	// these return a pointer to the internal storage
+	template<typename P, typename std::enable_if<std::is_pointer<P>::value, int>::type = 0>
+	auto get_ptr() noexcept -> decltype(std::declval<element&>().get_impl_ptr(std::declval<P>()))
+	{
+		return get_impl_ptr(static_cast<P>(nullptr));
+	}
+
+	template<typename P, typename std::enable_if<std::is_pointer<P>::value and std::is_const<typename std::remove_pointer<P>::type>::value, int>::type = 0>
+	constexpr auto get_ptr() const noexcept -> decltype(std::declval<element&>().get_impl_ptr(std::declval<P>()))
+	{
+		return get_impl_ptr(static_cast<P>(nullptr));
+	}
+
+	template<typename T,
+		typename U = typename std::remove_cv<typename std::remove_reference<T>::type>::type,
+		std::enable_if_t<not std::is_same<U,element>::value and detail::has_from_element<U>::value, int> = 0>
+	T get() const noexcept(noexcept(element_serializer<U>::from_element(std::declval<const element&>(), std::declval<U&>())))
+	{
+		static_assert(std::is_default_constructible<U>::value, "Type must be default constructible to use with get()");
+
+		U ret;
+		element_serializer<U>::from_element(*this, ret);
+		return ret;
+	}
+
+	// size_t size() const;
+
+	// element& operator[](size_t index);
+	// element& operator[](const std::string& name);
+
+	friend std::ostream& operator<<(std::ostream& os, const element& v);
+	friend void serialize(std::ostream& os, const element& data);
+	// friend void serialize(std::ostream& os, const element& data, int indent, int level = 0);
 
 private:
 
@@ -198,15 +259,6 @@ private:
         return object.release();
 	}
 
-	// size_t size() const;
-
-	// element& operator[](size_t index);
-	// element& operator[](const std::string& name);
-
-	friend std::ostream& operator<<(std::ostream& os, const element& v);
-	friend void serialize(std::ostream& os, const element& data);
-	// friend void serialize(std::ostream& os, const element& data, int indent, int level = 0);
-
 private:
 
 	void validate() const
@@ -216,7 +268,7 @@ private:
         assert(m_type != value_type::string or m_data.m_string != nullptr);
 	}
 
-	value_type	m_type;
+	value_type		m_type;
 	element_data	m_data;
 };
 

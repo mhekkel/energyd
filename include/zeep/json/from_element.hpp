@@ -37,15 +37,15 @@ void get_number(const E& e, T& v)
     switch (e.type())
     {
         case value_type::number_int:
-            v = static_cast<T>(*e.get_ptr<value_type::number_int>());
+            v = static_cast<T>(*e.template get_ptr<const typename E::int_type*>());
             break;
 
         case value_type::number_uint:
-            v = static_cast<T>(*e.get_ptr<value_type::number_uint>());
+            v = static_cast<T>(*e.template get_ptr<const typename E::uint_type*>());
             break;
 
         case value_type::number_float:
-            v = static_cast<T>(*e.get_ptr<value_type::number_float>());
+            v = static_cast<T>(*e.template get_ptr<const typename E::float_type*>());
             break;
         
         default:
@@ -55,11 +55,18 @@ void get_number(const E& e, T& v)
 }
 
 template<typename E>
-void from_element(const E& e, bool& b)
+void from_element(const E& e, typename E::boolean_type& b)
 {
     
 }
 
+template<typename E>
+void from_element(const E& e, typename E::string_type& s)
+{
+    if (not e.is_string())
+        throw std::runtime_error("Type should have been string but was " + e.type_name());
+    s = *e.template get_ptr<const typename E::string_type*>();
+}
 
 // template<typename T, std::enable_if_t<std::is_same<T, bool>::value, int> = 0>
 // void to_element(element& v, T b)
@@ -145,20 +152,20 @@ void from_element(const E& e, bool& b)
 // 	factory<value_type::object>::construct(j, std::move(obj));
 // }
 
-// struct to_element_fn
-// {
-//     template<typename T>
-//     auto operator()(element& j, T&& val) const noexcept(noexcept(to_element(j, std::forward<T>(val))))
-//     -> decltype(to_element(j, std::forward<T>(val)), void())
-//     {
-//         return to_element(j, std::forward<T>(val));
-//     }
-// };
+struct from_element_fn
+{
+    template<typename T>
+    auto operator()(const element& j, T& val) const noexcept(noexcept(from_element(j, val)))
+    -> decltype(from_element(j, val), void())
+    {
+        return from_element(j, val);
+    }
+};
 
-// namespace
-// {
-//     constexpr const auto& to_element = typename ::zeep::detail::to_element_fn{};
-// }
+namespace
+{
+    constexpr const auto& from_element = typename ::zeep::detail::from_element_fn{};
+}
 
 }
 }

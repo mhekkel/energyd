@@ -68,7 +68,7 @@ all: $(PROGRAMS)
 .PHONY: all
 
 ../lib/libzeep.a: FORCE
-	+$(MAKE) -C ../lib static-lib
+	+$(MAKE) -C ../lib DEBUG=$(DEBUG) static-lib
 
 $(PROGRAMS): ../lib/libzeep.a
 

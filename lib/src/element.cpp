@@ -6,7 +6,7 @@
 #include <iostream>
 #include <iomanip>
 
-#include <zeep/json/json.hpp>
+#include <zeep/json/element.hpp>
 
 namespace zeep
 {
@@ -115,6 +115,21 @@ element::~element()
 {
     validate();
     m_data.destroy(m_type);
+}
+
+std::string element::type_name() const
+{
+  switch (m_type)
+    {
+        case value_type::null:			return "null"; break;
+        case value_type::array:			return "array"; break;
+        case value_type::object:		return "object"; break;
+        case value_type::string:		return "string"; break;
+        case value_type::number_int:	return "number_int"; break;
+        case value_type::number_uint:	return "number_uint"; break;
+        case value_type::number_float:	return "number_float"; break;
+        case value_type::boolean:		return "boolean"; break;
+    }
 }
 
 // --------------------------------------------------------------------

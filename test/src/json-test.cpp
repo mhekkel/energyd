@@ -1,6 +1,6 @@
 #include <iostream>
 
-#include <zeep/json/json.hpp>
+#include <zeep/json/element.hpp>
 
 template<typename T>
 struct Foo
@@ -33,11 +33,14 @@ int main()
 		json j_object(json::value_type::object);
 		json j_string(json::value_type::string);
 		json j_number(json::value_type::number_int);
+		json j_bool(json::value_type::boolean);
 
 		json j_string2("aap");
 		json j_number2(1.0f);
 		json j_number3(2L);
 		json j_number4(3UL);
+
+		json j_bool2(true);
 
 		json j_array2(std::vector<int>{ 1, 2, 3});
 		json j_array3({ 1, 2, 3});
@@ -68,7 +71,21 @@ int main()
 				  << j_number3 << std::endl
 				  << j_number4 << std::endl
 				  << j_array4 << std::endl
+
+				  << j_bool << std::endl
+				  << j_bool2 << std::endl
 				  ;
+
+
+		// get
+
+		bool b = *j_bool2.get_ptr<bool*>();
+		assert(b == true);
+
+		std::string s = *j_string2.get_ptr<std::string*>();
+		assert(s == "aap");
+
+		assert(j_string2.get<std::string>() == "aap");
 	}
 	catch(const std::exception& e)
 	{

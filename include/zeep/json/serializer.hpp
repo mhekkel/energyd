@@ -17,11 +17,12 @@
 #include <zeep/json/traits.hpp>
 #include <zeep/json/factory.hpp>
 #include <zeep/json/to_element.hpp>
+#include <zeep/json/from_element.hpp>
 
 namespace zeep
 {
 
-template<typename,typename>
+template<typename,typename = void>
 struct element_serializer
 {
 	template<typename T>
@@ -31,6 +32,15 @@ struct element_serializer
 	{
 		::zeep::detail::to_element(j, std::forward<T>(v));
 	}
+
+	template<typename T>
+	static auto from_element(const element& j, T& v)
+		noexcept(noexcept(::zeep::detail::from_element(j, v)))
+		-> decltype(::zeep::detail::from_element(j, v))
+	{
+		::zeep::detail::from_element(j, v);
+	}
+
 };
 
 }

@@ -39,6 +39,9 @@ using iterator_t = typename T::iterator;
 template <typename T, typename... Args>
 using to_element_function = decltype(T::to_element(std::declval<Args>()...));
 
+template <typename T, typename... Args>
+using from_element_function = decltype(T::from_element(std::declval<Args>()...));
+
 template<typename T, typename = void>
 struct has_to_element : std::false_type {};
 
@@ -48,6 +51,17 @@ struct has_to_element<T, std::enable_if_t<not is_element<T>::value>>
 	using serializer = element_serializer<T, void>;
 	static constexpr bool value =
 		std::experimental::is_detected_exact<void, to_element_function, serializer, element&, T>::value;
+};
+
+template<typename T, typename = void>
+struct has_from_element : std::false_type {};
+
+template<typename T>
+struct has_from_element<T, std::enable_if_t<not is_element<T>::value>>
+{
+	using serializer = element_serializer<T, void>;
+	static constexpr bool value =
+		std::experimental::is_detected_exact<void, from_element_function, serializer, const element&, T&>::value;
 };
 
 template<typename T, typename = void>

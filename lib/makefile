@@ -73,9 +73,9 @@ OBJECTS = \
 	$(OBJDIR)/connection.o \
 	$(OBJDIR)/doctype.o \
 	$(OBJDIR)/document.o \
+	$(OBJDIR)/element.o \
 	$(OBJDIR)/exception.o \
 	$(OBJDIR)/http-server.o \
-	$(OBJDIR)/json.o \
 	$(OBJDIR)/md5.o \
 	$(OBJDIR)/message_parser.o \
 	$(OBJDIR)/node.o \
