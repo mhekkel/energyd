@@ -42,12 +42,6 @@ int main()
 		json j_array2(std::vector<int>{ 1, 2, 3});
 		json j_array3({ 1, 2, 3});
 
-		int a[5] = { 4, 5, 6, 7, 8 };
-		const char* b[3] = { "een", "twee", "drie" };
-
-		json j_array5(a);
-		json j_array6(b);
-
 		std::map<std::string,int> m = {
 			{ "een", 1 }, { "twee", 2 }
 		};
@@ -56,10 +50,10 @@ int main()
 		json j_array4(10, j_object2);
 
 		static_assert(std::experimental::is_detected_exact
-			<void, zeep::detail::to_json_function, zeep::json_serializer<int,void>, zeep::json_value&, int>::value, "moet!");
-		static_assert(not zeep::detail::is_json_value<int>::value, "wowo");
-		static_assert(zeep::detail::is_json_value<decltype(j_null)>::value, "wowo");
-		static_assert(zeep::detail::has_to_json<bool>::value, "Oeps");
+			<void, zeep::detail::to_element_function, zeep::element_serializer<int,void>, zeep::element&, int>::value, "moet!");
+		static_assert(not zeep::detail::is_element<int>::value, "wowo");
+		static_assert(zeep::detail::is_element<decltype(j_null)>::value, "wowo");
+		static_assert(zeep::detail::has_to_element<bool>::value, "Oeps");
 
 		std::cout << j_null << std::endl
 				  << j_array << std::endl
@@ -74,8 +68,6 @@ int main()
 				  << j_number3 << std::endl
 				  << j_number4 << std::endl
 				  << j_array4 << std::endl
-				  << j_array5 << std::endl
-				  << j_array6 << std::endl
 				  ;
 	}
 	catch(const std::exception& e)

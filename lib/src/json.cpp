@@ -11,111 +11,118 @@
 namespace zeep
 {
 
-
-
-
-
-struct json_value_impl_base
+/// empty factory with a certain type
+element::element(value_type t)
+    : m_type(t), m_data(t)
 {
-	virtual ~json_value_impl_base() {}
+    validate();
+}
 
-    virtual void write(std::ostream& os) = 0;
-};
-
-template<typename impl>
-struct json_value_impl_t : public json_value_impl_base
+/// default factory
+element::element(std::nullptr_t)
+    : element(value_type::null)
 {
-};
+    validate();
+}
 
-template<typename T>
-struct json_value_impl : public json_value_impl_base {};
-
-template<>
-struct json_value_impl<std::string> : public json_value_impl_base
+element::element(const element& j)
+    : m_type(j.m_type)
 {
-	std::string m_value;
-
-    virtual void write(std::ostream& os)
+    j.validate();
+    switch (m_type)
     {
-        os << '"';
-        
-        for (char c: m_value)
-        {
-            switch (c)
-            {
-                case '\"':	os << "\\\""; break;
-                case '\\':	os << "\\\\"; break;
-                case '/':	os << "\\/"; break;
-                case '\b':	os << "\\b"; break;
-                case '\n':	os << "\\n"; break;
-                case '\r':	os << "\\r"; break;
-                case '\t':	os << "\\t"; break;
-                default:	if (c <  0x0020)
-                            {
-                                static const char kHex[17] = "0123456789abcdef";
-                                os << "\\00" << kHex[(c >> 4) & 0x0f] << kHex[c & 0x0f];
-                            }
-                            else	
-                                os << c;
-                            break;
-            }
-        }
-        
-        os << '"';
+        case value_type::null:			break;
+        case value_type::array:			m_data = *j.m_data.m_array; break;
+        case value_type::object:		m_data = *j.m_data.m_object; break;
+        case value_type::string:		m_data = *j.m_data.m_string; break;
+        case value_type::number_int:	m_data = j.m_data.m_int; break;
+        case value_type::number_uint:	m_data = j.m_data.m_uint; break;
+        case value_type::number_float:	m_data = j.m_data.m_float; break;
+        case value_type::boolean:		m_data = j.m_data.m_boolean; break;
     }
-};
+    validate();
+}
 
-template<>
-struct json_value_impl<long double> : public json_value_impl_base
+element::element(element&& j)
+    : m_type(std::move(j.m_type)), m_data(std::move(j.m_data))
 {
-	long double m_value;
+    j.validate();
 
-    virtual void write(std::ostream& os)
-    {
-        os << std::defaultfloat << m_value;
-    }
-};
+    j.m_type = value_type::null;
+    j.m_data = {};
 
-template<>
-struct json_value_impl<bool> : public json_value_impl_base
+    validate();
+}
+
+element::element(const detail::element_reference& r)
+    : element(r.data())
 {
-	bool m_value;
+    validate();
+}
 
-    virtual void write(std::ostream& os)
-    {
-        os << std::boolalpha << m_value;
-    }
-};
-
-// template<>
-// struct json_value_impl<array> : public json_value_impl_base
-// {
-// 	array m_value;
-
-//     virtual void write(std::ostream& os)
-//     {
-//         os << '[';
-//         for (auto& v: m_value)
-//             os << v;
-//         os << ']';
-//     }
-// };
-
-template<>
-struct json_value_impl<std::nullptr_t> : public json_value_impl_base
+element::element(initializer_list_t init)
 {
-    virtual void write(std::ostream& os)
-    {
-        os << "null";
-    }
-};
+	bool isAnObject = std::all_of(init.begin(), init.end(), [](auto& ref)
+		{ return ref->is_array() and ref->m_data.m_array->size() == 2 and ref->m_data.m_array->front().is_string(); });
+
+	if (isAnObject)
+	{
+		m_type = value_type::object;
+		m_data = value_type::object;
+
+		for (auto& ref: init)
+		{
+			auto element = ref.data();
+			m_data.m_object->emplace(
+				std::move(*element.m_data.m_array->front().m_data.m_string),
+				std::move(element.m_data.m_array->back())
+			);
+		}
+	}
+	else
+	{
+		m_type = value_type::array;
+		m_data.m_array = create<array_type>(init.begin(), init.end());
+	}
+}
+
+element::element(size_t cnt, const element& v)
+    : m_type(value_type::array)
+{
+    m_data.m_array = create<array_type>(cnt, v);
+    validate();
+}
+
+element& element::operator=(element j) noexcept(
+        std::is_nothrow_move_constructible<value_type>::value and
+        std::is_nothrow_move_assignable<value_type>::value and
+        std::is_nothrow_move_constructible<element>::value and
+        std::is_nothrow_move_assignable<element>::value)
+{
+    j.validate();
+
+    using std::swap;
+
+    swap(m_type, j.m_type);
+    swap(m_data, j.m_data);
+
+    validate();
+
+    return *this; 
+}
+
+element::~element()
+{
+    validate();
+    m_data.destroy(m_type);
+}
 
 // --------------------------------------------------------------------
 
 
-void serialize(std::ostream& os, const json_value& v)
+void serialize(std::ostream& os, const element& v)
 {
-    switch (v.m_type)
+    switch (v.m_type) 
     {
         case json::value_type::array:
         {
@@ -197,7 +204,7 @@ void serialize(std::ostream& os, const json_value& v)
     }
 }
 
-// void serialize(std::ostream& os, const json_value& v, int indent, int level)
+// void serialize(std::ostream& os, const element& v, int indent, int level)
 // {
 //     switch (v.m_type)
 //     {
@@ -275,30 +282,12 @@ void serialize(std::ostream& os, const json_value& v)
 
 // --------------------------------------------------------------------
 
-json_value& json_value::operator=(json_value j) noexcept(
-        std::is_nothrow_move_constructible<value_type>::value and
-        std::is_nothrow_move_assignable<value_type>::value and
-        std::is_nothrow_move_constructible<json_value>::value and
-        std::is_nothrow_move_assignable<json_value>::value)
+element parse(const std::string& s)
 {
-    j.validate();
-
-    using std::swap;
-
-    swap(m_type, j.m_type);
-    swap(m_data, j.m_data);
-
-    validate();
-
-    return *this; 
+    return element();
 }
 
-json_value parse(const std::string& s)
-{
-    return json_value();
-}
-
-std::ostream& operator<<(std::ostream& os, const json_value& v)
+std::ostream& operator<<(std::ostream& os, const element& v)
 {
     // int indentation = os.width();
     // os.width(0);
