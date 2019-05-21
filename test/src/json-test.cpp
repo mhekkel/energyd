@@ -106,7 +106,13 @@ int main()
 				  << j_object2["een"] << std::endl
 				  << j_array4[2]["twee"] << std::endl
 				  << std::endl;
-				  
+		
+
+		for (auto[key, value]: j_object2.items())
+		{
+			std::cout << "key: " << key << " value: " << value << std::endl;
+		}
+
 	}
 	catch(const std::exception& e)
 	{

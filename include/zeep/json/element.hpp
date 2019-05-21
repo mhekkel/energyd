@@ -52,6 +52,11 @@ public:
 	template<typename E>
 	friend class detail::iterator_impl;
 	
+	template<typename Iterator>
+	using iteration_proxy = detail::iteration_proxy<Iterator>;
+
+	template<typename iterator> friend class detail::iteration_proxy_value;
+
     using initializer_list_t = std::initializer_list<detail::element_reference>;
 
     template<value_type> friend struct detail::factory;
@@ -128,7 +133,17 @@ public:
 	reference back()											{ auto tmp = end(); --tmp; return *tmp; }
 	const_reference back() const								{ auto tmp = cend(); --tmp; return *tmp; }
 
+	// TODO: no reverse iterators yet
 
+	iteration_proxy<iterator> items() noexcept
+	{
+		return iteration_proxy<iterator>(*this);
+	}
+
+	iteration_proxy<const_iterator> items() const noexcept
+	{
+		return iteration_proxy<const_iterator>(*this);
+	}
 
 
 	template<typename... Args>
@@ -201,9 +216,6 @@ public:
 		element_serializer<U>::from_element(*this, ret);
 		return ret;
 	}
-
-	// element& operator[](size_t index);
-	// element& operator[](const std::string& name);
 
 	friend std::ostream& operator<<(std::ostream& os, const element& v);
 	friend void serialize(std::ostream& os, const element& data);
