@@ -12,7 +12,7 @@ int main()
 {
 	try
 	{
-		using zeep::json;
+		using json = zeep::el::element;
 
 		// json x = R"({
 		// 	"a": 1.1
@@ -54,6 +54,10 @@ int main()
 
 		static_assert(std::experimental::is_detected_exact
 			<void, zeep::el::detail::to_element_function, zeep::el::element_serializer<int,void>, zeep::el::element&, int>::value, "moet!");
+
+		static_assert(std::experimental::is_detected_exact
+			<void, zeep::el::detail::to_element_function, zeep::el::element_serializer<typename json::string_type,void>, zeep::el::element&, typename json::string_type>::value, "moet!");
+
 		static_assert(not zeep::el::detail::is_element<int>::value, "wowo");
 		static_assert(zeep::el::detail::is_element<decltype(j_null)>::value, "wowo");
 		static_assert(zeep::el::detail::has_to_element<bool>::value, "Oeps");

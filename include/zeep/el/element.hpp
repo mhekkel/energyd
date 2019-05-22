@@ -43,6 +43,7 @@ public:
 	using const_pointer = const element*;
 
 	using difference_type = std::ptrdiff_t;
+	using size_type = std::size_t;
 
     using initializer_list_t = std::initializer_list<detail::element_reference>;
 
@@ -129,18 +130,32 @@ public:
 	reference back()											{ auto tmp = end(); --tmp; return *tmp; }
 	const_reference back() const								{ auto tmp = cend(); --tmp; return *tmp; }
 
-	// TODO: no reverse iterators yet
-
-	iteration_proxy<iterator> items() noexcept
+  private:
+	template<typename... Args>
+	iterator insert_iterator(const_iterator pos, Args... args)
 	{
-		return iteration_proxy<iterator>(*this);
-	}
+		iterator result(this);
+		auto insert_pos = std::distance(m_data.m_array->begin(), pos.m_it.m_array_it);
+		m_data.m_array->insert(m_data.m_array->begin() + insert_pos, std::forward<Args>(args)...);
+		result.m_it.m_array_it = m_data.m_array->begin() + insert_pos;
 
-	iteration_proxy<const_iterator> items() const noexcept
+		return result;
+	}
+  public:
+
+	void clear() noexcept;
+	iterator insert(const_iterator pos, const element& val);
+	iterator insert(const_iterator pos, element&& val)
 	{
-		return iteration_proxy<const_iterator>(*this);
+		return insert(pos, val);
 	}
+	iterator insert(const_iterator pos, size_type cnt, const element& val);
+	iterator insert(const_iterator pos, const_iterator first, const_iterator last);
+	iterator insert(const_iterator pos, initializer_list_t lst);
+	void insert(const_iterator first, const_iterator last);
 
+	void push_back(element&& val);
+	void push_back(const element& val);
 
 	template<typename... Args>
 	std::pair<iterator,bool> emplace(Args&&... args)
@@ -157,14 +172,154 @@ public:
 
 		auto r = m_data.m_object->emplace(std::forward<Args>(args)...);
 		auto i = begin();
-
-		// TODO: set i.iter to r.first
+		i.m_it.m_object_it = r.first;
 
 		return { i, r.second };
 	}
 
+	template<typename... Args>
+	void emplace_back(Args&&... args)
+	{
+		if (not (is_null() or is_array()))
+			throw std::runtime_error("Cannot use emplace_back with " + type_name());
+		
+		if (is_null())
+		{
+			m_type = value_type::array;
+			m_data = value_type::array;
+		}
+
+		m_data.m_array->emplace_back(std::forward<Args>(args)...);
+	}
+
+	template<typename Iterator,
+		typename std::enable_if<std::is_same<Iterator, iterator>::value or std::is_same<Iterator, const_iterator>::value, int>::type = 0>
+		Iterator erase(Iterator pos)
+	{
+		if (pos.m_obj != this)
+			throw std::runtime_error("Invalid iterator");
+		
+		auto result = end();
+
+		switch (m_type)
+		{
+			case value_type::array:
+				result.m_it.m_array_it = m_data.m_array->erase(pos.m_it.m_array_it);
+				break;
+
+			case value_type::object:
+				result.m_it.m_object_it = m_data.m_object->erase(pos.m_it.m_object_it);
+				break;
+
+			case value_type::null:
+				throw std::runtime_error("Cannot erase in null values");
+
+			default:
+				if (pos.m_it.m_p != 0)
+					throw std::runtime_error("Iterator out of range");
+
+				if (m_type == value_type::string)
+				{
+					std::allocator<string_type> alloc;
+					std::allocator_traits<decltype(alloc)>::destroy(alloc, m_data.m_string);
+					std::allocator_traits<decltype(alloc)>::deallocate(alloc, m_data.m_string, 1);
+					m_data.m_string = nullptr;
+				}
+
+				m_type = value_type::null;
+				break;
+		}
+
+		return result;
+	}
+
+	template<typename Iterator,
+		typename std::enable_if<std::is_same<Iterator, iterator>::value or std::is_same<Iterator, const_iterator>::value, int>::type = 0>
+		Iterator erase(Iterator first, Iterator last)
+	{
+		if (first.m_obj != this or last.m_obj != this)
+			throw std::runtime_error("Invalid iterator");
+		
+		auto result = end();
+
+		switch (m_type)
+		{
+			case value_type::array:
+				result.m_it.m_array_it = m_data.m_array->erase(first.m_it.m_array_it, last.m_it.m_array_it);
+				break;
+
+			case value_type::object:
+				result.m_it.m_object_it = m_data.m_object->erase(first.m_it.m_object_it, last.m_it.m_object_it);
+				break;
+
+			case value_type::null:
+				throw std::runtime_error("Cannot erase in null values");
+
+			default:
+				if (first.m_it.m_p != 0 or last.m_it.m_p != 0)
+					throw std::runtime_error("Iterator out of range");
+
+				if (m_type == value_type::string)
+				{
+					std::allocator<string_type> alloc;
+					std::allocator_traits<decltype(alloc)>::destroy(alloc, m_data.m_string);
+					std::allocator_traits<decltype(alloc)>::deallocate(alloc, m_data.m_string, 1);
+					m_data.m_string = nullptr;
+				}
+
+				m_type = value_type::null;
+				break;
+		}
+
+		return result;
+	}
+
+	size_type erase(const typename object_type::key_type& key)
+	{
+		if (is_object())
+			return m_data.m_object->erase(key);
+		throw std::runtime_error("Cannot use erase() with " + type_name());
+	}
+
+	void erase(const size_type index)
+	{
+		if (is_array())
+		{
+			if (index >= size())
+				throw std::runtime_error("Index out of range");
+			m_data.m_array->erase(m_data.m_array->begin() + static_cast<difference_type>(index));
+		}
+		else
+			throw std::runtime_error("Cannot use erase() with " + type_name());
+	}
+
+	void swap(reference other) noexcept (
+        std::is_nothrow_move_constructible<value_type>::value and
+        std::is_nothrow_move_assignable<value_type>::value and
+        std::is_nothrow_move_constructible<element>::value and
+        std::is_nothrow_move_assignable<element>::value
+    )
+    {
+        std::swap(m_type, other.m_type);
+        std::swap(m_data, other.m_data);
+        validate();
+    }
+
+	// TODO: no reverse iterators yet
+
+	iteration_proxy<iterator> items() noexcept
+	{
+		return iteration_proxy<iterator>(*this);
+	}
+
+	iteration_proxy<const_iterator> items() const noexcept
+	{
+		return iteration_proxy<const_iterator>(*this);
+	}
+
 	bool empty() const;
 	size_t size() const;
+	size_t max_size() const noexcept;
 
 	friend bool operator==(const_reference& lhs, const_reference& rhs);
 
@@ -368,7 +523,7 @@ public:
 
 	template<typename T,
 		typename U = typename std::remove_cv<typename std::remove_reference<T>::type>::type,
-		std::enable_if_t<not std::is_same<U,element>::value and detail::has_from_element<U>::value, int> = 0>
+		std::enable_if_t<detail::is_compatible_type<T>::value, int> = 0>
 	T as() const noexcept(noexcept(element_serializer<U>::from_element(std::declval<const element&>(), std::declval<U&>())))
 	{
 		static_assert(std::is_default_constructible<U>::value, "Type must be default constructible to use with get()");
@@ -533,9 +688,6 @@ private:
 
 } // detail
 } // el
-
-using json = el::element;
-
 } // namespace zeep
 
 zeep::el::element operator""_json(const char* s, size_t len);

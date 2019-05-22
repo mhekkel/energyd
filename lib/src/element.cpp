@@ -220,14 +220,14 @@ bool element::empty() const
 		case value_type::null:
 			return true;
 
-	case value_type::array:
-		return m_data.m_array->empty();
-	
-	case value_type::object:
-		return m_data.m_object->empty();
+		case value_type::array:
+			return m_data.m_array->empty();
+		
+		case value_type::object:
+			return m_data.m_object->empty();
 
-	default:
-		return false;
+		default:
+			return false;
 	}
 }
 
@@ -238,15 +238,147 @@ size_t element::size() const
 		case value_type::null:
 			return 0;
 
-	case value_type::array:
-		return m_data.m_array->size();
-	
-	case value_type::object:
-		return m_data.m_object->size();
+		case value_type::array:
+			return m_data.m_array->size();
+		
+		case value_type::object:
+			return m_data.m_object->size();
 
-	default:
-		return 1;
+		default:
+			return 1;
 	}
+}
+
+size_t element::max_size() const noexcept
+{
+	switch (m_type)
+	{
+		case value_type::array:
+			return m_data.m_array->max_size();
+		
+		case value_type::object:
+			return m_data.m_object->max_size();
+
+		default:
+			return size();
+	}
+}
+
+void element::clear() noexcept
+{
+	switch (m_type)
+	{
+		case value_type::array:
+			m_data.m_array->clear();
+			break;
+
+		case value_type::object:
+			m_data.m_object->clear();
+			break;
+
+		case value_type::string:
+			m_data.m_string->clear();
+			break;
+
+		case value_type::number_int:
+			m_data.m_int = 0;
+			break;
+
+		case value_type::number_float:
+			m_data.m_float = 0;
+			break;
+
+		case value_type::boolean:
+			m_data.m_boolean = false;
+			break;
+
+		default:
+			break;
+	}
+}
+
+element::iterator element::insert(const_iterator pos, const element& val)
+{
+	if (is_array())
+	{
+		if (pos.m_obj != this)
+			throw std::runtime_error("Invalid pos for array");
+		return insert_iterator(pos, val);
+	}
+	throw std::runtime_error("Cannot use insert() with " + type_name());
+}
+
+element::iterator element::insert(const_iterator pos, size_type cnt, const element& val)
+{
+	if (is_array())
+	{
+		if (pos.m_obj != this)
+			throw std::runtime_error("Invalid pos for array");
+		return insert_iterator(pos, cnt, val);
+	}
+	throw std::runtime_error("Cannot use insert() with " + type_name());
+}
+
+element::iterator element::insert(const_iterator pos, const_iterator first, const_iterator last)
+{
+	if (is_array())
+	{
+		if (pos.m_obj != this or first.m_obj != this or last.m_obj != this)
+			throw std::runtime_error("Invalid pos for array");
+		return insert_iterator(pos, first.m_it.m_array_it, last.m_it.m_array_it);
+	}
+	throw std::runtime_error("Cannot use insert() with " + type_name());
+}
+
+element::iterator element::insert(const_iterator pos, initializer_list_t lst)
+{
+	if (is_array())
+	{
+		if (pos.m_obj != this)
+			throw std::runtime_error("Invalid pos for array");
+		return insert_iterator(pos, lst.begin(), lst.end());
+	}
+	throw std::runtime_error("Cannot use insert() with " + type_name());
+}
+
+void element::insert(const_iterator first, const_iterator last)
+{
+	if (not is_object())
+		throw std::runtime_error("Cannot use insert() with " + type_name());
+
+	if (first.m_obj != this or last.m_obj != this)
+		throw std::runtime_error("Invalid iterator for object");
+
+	m_data.m_object->insert(first.m_it.m_object_it, last.m_it.m_object_it);
+}
+
+void element::push_back(element&& val)
+{
+	if (not (is_null() or is_array()))
+		throw std::runtime_error("Cannot use push_back with " + type_name());
+	
+	if (is_null())
+	{
+		m_type = value_type::array;
+		m_data = value_type::array;
+	}
+
+	m_data.m_array->push_back(std::move(val));
+	val.m_type = value_type::null;
+}
+
+void element::push_back(const element& val)
+{
+	if (not (is_null() or is_array()))
+		throw std::runtime_error("Cannot use push_back with " + type_name());
+	
+	if (is_null())
+	{
+		m_type = value_type::array;
+		m_data = value_type::array;
+	}
+
+	m_data.m_array->push_back(val);
 }
 
 bool operator==(element::const_reference& lhs, element::const_reference& rhs)

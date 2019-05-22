@@ -78,9 +78,9 @@ inline void to_element(element& j, const std::vector<bool>& v)
 }
 
 template<typename T, std::enable_if_t<
-	is_array_type<T>::value and
+	is_compatible_array_type<T>::value and
 	not is_compatible_object_type<element,T>::value and
-	not is_compatible_string<element,T>::value and
+	not is_compatible_string_type<element,T>::value and
 	not is_element<T>::value, int> = 0>
 void to_element(element& j, const T& arr)
 {

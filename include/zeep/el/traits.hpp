@@ -22,6 +22,8 @@ namespace el
 namespace detail
 {
 
+static_assert(__cpp_lib_experimental_detect, "This one is needed");
+
 template<typename> struct is_element : std::false_type {};
 template<> struct is_element<element> : std::true_type {};
 
@@ -102,10 +104,10 @@ template<typename T>
 struct is_complete_type<T, decltype(void(sizeof(T)))> : std::true_type {};
 
 template<typename T, typename = void>
-struct is_array_type : std::false_type {};
+struct is_compatible_array_type : std::false_type {};
 
 template<typename T>
-struct is_array_type<T,
+struct is_compatible_array_type<T,
 	std::enable_if_t<
 		std::experimental::is_detected<value_type_t, T>::value and
 		std::experimental::is_detected<iterator_t, T>::value>>
@@ -146,25 +148,24 @@ struct is_object_type<J, T, std::enable_if_t<
 		std::is_constructible<element,typename map_t::mapped_type>::value; 
 };
 
+// any compatible type
+
 template<typename T, typename = void>
-struct is_compatible_type_impl : std::false_type {};
+struct is_compatible_type : std::false_type {};
 
 template<typename T>
-struct is_compatible_type_impl<T, std::enable_if_t<is_complete_type<T>::value>>
+struct is_compatible_type<T, std::enable_if_t<is_complete_type<T>::value>>
 {
 	static constexpr bool value = has_to_element<T>::value;
 };
 
-template<typename T>
-struct is_compatible_type : is_compatible_type_impl<T> {};
-
 // compatible string
 
 template<typename E, typename T, typename = void>
-struct is_compatible_string : std::false_type {};
+struct is_compatible_string_type : std::false_type {};
 
 template<typename E, typename T>
-struct is_compatible_string<E, T,
+struct is_compatible_string_type<E, T,
 	std::enable_if_t<
 		std::experimental::is_detected_exact<typename E::string_type::value_type, value_type_t, T>::value>>
 {

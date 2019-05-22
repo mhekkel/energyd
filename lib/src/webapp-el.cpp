@@ -670,9 +670,7 @@ object interpreter::parse_primary_expr()
 // --------------------------------------------------------------------
 // interpreter calls
 
-bool process_el(
-	const el::scope &scope,
-	string &text)
+bool process_el(const el::scope &scope, string &text)
 {
 	static const boost::regex re("\\$\\{([^}]+)\\}");
 
@@ -694,10 +692,7 @@ bool process_el(
 	return result;
 }
 
-void evaluate_el(
-	const el::scope &scope,
-	const string &text,
-	el::object &result)
+void evaluate_el(const el::scope &scope, const string &text, el::object &result)
 {
 	static const boost::regex re("^\\$\\{([^}]+)\\}$");
 
@@ -712,9 +707,7 @@ void evaluate_el(
 		result = text;
 }
 
-bool evaluate_el(
-	const el::scope &scope,
-	const string &text)
+bool evaluate_el(const el::scope &scope, const string &text)
 {
 	el::object result;
 	evaluate_el(scope, text, result);
@@ -746,14 +739,12 @@ scope::scope(const request &req)
 {
 }
 
-object &scope::operator[](
-	const string &name)
+object &scope::operator[](const string &name)
 {
 	return lookup(name);
 }
 
-const object &scope::lookup(
-	const string &name) const
+const object &scope::lookup(const string &name) const
 {
 	map<string, object>::const_iterator i = m_data.find(name);
 	if (i != m_data.end())
@@ -765,14 +756,12 @@ const object &scope::lookup(
 	return s_null;
 }
 
-const object &scope::operator[](
-	const string &name) const
+const object &scope::operator[](const string &name) const
 {
 	return lookup(name);
 }
 
-object &scope::lookup(
-	const string &name)
+object &scope::lookup(const string &name)
 {
 	object *result = nullptr;
 
