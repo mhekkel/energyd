@@ -29,27 +29,20 @@ namespace ba = boost::algorithm;
 namespace zeep
 {
 
-namespace detail
+namespace el
 {
 
 using namespace xml;
 
-inline bool is_hex_digit(unicode ch)
-{
-	return (ch >= '0' and ch <= '9') or (ch >= 'a' and ch <= 'f') or (ch >= 'A' and ch <= 'F');
-}
-
 class json_parser
 {
   public:
-	json_parser(std::istream* is)
-		: m_source(new istream_data_source(is))
+	json_parser(std::istream& is)
+		: m_is(is)
 	{
-
 	}
 
 	void parse(el::element& object);
-	std::string get_token() const			{ return m_token; }
 
   private:
 
@@ -96,18 +89,70 @@ class json_parser
 	void parse_object(el::element& e);
 	void parse_array(el::element& e);
 
+	uint8_t get_next_byte();
+	unicode get_next_unicode();
 	unicode get_next_char();
 	void retract();
 
 	token_t get_next_token();
 
-	mini_stack m_buffer;
-	std::unique_ptr<data_source> m_source;
+	std::istream& m_is;
+	::zeep::detail::mini_stack m_buffer;
 	std::string m_token;
 	double m_token_float;
 	int64_t m_token_int;
 	token_t m_lookahead;
 };
+
+uint8_t json_parser::get_next_byte()
+{
+	int result = m_is.rdbuf()->sbumpc();
+
+	if (result == std::streambuf::traits_type::eof())
+		result = 0;
+
+	return static_cast<uint8_t>(result);
+}
+
+unicode json_parser::get_next_unicode()
+{
+	unicode result = get_next_byte();
+
+	if (result & 0x080)
+	{
+		unsigned char ch[3];
+
+		if ((result & 0x0E0) == 0x0C0)
+		{
+			ch[0] = get_next_byte();
+			if ((ch[0] & 0x0c0) != 0x080)
+				throw std::runtime_error("Invalid utf-8");
+			result = ((result & 0x01F) << 6) | (ch[0] & 0x03F);
+		}
+		else if ((result & 0x0F0) == 0x0E0)
+		{
+			ch[0] = get_next_byte();
+			ch[1] = get_next_byte();
+			if ((ch[0] & 0x0c0) != 0x080 or (ch[1] & 0x0c0) != 0x080)
+				throw std::runtime_error("Invalid utf-8");
+			result = ((result & 0x00F) << 12) | ((ch[0] & 0x03F) << 6) | (ch[1] & 0x03F);
+		}
+		else if ((result & 0x0F8) == 0x0F0)
+		{
+			ch[0] = get_next_byte();
+			ch[1] = get_next_byte();
+			ch[2] = get_next_byte();
+			if ((ch[0] & 0x0c0) != 0x080 or (ch[1] & 0x0c0) != 0x080 or (ch[2] & 0x0c0) != 0x080)
+				throw std::runtime_error("Invalid utf-8");
+			result = ((result & 0x007) << 18) | ((ch[0] & 0x03F) << 12) | ((ch[1] & 0x03F) << 6) | (ch[2] & 0x03F);
+
+			if (result > 0x10ffff)
+				throw std::runtime_error("invalid utf-8 character (out of range)");
+		}
+	}
+
+	return result;
+}
 
 unicode json_parser::get_next_char()
 {
@@ -120,12 +165,12 @@ unicode json_parser::get_next_char()
 	}
 	else
 	{
-		result = m_source->get_next_char();
+		result = get_next_unicode();
 
 		if (result >= 0x080)
 		{
 			if (result == 0x0ffff or result == 0x0fffe)
-				throw source_exception("character " + to_hex(result) + " is not allowed");
+				throw std::runtime_error("character " + to_hex(result) + " is not allowed");
 
 			// surrogate support
 			else if (result >= 0x0D800 and result <= 0x0DBFF)
@@ -134,10 +179,10 @@ unicode json_parser::get_next_char()
 				if (uc2 >= 0x0DC00 and uc2 <= 0x0DFFF)
 					result = (result - 0x0D800) * 0x400 + (uc2 - 0x0DC00) + 0x010000;
 				else
-					throw source_exception("leading surrogate character without trailing surrogate character");
+					throw std::runtime_error("leading surrogate character without trailing surrogate character");
 			}
 			else if (result >= 0x0DC00 and result <= 0x0DFFF)
-				throw source_exception("trailing surrogate character without a leading surrogate");
+				throw std::runtime_error("trailing surrogate character without a leading surrogate");
 		}
 	}
 
@@ -587,21 +632,21 @@ void json_parser::parse(el::element& obj)
 		throw zeep::exception("Extraneaous data after parsing json");
 }
 
-
-}
-
-namespace el
-{
-
 void parse_json(const std::string& json, element& object)
 {
-	using ::zeep::detail::json_parser;
-
-	json_parser p(new std::istringstream(json));
+	std::istringstream s(json);
+	json_parser p(s);
 
 	p.parse(object);
 }
 
+void parse_json(std::istream& is, element& object)
+{
+	json_parser p(is);
+	p.parse(object);
+}
+
+}
 }
 
 zeep::el::element operator""_json(const char* s, size_t n)

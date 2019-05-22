@@ -1,4 +1,5 @@
 #include <iostream>
+#include <fstream>
 
 #include <zeep/el/element.hpp>
 #include <zeep/el/parser.hpp>
@@ -139,6 +140,11 @@ int main()
 
 		std::cout << "parsed: " << std::endl
 				  << sj << std::endl; 
+
+		std::ofstream file("/tmp/json-test.json");
+		if (file.is_open())
+			file << sj;
+
 	}
 	catch(const std::exception& e)
 	{
