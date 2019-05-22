@@ -689,7 +689,7 @@ void serialize(std::ostream& os, const element& v)
 		case element::value_type::string:
 			os << '"';
 			
-			for (char c: *v.m_data.m_string)
+			for (uint8_t c: *v.m_data.m_string)
 			{
 				switch (c)
 				{
@@ -703,7 +703,7 @@ void serialize(std::ostream& os, const element& v)
 					default:	if (c <  0x0020)
 								{
 									static const char kHex[17] = "0123456789abcdef";
-									os << "\\00" << kHex[(c >> 4) & 0x0f] << kHex[c & 0x0f];
+									os << "\\u00" << kHex[(c >> 4) & 0x0f] << kHex[c & 0x0f];
 								}
 								else	
 									os << c;

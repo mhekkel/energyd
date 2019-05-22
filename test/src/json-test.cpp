@@ -1,6 +1,7 @@
 #include <iostream>
 
 #include <zeep/el/element.hpp>
+#include <zeep/el/parser.hpp>
 
 template<typename T>
 struct Foo
@@ -120,6 +121,24 @@ int main()
 		// 	std::cout << "key: " << key << " value: " << value << std::endl;
 		// }
 
+		json v;
+		auto sj = R"(
+
+{
+	"null": null,
+	"array": [ 1, 2, 3 ],
+	"object": { "aap": 1, "noot": 2 },
+	"int": 42,
+	"float": 3.14e+0,
+	"bool": true,
+	"str": "een tab: '\t' en dan een \\n: '\n' en een \\b:\b en een heel rare hex: '\u263C' en nog een: '\u0000'"
+}
+
+
+		)"_json;
+
+		std::cout << "parsed: " << std::endl
+				  << sj << std::endl; 
 	}
 	catch(const std::exception& e)
 	{
