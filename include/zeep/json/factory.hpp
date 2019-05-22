@@ -55,14 +55,24 @@ struct factory<value_type::string>
 		j.validate();
 	}
 
-	template<typename J, typename T,
-		std::enable_if_t<not std::is_same<T, typename J::string_type>::value, int> = 0>
-	static void construct(J& j, const T& s)
-	{
-		j.m_type = value_type::string;
-		j.m_data = j.template create<typename J::string_type>(s);
-		j.validate();
-	}
+	// template<typename J, typename T,
+	// 	std::enable_if_t<not std::is_same<T, typename J::string_type>::value, int> = 0>
+	// static void construct(J& j, const T& s)
+	// {
+	// 	j.m_type = value_type::string;
+	// 	j.m_data = j.template create<typename J::string_type>(s);
+	// 	j.validate();
+	// }
+
+	// template<typename J, typename T, size_t N,
+	// 	std::enable_if_t<std::is_same<T, typename J::string_type::value_type>::value, int> = 0>
+	// static void construct(J& j, const T(&a)[N])
+	// {
+	// 	j.m_type = value_type::string;
+	// 	j.m_data = j.template create<typename J::string_type>(a, a + N);
+	// 	j.validate();
+	// }
+
 };
 
 template<>
@@ -85,18 +95,6 @@ struct factory<value_type::number_int>
 	{
 		j.m_type = value_type::number_int;
 		j.m_data = i;
-		j.validate();
-	}
-};
-
-template<>
-struct factory<value_type::number_uint>
-{
-	template<typename J>
-	static void construct(J& j, uint64_t u)
-	{
-		j.m_type = value_type::number_uint;
-		j.m_data = u;
 		j.validate();
 	}
 };

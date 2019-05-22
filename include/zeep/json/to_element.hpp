@@ -28,6 +28,13 @@ void to_element(element& v, T b)
 	factory<value_type::boolean>::construct(v, b);
 }
 
+template<typename J, typename T, size_t N,
+	std::enable_if_t<std::is_constructible<typename J::string_type, const T(&)[N]>::value, int> = 0>
+void to_element(J& j, const T(&arr)[N])
+{
+	factory<value_type::string>::construct(j, std::move(arr));
+}
+
 template<typename E, typename T, std::enable_if_t<std::is_constructible<typename E::string_type, T>::value, int> = 0>
 void to_element(E& v, const T& s)
 {
@@ -50,16 +57,10 @@ void to_element(element& v, T f)
 	factory<value_type::number_float>::construct(v, f);
 }
 
-template<typename T, std::enable_if_t<std::is_integral<T>::value and std::is_signed<T>::value and not std::is_same<T, bool>::value, int> = 0>
+template<typename T, std::enable_if_t<std::is_integral<T>::value and not std::is_same<T, bool>::value, int> = 0>
 void to_element(element& v, T i)
 {
 	factory<value_type::number_int>::construct(v, i);
-}
-
-template<typename T, std::enable_if_t<std::is_integral<T>::value and std::is_unsigned<T>::value and not std::is_same<T, bool>::value, int> = 0>
-void to_element(element& v, T u)
-{
-	factory<value_type::number_uint>::construct(v, u);
 }
 
 template<typename T, std::enable_if_t<std::is_enum<T>::value, int> = 0>

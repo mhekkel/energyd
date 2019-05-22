@@ -34,7 +34,6 @@ public:
 	using array_type = std::vector<element>;
 	using string_type = std::string;
 	using int_type = int64_t;
-	using uint_type = uint64_t;
 	using float_type = double;
 	using boolean_type = bool;
 
@@ -92,9 +91,8 @@ public:
 	constexpr bool is_object() const noexcept					{ return m_type == value_type::object; }
 	constexpr bool is_array() const noexcept					{ return m_type == value_type::array; }
 	constexpr bool is_string() const noexcept					{ return m_type == value_type::string; }
-	constexpr bool is_number() const noexcept					{ return is_number_int() or is_number_uint() or is_number_float(); }
+	constexpr bool is_number() const noexcept					{ return is_number_int() or is_number_float(); }
 	constexpr bool is_number_int() const noexcept				{ return m_type == value_type::number_int; }
-	constexpr bool is_number_uint() const noexcept				{ return m_type == value_type::number_uint; }
 	constexpr bool is_number_float() const noexcept				{ return m_type == value_type::number_float; }
 	constexpr bool is_true() const noexcept						{ return is_boolean() and m_data.m_boolean == true; }
 	constexpr bool is_false() const noexcept					{ return is_boolean() and m_data.m_boolean == false; }
@@ -348,8 +346,6 @@ private:
 	constexpr const string_type* get_impl_ptr(const string_type*) const noexcept	{ return is_string() ? m_data.m_string : nullptr; }
 	int_type* get_impl_ptr(int_type*) noexcept										{ return is_number_int() ? &m_data.m_int : nullptr; }
 	constexpr const int_type* get_impl_ptr(const int_type*) const noexcept			{ return is_number_int() ? &m_data.m_int : nullptr; }
-	uint_type* get_impl_ptr(uint_type*) noexcept									{ return is_number_uint() ? &m_data.m_uint : nullptr; }
-	constexpr const uint_type* get_impl_ptr(const uint_type*) const noexcept		{ return is_number_uint() ? &m_data.m_uint : nullptr; }
 	float_type* get_impl_ptr(float_type*) noexcept									{ return is_number_float() ? &m_data.m_float : nullptr; }
 	constexpr const float_type* get_impl_ptr(const float_type*) const noexcept		{ return is_number_float() ? &m_data.m_float : nullptr; }
 	boolean_type* get_impl_ptr(boolean_type*) noexcept								{ return is_boolean() ? &m_data.m_boolean : nullptr; }
@@ -396,14 +392,12 @@ private:
 		array_type*		m_array;
 		string_type*	m_string;
 		int64_t			m_int;
-		uint64_t		m_uint;
 		double			m_float;
 		bool			m_boolean;
 
 		element_data() = default;
 		element_data(bool v) noexcept : m_boolean(v) {}
 		element_data(int64_t v) noexcept : m_int(v) {}
-		element_data(uint64_t v) noexcept : m_uint(v) {}
 		element_data(double v) noexcept : m_float(v) {}
 		element_data(value_type t)
 		{
@@ -414,7 +408,6 @@ private:
 				case value_type::null:			m_object = nullptr;					break;
 				case value_type::number_float:	m_float = 0;						break;
 				case value_type::number_int:	m_int = 0;							break;
-				case value_type::number_uint:	m_uint = 0;							break;
 				case value_type::object:		m_object = create<object_type>(); 	break;
 				case value_type::string:		m_string = create<string_type>();	break;
 			}
@@ -463,6 +456,7 @@ private:
 	template<typename T, typename... Args>
 	static T* create(Args&&... args)
 	{
+		// return new T(args...);
         std::allocator<T> alloc;
         using AllocatorTraits = std::allocator_traits<std::allocator<T>>;
 
@@ -472,8 +466,8 @@ private:
         };
 
         std::unique_ptr<T, decltype(deleter)> object(AllocatorTraits::allocate(alloc, 1), deleter);
-        AllocatorTraits::construct(alloc, object.get(), std::forward<Args>(args)...);
         assert(object != nullptr);
+        AllocatorTraits::construct(alloc, object.get(), std::forward<Args>(args)...);
         return object.release();
 	}
 

@@ -85,19 +85,19 @@ int main()
 		std::string s = *j_string2.get_ptr<std::string*>();
 		assert(s == "aap");
 
-		s = j_string2.get<std::string>();
+		s = j_string2.as<std::string>();
 
 		// assert(j_string2.get<std::string>() == "aap");
 
 		std::cout << std::endl;
 		
-		std::cout << j_number2.get<float>() << std::endl
-				  << j_number3.get<float>() << std::endl
-				  << j_number4.get<float>() << std::endl
+		std::cout << j_number2.as<float>() << std::endl
+				  << j_number3.as<float>() << std::endl
+				  << j_number4.as<float>() << std::endl
 				  << std::endl;
 		
 
-		auto a = j_array3.get<std::vector<float>>();
+		auto a = j_array3.as<std::vector<float>>();
 
 		for (float f: a)
 			std::cout << f << std::endl;

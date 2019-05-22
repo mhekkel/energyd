@@ -28,7 +28,6 @@ enum class value_type : std::uint8_t
 	array,
 	string,
 	number_int,
-	number_uint,
 	number_float,
 	boolean
 };

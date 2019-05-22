@@ -40,10 +40,6 @@ void get_number(const E& e, T& v)
             v = static_cast<T>(*e.template get_ptr<const typename E::int_type*>());
             break;
 
-        case value_type::number_uint:
-            v = static_cast<T>(*e.template get_ptr<const typename E::uint_type*>());
-            break;
-
         case value_type::number_float:
             v = static_cast<T>(*e.template get_ptr<const typename E::float_type*>());
             break;
@@ -85,12 +81,6 @@ void from_element(const E& e, typename E::int_type& i)
 }
 
 template<typename E>
-void from_element(const E& e, typename E::uint_type& u)
-{
-    get_number(e, u);
-}
-
-template<typename E>
 void from_element(const E& e, typename E::float_type& f)
 {
     get_number(e, f);
@@ -101,7 +91,6 @@ template<typename E, typename A,
         std::is_arithmetic<A>::value and
         not std::is_same<A, typename E::boolean_type>::value and
         not std::is_same<A, typename E::int_type>::value and
-        not std::is_same<A, typename E::uint_type>::value and
         not std::is_same<A, typename E::float_type>::value, int> = 0>
 void from_element(const E& e, A& v)
 {
@@ -109,7 +98,6 @@ void from_element(const E& e, A& v)
     {
         case value_type::boolean:       v = *e.template get_ptr<const typename E::boolean_type*>(); break;
         case value_type::number_int:    v = *e.template get_ptr<const typename E::int_type*>(); break;
-        case value_type::number_uint:   v = *e.template get_ptr<const typename E::uint_type*>(); break;
         case value_type::number_float:  v = *e.template get_ptr<const typename E::float_type*>(); break;
         default:    throw std::runtime_error("Type should have been number but was " + e.type_name()); break;
     }
@@ -137,17 +125,17 @@ void from_element_array_impl(const E& e, typename E::array_type& arr, priority_t
 
 template<typename E, typename T, size_t N>
 auto from_element_array_impl(const E& e, std::array<T, N>& arr, priority_tag<2>)
-    -> decltype(e.template get<T>(), void())
+    -> decltype(e.template as<T>(), void())
 {
     for (size_t i = 0; i < N; ++i)
-        arr[i] = e.at(i).template get<T>();
+        arr[i] = e.at(i).template as<T>();
 }
 
 template<typename E, typename A>
 auto from_element_array_impl(const E& e, A& arr, priority_tag<1>)
     -> decltype(
         arr.reserve(std::declval<typename A::size_type>()),
-        e.template get<typename A::value_type>(),
+        e.template as<typename A::value_type>(),
         void()
     )
 {
@@ -155,7 +143,7 @@ auto from_element_array_impl(const E& e, A& arr, priority_tag<1>)
     std::transform(e.begin(), e.end(), std::inserter(arr, std::end(arr)),
         [](const E& i)
     {
-        return i.template get<typename A::value_type>();
+        return i.template as<typename A::value_type>();
     });
 }
 
@@ -165,7 +153,7 @@ void from_element_array_impl(const E& e, A& arr, priority_tag<0>)
     std::transform(e.begin(), e.end(), std::inserter(arr, std::end(arr)),
         [](const E& i)
     {
-        return i.template get<typename A::value_type>();
+        return i.template as<typename A::value_type>();
     });
 }
 
