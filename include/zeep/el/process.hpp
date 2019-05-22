@@ -17,16 +17,14 @@
 #include <zeep/http/request.hpp>
 #include <zeep/exception.hpp>
 
-#include <zeep/json/element.hpp>
+#include <zeep/el/element.hpp>
 
 namespace zeep
-{
-namespace http
 {
 namespace el
 {
 
-using object = ::zeep::element;
+using object = ::zeep::el::element;
 
 class scope;
 /// This zeep::http::el::object class is a bridge to the `el` expression language.
@@ -64,7 +62,7 @@ bool evaluate_el(const scope &scope, const std::string &text);
 class scope
 {
 public:
-	scope(const request &req);
+	scope(const http::request &req);
 	explicit scope(const scope &next);
 
 	template <typename T>
@@ -79,7 +77,7 @@ public:
 	object &lookup(const std::string &name);
 	object &operator[](const std::string &name);
 
-	const request &get_request() const;
+	const http::request &get_request() const;
 
 private:
 	friend std::ostream &operator<<(std::ostream &lhs, const scope &rhs);
@@ -90,7 +88,7 @@ private:
 
 	data_map m_data;
 	scope *m_next;
-	const request *m_req;
+	const http::request *m_req;
 };
 
 /// for debugging purposes
@@ -120,6 +118,5 @@ inline void scope::put(const std::string &name, ForwardIterator begin, ForwardIt
 // --------------------------------------------------------------------
 
 } // namespace el
-} // namespace http
 } // namespace zeep
 

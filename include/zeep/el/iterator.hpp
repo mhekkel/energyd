@@ -13,14 +13,16 @@
 #include <algorithm>
 #include <experimental/type_traits>
 
-#include <zeep/json/element_fwd.hpp>
-#include <zeep/json/traits.hpp>
-#include <zeep/json/factory.hpp>
-#include <zeep/json/to_element.hpp>
-#include <zeep/json/from_element.hpp>
-#include <zeep/json/serializer.hpp>
+#include <zeep/el/element_fwd.hpp>
+#include <zeep/el/traits.hpp>
+#include <zeep/el/factory.hpp>
+#include <zeep/el/to_element.hpp>
+#include <zeep/el/from_element.hpp>
+#include <zeep/el/serializer.hpp>
 
 namespace zeep
+{
+namespace el
 {
 
 namespace detail
@@ -350,7 +352,7 @@ template<typename Iterator> class iteration_proxy_value
 		assert(m_anchor.m_obj != nullptr);
 		switch (m_anchor.m_obj->m_type)
 		{
-			case ::zeep::detail::value_type::array:
+			case ::zeep::el::detail::value_type::array:
 				if (m_index != m_index_last)
 				{
 					m_index_str = std::to_string(m_index);
@@ -359,7 +361,7 @@ template<typename Iterator> class iteration_proxy_value
 				return m_index_str;
 				break;
 			
-			case ::zeep::detail::value_type::object:
+			case ::zeep::el::detail::value_type::object:
 				return m_anchor.key();
 			
 			default:
@@ -403,37 +405,33 @@ template<typename Iterator> class iteration_proxy
 
 // support for structured binding
 template<size_t N, typename Iterator, std::enable_if_t<N == 0, int> = 0>
-auto get(const ::zeep::detail::iteration_proxy_value<Iterator>& i) -> decltype(i.key())
+auto get(const ::zeep::el::detail::iteration_proxy_value<Iterator>& i) -> decltype(i.key())
 {
 	return i.key();
 }
 
 template<size_t N, typename Iterator, std::enable_if_t<N == 1, int> = 0>
-auto get(const ::zeep::detail::iteration_proxy_value<Iterator>& i) -> decltype(i.value())
+auto get(const ::zeep::el::detail::iteration_proxy_value<Iterator>& i) -> decltype(i.value())
 {
 	return i.value();
 }
 
-}
+} // detail
+} // el
+} // zeep
 
-}
-
-
-// The Addition to the STD Namespace is required to add
-// Structured Bindings Support to the iteration_proxy_value class
-// For further reference see https://blog.tartanllama.xyz/structured-bindings/
-// And see https://github.com/nlohmann/json/pull/1391
 namespace std
 {
 template <typename IteratorType>
-struct tuple_size<::zeep::detail::iteration_proxy_value<IteratorType>>
+struct tuple_size<::zeep::el::detail::iteration_proxy_value<IteratorType>>
             : public std::integral_constant<std::size_t, 2> {};
 
 template <std::size_t N, typename IteratorType>
-struct tuple_element<N, ::zeep::detail::iteration_proxy_value<IteratorType >>
+struct tuple_element<N, ::zeep::el::detail::iteration_proxy_value<IteratorType >>
 {
   public:
     using type = decltype(
-                     get<N>(std::declval < ::zeep::detail::iteration_proxy_value<IteratorType >> ()));
+                     get<N>(std::declval < ::zeep::el::detail::iteration_proxy_value<IteratorType >> ()));
 };
+
 }

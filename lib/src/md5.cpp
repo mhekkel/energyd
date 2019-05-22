@@ -3,6 +3,8 @@
 //      (See accompanying file LICENSE_1_0.txt or copy at
 //            http://www.boost.org/LICENSE_1_0.txt)
 
+#include <string.h>
+
 #include <zeep/http/md5.hpp>
 
 using namespace std;

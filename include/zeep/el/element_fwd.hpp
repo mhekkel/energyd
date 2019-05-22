@@ -15,6 +15,8 @@
 
 namespace zeep
 {
+namespace el
+{
 
 class element;
 
@@ -39,4 +41,5 @@ class element_reference;
 template<typename,typename>
 struct element_serializer;
 
+}
 }

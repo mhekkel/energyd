@@ -14,17 +14,18 @@
 #include <cmath>
 
 #include <zeep/http/webapp.hpp>
-#include <zeep/http/webapp/el.hpp>
+#include <zeep/el/process.hpp>
 #include <zeep/xml/unicode_support.hpp>
 
 using namespace std;
 
 namespace zeep
 {
-namespace http
-{
 namespace el
 {
+
+using request = http::request;
+using object = el::element;
 
 // --------------------------------------------------------------------
 // interpreter for expression language
@@ -799,5 +800,4 @@ const request &scope::get_request() const
 }
 
 } // namespace el
-} // namespace http
 } // namespace zeep

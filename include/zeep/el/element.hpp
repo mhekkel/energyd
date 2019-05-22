@@ -13,15 +13,17 @@
 #include <algorithm>
 #include <experimental/type_traits>
 
-#include <zeep/json/element_fwd.hpp>
-#include <zeep/json/traits.hpp>
-#include <zeep/json/factory.hpp>
-#include <zeep/json/to_element.hpp>
-#include <zeep/json/from_element.hpp>
-#include <zeep/json/serializer.hpp>
-#include <zeep/json/iterator.hpp>
+#include <zeep/el/element_fwd.hpp>
+#include <zeep/el/traits.hpp>
+#include <zeep/el/factory.hpp>
+#include <zeep/el/to_element.hpp>
+#include <zeep/el/from_element.hpp>
+#include <zeep/el/serializer.hpp>
+#include <zeep/el/iterator.hpp>
 
 namespace zeep
+{
+namespace el
 {
 
 class element
@@ -42,21 +44,17 @@ public:
 
 	using difference_type = std::ptrdiff_t;
 
+    using initializer_list_t = std::initializer_list<detail::element_reference>;
+
 	using reference = element&;
 	using const_reference = const element&;
 
+	template<typename E> friend class detail::iterator_impl;
 	using iterator = detail::iterator_impl<element>;
 	using const_iterator = detail::iterator_impl<const element>;
 
-	template<typename E>
-	friend class detail::iterator_impl;
-	
-	template<typename Iterator>
-	using iteration_proxy = detail::iteration_proxy<Iterator>;
-
+	template<typename Iterator> using iteration_proxy = detail::iteration_proxy<Iterator>;
 	template<typename iterator> friend class detail::iteration_proxy_value;
-
-    using initializer_list_t = std::initializer_list<detail::element_reference>;
 
     template<value_type> friend struct detail::factory;
 
@@ -533,11 +531,11 @@ private:
 	bool m_rvalue;
 };
 
-}
+} // detail
+} // el
 
-using json = element;
-
+using json = el::element;
 
 } // namespace zeep
 
-zeep::element operator""_json(const char* s, size_t len);
+zeep::el::element operator""_json(const char* s, size_t len);

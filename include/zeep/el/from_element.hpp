@@ -13,11 +13,13 @@
 #include <algorithm>
 #include <experimental/type_traits>
 
-#include <zeep/json/element_fwd.hpp>
-#include <zeep/json/traits.hpp>
-#include <zeep/json/factory.hpp>
+#include <zeep/el/element_fwd.hpp>
+#include <zeep/el/traits.hpp>
+#include <zeep/el/factory.hpp>
 
 namespace zeep
+{
+namespace el
 {
 namespace detail
 {
@@ -179,8 +181,9 @@ struct from_element_fn
 
 namespace
 {
-    constexpr const auto& from_element = typename ::zeep::detail::from_element_fn{};
+    constexpr const auto& from_element = typename ::zeep::el::detail::from_element_fn{};
 }
 
+}
 }
 }

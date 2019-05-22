@@ -1,6 +1,6 @@
 #include <iostream>
 
-#include <zeep/json/element.hpp>
+#include <zeep/el/element.hpp>
 
 template<typename T>
 struct Foo
@@ -53,10 +53,10 @@ int main()
 		json j_array4(10, j_object2);
 
 		static_assert(std::experimental::is_detected_exact
-			<void, zeep::detail::to_element_function, zeep::element_serializer<int,void>, zeep::element&, int>::value, "moet!");
-		static_assert(not zeep::detail::is_element<int>::value, "wowo");
-		static_assert(zeep::detail::is_element<decltype(j_null)>::value, "wowo");
-		static_assert(zeep::detail::has_to_element<bool>::value, "Oeps");
+			<void, zeep::el::detail::to_element_function, zeep::el::element_serializer<int,void>, zeep::el::element&, int>::value, "moet!");
+		static_assert(not zeep::el::detail::is_element<int>::value, "wowo");
+		static_assert(zeep::el::detail::is_element<decltype(j_null)>::value, "wowo");
+		static_assert(zeep::el::detail::has_to_element<bool>::value, "Oeps");
 
 		std::cout << j_null << std::endl
 				  << j_array << std::endl
@@ -85,9 +85,12 @@ int main()
 		std::string s = *j_string2.get_ptr<std::string*>();
 		assert(s == "aap");
 
+		json j_string3(s);
+		assert(j_string3 == j_string2);
+
 		s = j_string2.as<std::string>();
 
-		// assert(j_string2.get<std::string>() == "aap");
+		// assert(j_string2.as<std::string>() == "aap");
 
 		std::cout << std::endl;
 		
@@ -108,10 +111,10 @@ int main()
 				  << std::endl;
 		
 
-		for (auto[key, value]: j_object2.items())
-		{
-			std::cout << "key: " << key << " value: " << value << std::endl;
-		}
+		// for (auto[key, value]: j_object2.items())
+		// {
+		// 	std::cout << "key: " << key << " value: " << value << std::endl;
+		// }
 
 	}
 	catch(const std::exception& e)

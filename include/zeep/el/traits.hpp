@@ -13,11 +13,12 @@
 #include <algorithm>
 #include <experimental/type_traits>
 
-#include <zeep/json/element_fwd.hpp>
+#include <zeep/el/element_fwd.hpp>
 
 namespace zeep
 {
-
+namespace el
+{
 namespace detail
 {
 
@@ -188,6 +189,6 @@ struct is_compatible_object_type<J, T, std::enable_if_t<
 			has_from_element<typename T::mapped_type>::value); 
 };
 
-
+}
 }
 }

@@ -6,10 +6,12 @@
 #include <iostream>
 #include <iomanip>
 
-#include <zeep/json/element.hpp>
+#include <zeep/el/element.hpp>
 
 namespace zeep
 {
+namespace el
+{	
 
 /// empty factory with a certain type
 element::element(value_type t)
@@ -506,7 +508,7 @@ void serialize(std::ostream& os, const element& v)
 {
 	switch (v.m_type) 
 	{
-		case json::value_type::array:
+		case element::value_type::array:
 		{
 			auto& a = *v.m_data.m_array;
 			os << '[';
@@ -520,23 +522,23 @@ void serialize(std::ostream& os, const element& v)
 			break;
 		}
 
-		case json::value_type::boolean:
+		case element::value_type::boolean:
 			os << std::boolalpha << v.m_data.m_boolean;
 			break;
 
-		case json::value_type::null:
+		case element::value_type::null:
 			os << "null";
 			break;
 
-		case json::value_type::number_float:
+		case element::value_type::number_float:
 			os << v.m_data.m_float;
 			break;
 
-		case json::value_type::number_int:
+		case element::value_type::number_int:
 			os << v.m_data.m_int;
 			break;
 
-		case json::value_type::object:
+		case element::value_type::object:
 		{
 			os << '{';
 			bool first = true;
@@ -552,7 +554,7 @@ void serialize(std::ostream& os, const element& v)
 			break;
 		}
 
-		case json::value_type::string:
+		case element::value_type::string:
 			os << '"';
 			
 			for (char c: *v.m_data.m_string)
@@ -674,5 +676,5 @@ std::ostream& operator<<(std::ostream& os, const element& v)
 
 	return os;
 }
-
+}
 } // namespace zeep

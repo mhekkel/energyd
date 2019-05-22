@@ -13,10 +13,12 @@
 #include <algorithm>
 #include <experimental/type_traits>
 
-#include <zeep/json/element_fwd.hpp>
-#include <zeep/json/traits.hpp>
+#include <zeep/el/element_fwd.hpp>
+#include <zeep/el/traits.hpp>
 
 namespace zeep
+{
+namespace el
 {
 namespace detail
 {
@@ -183,5 +185,6 @@ struct factory<value_type::object>
     }
 };
 
+}
 }
 }

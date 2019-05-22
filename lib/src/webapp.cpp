@@ -9,6 +9,8 @@
 
 #include <zeep/config.hpp>
 
+#include <cstdlib>
+
 #include <map>
 #include <set>
 
@@ -24,7 +26,7 @@
 
 #include <zeep/http/webapp.hpp>
 #include <zeep/xml/unicode_support.hpp>
-#include <zeep/http/webapp/el.hpp>
+#include <zeep/el/process.hpp>
 #include <zeep/http/md5.hpp>
 
 namespace ba = boost::algorithm;
@@ -594,7 +596,7 @@ void basic_webapp::process_if(xml::element *node, const el::scope& scope, fs::pa
 
 void basic_webapp::process_iterate(xml::element *node, const el::scope& scope, fs::path dir)
 {
-	using detail::value_type;
+	using el::detail::value_type;
 
 	el::object collection = scope[node->get_attribute("collection")];
 	if (collection.type() != value_type::array)
@@ -711,7 +713,7 @@ void basic_webapp::process_number(xml::element *node, const el::scope& scope, fs
 
 void basic_webapp::process_options(xml::element *node, const el::scope& scope, fs::path dir)
 {
-	using ::zeep::detail::value_type;
+	using ::zeep::el::detail::value_type;
 
 	el::object collection = scope[node->get_attribute("collection")];
 	if (collection.type() != value_type::array)
