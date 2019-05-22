@@ -17,7 +17,7 @@ std::string k_empty_string;
 
 writer::writer(std::ostream& os)
 	: m_os(os)
-	, m_encoding(enc_UTF8)
+	, m_encoding(encoding_type::enc_UTF8)
 	, m_version(1.0f)
 	, m_write_xml_decl(false)
 	, m_wrap(true)
@@ -37,7 +37,7 @@ writer::writer(std::ostream& os)
 				
 writer::writer(std::ostream& os, bool write_decl, bool standalone)
 	: m_os(os)
-	, m_encoding(enc_UTF8)
+	, m_encoding(encoding_type::enc_UTF8)
 	, m_version(1.0f)
 	, m_write_xml_decl(write_decl)
 	, m_wrap(true)
@@ -65,7 +65,7 @@ void writer::xml_decl(bool standalone)
 {
 	if (m_write_xml_decl)
 	{
-		assert(m_encoding == enc_UTF8);
+		assert(m_encoding == encoding_type::enc_UTF8);
 
 		if (m_version == 1.0f)
 			m_os << "<?xml version=\"1.0\"";

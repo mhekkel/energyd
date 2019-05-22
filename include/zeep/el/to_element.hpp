@@ -43,12 +43,14 @@ void to_element(E& v, const T& s)
 	factory<value_type::string>::construct(v, s);
 }
 
-inline void to_element(element& v, const std::string& s)
+template<typename E>
+inline void to_element(E& v, const std::string& s)
 {
 	factory<value_type::string>::construct(v, s);
 }
 
-inline void to_element(element& v, std::string&& s)
+template<typename E>
+void to_element(E& v, std::string&& s)
 {
 	factory<value_type::string>::construct(v, std::move(s));
 }

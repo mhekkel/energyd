@@ -18,7 +18,7 @@ namespace zeep { namespace xml {
 typedef char32_t unicode;
 
 /// the supported encodings. Perhaps we should extend this list a bit?
-enum encoding_type
+enum class encoding_type
 {
 	enc_UTF8,			///< UTF-8
 	enc_UTF16BE,		///< UTF-16 Big Endian

@@ -689,5 +689,3 @@ private:
 } // detail
 } // el
 } // namespace zeep
-
-zeep::el::element operator""_json(const char* s, size_t len);

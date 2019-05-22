@@ -27,7 +27,9 @@ namespace xml
 // --------------------------------------------------------------------
 
 document_imp::document_imp(document *doc)
-	: m_encoding(enc_UTF8), m_standalone(false), m_indent(2), m_empty(true), m_wrap(true), m_trim(true), m_escape_whitespace(false), m_no_comment(false), m_validating(false), m_preserve_cdata(false), m_doc(doc), m_cur(nullptr), m_cdata(nullptr)
+	: m_encoding(encoding_type::enc_UTF8), m_standalone(false), m_indent(2), m_empty(true)
+	, m_wrap(true), m_trim(true), m_escape_whitespace(false), m_no_comment(false)
+	, m_validating(false), m_preserve_cdata(false), m_doc(doc), m_cur(nullptr), m_cdata(nullptr)
 {
 }
 

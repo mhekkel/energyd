@@ -76,10 +76,11 @@ OBJECTS = \
 	$(OBJDIR)/element.o \
 	$(OBJDIR)/exception.o \
 	$(OBJDIR)/http-server.o \
+	$(OBJDIR)/json-parser.o \
 	$(OBJDIR)/md5.o \
 	$(OBJDIR)/message_parser.o \
 	$(OBJDIR)/node.o \
-	$(OBJDIR)/parser.o \
+	$(OBJDIR)/parser-internals.o \
 	$(OBJDIR)/preforked-http-server.o \
 	$(OBJDIR)/reply.o \
 	$(OBJDIR)/request.o \
@@ -89,6 +90,7 @@ OBJECTS = \
 	$(OBJDIR)/webapp.o \
 	$(OBJDIR)/webapp-el.o \
 	$(OBJDIR)/writer.o \
+	$(OBJDIR)/xml-parser.o \
 	$(OBJDIR)/xpath.o
 
 libzeep.a: $(OBJECTS)
