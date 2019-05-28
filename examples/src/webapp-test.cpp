@@ -14,7 +14,7 @@
 
 using namespace std;
 namespace zh = zeep::http;
-namespace el = zeep::http::el;
+namespace el = zeep::el;
 namespace fs = boost::filesystem;
 
 class my_webapp : public zh::webapp
