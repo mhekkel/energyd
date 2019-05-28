@@ -17,6 +17,8 @@
 #include <zeep/el/traits.hpp>
 #include <zeep/el/factory.hpp>
 
+#include <boost/optional.hpp>
+
 namespace zeep
 {
 namespace el
@@ -118,6 +120,13 @@ template<typename J>
 void to_element(J& j, const J& obj)
 {
 	factory<value_type::object>::construct(j, std::move(obj));
+}
+
+template<typename T, std::enable_if_t<has_to_element<T>::value>>
+void to_element(element& j, const boost::optional<T>& v)
+{
+	if (v)
+		to_element(j, *v);
 }
 
 struct to_element_fn

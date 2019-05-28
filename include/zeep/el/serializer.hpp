@@ -19,6 +19,8 @@
 #include <zeep/el/to_element.hpp>
 #include <zeep/el/from_element.hpp>
 
+#include <optional>
+
 namespace zeep
 {
 
@@ -41,92 +43,22 @@ class name_value_pair
 };
 
 template<typename T>
-class element_nvp : public name_value_pair<T>
+name_value_pair<T> make_nvp(const char* name, T& v)
 {
-  public:
-	element_nvp(const char* name, T& value) : name_value_pair<T>(name, value) {}
-	element_nvp(const element_nvp& other) : name_value_pair<T>(other) {}
-};
+	return name_value_pair<T>(name, v);
+}
 
 template<typename T>
-class attribute_nvp : public name_value_pair<T>
+name_value_pair<T> make_attribute_nvp(const char* name, T& v)
 {
-  public:
-	attribute_nvp(const char* name, T& value) : name_value_pair<T>(name, value) {}
-	attribute_nvp(const attribute_nvp& other) : name_value_pair<T>(other) {}
-};
-
-struct serializer
-{
-	serializer() {}
-
-	template<typename T>
-	serializer& operator&(const element_nvp<T>& nvp)
-	{
-		serialize_element(nvp.name(), nvp.value());
-		return *this;
-	}
-
-	template<typename T>
-	serializer& operator&(const attribute_nvp<T>& nvp)
-	{
-		serialize_attribute(nvp.name(), nvp.value());
-		return *this;
-	}
-
-	template<typename T>
-	void serialize_element(const char* name, const T& data);
-
-	template<typename T>
-	void serialize_attribute(const char* name, const T& data);
-
-	::zeep::el::element	m_root;
-};
-
-template<typename T, typename = void>
-struct value_serializer {};
-
-template<>
-struct value_serializer<bool>
-{
-	std::string serialize_value(bool b)
-	{
-		return b ? "true" : "false";
-	}
-
-	bool deserialize_value(const std::string& value)
-	{
-		return value == "true";
-	}
-};
+	return name_value_pair<T>(name, v);
+}
 
 template<typename T>
-struct value_serializer<T, std::enable_if<std::is_integral<T>::value and not std::is_same<T,bool>::value>>
+name_value_pair<T> make_element_nvp(const char* name, T& v)
 {
-	std::string serialize_value(int64_t v)
-	{
-		return std::to_string(v);
-	}
-
-	int64_t deserialize_value(const std::string& value)
-	{
-		return std::stoll(value);
-	}
-};
-
-template<>
-struct value_serializer<std::string>
-{
-	std::string serialize_value(const std::string& v)
-	{
-		return v;
-	}
-
-	std::string deserialize_value(const std::string& v)
-	{
-		return v;
-	}
-};
+	return name_value_pair<T>(name, v);
+}
 
 template<typename A, typename T>
 using ampersand_operator_t = decltype(std::declval<A&>() & std::declval<T&>());
@@ -139,30 +71,209 @@ struct has_serialize : std::false_type {};
 
 template<typename T, typename Archive>
 struct has_serialize<T, Archive,
-	typename std::enable_if<std::is_class<T>::value and std::experimental::is_detected_v<ampersand_operator_t,Archive,T>>::type>
+	typename std::enable_if<std::is_class<T>::value>::type>
 {
 	static constexpr bool value = std::experimental::is_detected_v<serialize_function,T,Archive>;
 };
 
-template<typename T>
-struct value_serializer<T, std::enable_if<has_serialize<T,serializer>::value>>
+template<typename T, typename Archive, typename = void>
+struct is_serializable_array_type : std::false_type {};
+
+template<typename T, typename Archive>
+struct is_serializable_array_type<T, Archive,
+	std::enable_if_t<
+		std::experimental::is_detected<el::detail::value_type_t, T>::value and
+		std::experimental::is_detected<el::detail::iterator_t, T>::value and
+		not el::detail::is_compatible_string_type<typename Archive::element_type,T>::value>>
 {
-	std::string serialize_value(const T& v)
-	{
-		serializer sr;
-		v.serialize(sr, 0);
-
-	}
-
-	std::string deserialize_value(const std::string& v)
-	{
-		return v;
-	}
-
+    static constexpr bool value =
+		el::detail::is_compatible_type<typename T::value_type>::value or
+        has_serialize<typename T::value_type, Archive>::value;
 };
 
+template<typename T>
+using has_value_or_result = decltype(std::declval<T>().value_or(std::declval<typename T::value_type&&>()));
 
+template<typename T, typename Archive, typename = void>
+struct is_serializable_optional_type : std::false_type {};
 
+template<typename T, typename Archive>
+struct is_serializable_optional_type<T, Archive,
+	std::enable_if_t<
+		std::experimental::is_detected<el::detail::value_type_t, T>::value and
+		std::is_same<has_value_or_result<T>,typename T::value_type>::value and
+		not el::detail::is_compatible_string_type<typename Archive::element_type,T>::value>>
+{
+    static constexpr bool value =
+		el::detail::is_compatible_type<typename T::value_type>::value or
+        has_serialize<typename T::value_type, Archive>::value;
+};
+
+template<typename E>
+struct serializer
+{
+	using element_type = E;
+
+	template<typename T, typename = void>
+	struct serializer_impl {};
+
+	template<typename T>
+	struct serializer_impl<T, std::enable_if_t<has_serialize<T,serializer>::value>>
+	{
+		static void serialize(T& data, element_type& e)
+		{
+			serializer sr;
+			data.serialize(sr, 0);
+			e.swap(sr.m_elem);
+		}
+	};
+
+	template<typename T>
+	struct serializer_impl<T, std::enable_if_t<el::detail::is_compatible_type<T>::value and not is_serializable_array_type<T,serializer>::value>>
+	{
+		static void serialize(T& data, element_type& e)
+		{
+			e = data;
+		}
+	};
+
+	template<typename T>
+	struct serializer_impl<T, std::enable_if_t<is_serializable_array_type<T,serializer>::value>>
+	{
+		static void serialize(T& data, element_type& e)
+		{
+			using serializer_impl = serializer_impl<typename T::value_type>;
+
+			for (auto& i: data)
+			{
+				element_type ei;
+				serializer_impl::serialize(i, ei);
+				e.push_back(ei);
+			}
+		}
+	};
+
+	template<typename T>
+	struct serializer_impl<T, std::enable_if_t<is_serializable_optional_type<T,serializer>::value>>
+	{
+		static void serialize(T& data, element_type& e)
+		{
+			using serializer_impl = serializer_impl<typename T::value_type>;
+
+			if (data)
+				serializer_impl::serialize(*data, e);
+		}
+	};
+
+	serializer() {}
+
+	template<typename T>
+	serializer& operator&(name_value_pair<T>&& nvp)
+	{
+		serialize(nvp.name(), nvp.value());
+		return *this;
+	}
+
+	template<typename T>
+	void serialize(const char* name, T& data)
+	{
+		using serializer_impl = serializer_impl<T>;
+
+		element_type e;
+		serializer_impl::serialize(data, e);
+		m_elem.emplace(std::make_pair(name, e));
+	}
+
+	element_type	m_elem;
+};
+
+template<typename E>
+struct deserializer
+{
+	using element_type = E;
+
+	template<typename T, typename = void>
+	struct deserializer_impl {};
+
+	template<typename T>
+	struct deserializer_impl<T, std::enable_if_t<has_serialize<T,deserializer>::value>>
+	{
+		static void deserialize(T& data, const element_type& e)
+		{
+			deserializer sr(e);
+			data.serialize(sr, 0);
+		}
+	};
+
+	template<typename T>
+	struct deserializer_impl<T, std::enable_if_t<el::detail::is_compatible_type<T>::value and not is_serializable_array_type<T,deserializer>::value>>
+	{
+		static void deserialize(T& data, const element_type& e)
+		{
+			data = e.template as<T>();
+		}
+	};
+
+	template<typename T>
+	struct deserializer_impl<T, std::enable_if_t<is_serializable_array_type<T,deserializer>::value>>
+	{
+		static void deserialize(T& data, const element_type& e)
+		{
+			using deserializer_impl = deserializer_impl<typename T::value_type>;
+
+			data.clear();
+
+			for (auto& i: e)
+			{
+				typename T::value_type v;
+				
+				deserializer_impl::deserialize(v, i);
+
+				data.push_back(v);
+			}
+		}
+	};
+
+	template<typename T>
+	struct deserializer_impl<T, std::enable_if_t<is_serializable_optional_type<T,deserializer>::value>>
+	{
+		static void deserialize(T& data, element_type& e)
+		{
+			using deserializer_impl = deserializer_impl<typename T::value_type>;
+
+			typename T::value_type v;
+			deserializer_impl::deserialize(v, e);
+			data.reset(v);
+		}
+	};
+
+	deserializer(const element_type& elem) : m_elem(elem) {}
+
+	template<typename T>
+	deserializer& operator&(name_value_pair<T> nvp)
+	{
+		deserialize(nvp.name(), nvp.value());
+		return *this;
+	}
+
+	template<typename T>
+	void deserialize(const char* name, T& data)
+	{
+		if (not m_elem.is_object() or m_elem.empty())
+			return;
+
+		using deserializer_impl = deserializer_impl<T>;
+
+		auto value = m_elem[name];
+
+		if (value.is_null())
+			return;
+
+		deserializer_impl::deserialize(data, value);
+	}
+
+	const element_type&	m_elem;
+};
 
 
 namespace el

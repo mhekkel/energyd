@@ -1,5 +1,6 @@
 #include <iostream>
 #include <fstream>
+#include <optional>
 
 #include <zeep/el/element.hpp>
 #include <zeep/el/parser.hpp>
@@ -10,27 +11,62 @@ struct Foo
 	void bar(float);
 };
 
-struct MyPOD
+struct MyPOD2
 {
-	std::string		s;
-	int				i;
+	float f;
+	std::vector<int> v = { 1, 2, 3, 4 };
 
 	template<typename Archive>
 	void serialize(Archive& ar, unsigned long version)
 	{
-		ar & zeep::attribute_nvp("s-s", s)
-		   & zeep::attribute_nvp("i-i", i);
+		ar & zeep::make_attribute_nvp("f-f", f)
+		   & zeep::make_attribute_nvp("v", v)
+		   ;
 	}
+
 };
 
+struct MyPOD
+{
+	std::string				s;
+	int						i;
+	boost::optional<int>	o{13};
+	std::vector<MyPOD2>		fp{2, MyPOD2()};
 
-
+	template<typename Archive>
+	void serialize(Archive& ar, unsigned long version)
+	{
+		ar & zeep::make_attribute_nvp("s-s", s)
+		   & zeep::make_attribute_nvp("i-i", i)
+		   & zeep::make_attribute_nvp("opt", o)
+		   & zeep::make_element_nvp("fp", fp)
+		   ;
+	}
+};
 
 int main()
 {
 	try
 	{
 		using json = zeep::el::element;
+
+		using my_opt = boost::optional<int>;
+
+		my_opt op;
+
+		static_assert(zeep::is_serializable_optional_type<my_opt, zeep::serializer<json>>::value, "da's niet ok");
+
+		zeep::serializer<json> sr;
+		MyPOD p = { "test", 42 };
+
+		p.serialize(sr, 0);
+
+
+		std::cout << sr.m_elem << std::endl;
+
+		MyPOD p2;
+		zeep::deserializer<json> dsr(sr.m_elem);
+		p2.serialize(dsr, 0);
 
 		// json x = R"({
 		// 	"a": 1.1
