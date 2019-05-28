@@ -18,7 +18,6 @@
 #include <zeep/xml/node.hpp>
 #include <zeep/exception.hpp>
 
-#include <boost/type_traits/integral_promotion.hpp>
 #include <boost/serialization/nvp.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
@@ -120,22 +119,19 @@ struct attribute_nvp : public boost::serialization::nvp<T>
 };
 
 template<typename T>
-inline element_nvp<T> make_element_nvp(const char* name, T& v)
+element_nvp<T> make_element_nvp(const char* name, T& v)
 {
 	return element_nvp<T>(name, v);
 }
 	
 template<typename T>
-inline attribute_nvp<T> make_attribute_nvp(const char* name, T& v)
+attribute_nvp<T> make_attribute_nvp(const char* name, T& v)
 {
 	return attribute_nvp<T>(name, v);
 }
 
-#define ZEEP_ELEMENT_NAME_VALUE(name) \
-	zeep::xml::make_element_nvp(BOOST_PP_STRINGIZE(name), name)
-
-#define ZEEP_ATTRIBUTE_NAME_VALUE(name) \
-	zeep::xml::make_attribute_nvp(BOOST_PP_STRINGIZE(name), name)
+#define ZEEP_ELEMENT_NAME_VALUE(name)			zeep::xml::make_element_nvp(#name, name)
+#define ZEEP_ATTRIBUTE_NAME_VALUE(name)		zeep::xml::make_attribute_nvp(#name, name)
 	
 /// serializer, deserializer and schema_creator are classes that can be used
 /// to initiate the serialization. They are the Archive classes that are

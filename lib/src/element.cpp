@@ -6,6 +6,8 @@
 #include <iostream>
 #include <iomanip>
 
+#include <cmath>
+
 #include <zeep/el/element.hpp>
 
 namespace zeep
@@ -434,7 +436,7 @@ bool operator<(element::const_reference& lhs, element::const_reference& rhs)
 	else if (lhs_type == value_type::number_int and rhs_type == value_type::number_float)
 		return static_cast<element::float_type>(lhs.m_data.m_int) < rhs.m_data.m_float;
 	
-	return false;
+	return lhs_type < rhs_type;
 }
 
 element& element::operator-()
@@ -663,7 +665,10 @@ void serialize(std::ostream& os, const element& v)
 			break;
 
 		case element::value_type::number_float:
-			os << v.m_data.m_float;
+			if (std::isnan(v.m_data.m_float))
+				os << "NaN";
+			else
+				os << v.m_data.m_float;
 			break;
 
 		case element::value_type::number_int:

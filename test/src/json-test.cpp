@@ -10,6 +10,22 @@ struct Foo
 	void bar(float);
 };
 
+struct MyPOD
+{
+	std::string		s;
+	int				i;
+
+	template<typename Archive>
+	void serialize(Archive& ar, unsigned long version)
+	{
+		ar & zeep::attribute_nvp("s-s", s)
+		   & zeep::attribute_nvp("i-i", i);
+	}
+};
+
+
+
+
 int main()
 {
 	try
