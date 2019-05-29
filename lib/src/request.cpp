@@ -175,47 +175,61 @@ void request::remove_header(const char* name)
 		headers.end());
 }
 
+std::pair<std::string,bool> get_urlencode_parameter(const std::string& s, const char* name)
+{
+	std::string::size_type b = 0;
+	std::string result;
+	bool found = false;
+	size_t nlen = strlen(name);
+	
+	while (b != std::string::npos)
+	{
+		std::string::size_type e = s.find_first_of("&;", b);
+		std::string::size_type n = (e == std::string::npos) ? s.length() - b : e - b;
+		
+		if ((n == nlen or (n > nlen + 1 and s[b + nlen] == '=')) and strncmp(name, s.c_str() + b, nlen) == 0)
+		{
+			found = true;
+
+			if (n == nlen)
+				result = name;	// what else?
+			else
+			{
+				b += nlen + 1;
+				result = s.substr(b, e - b);
+				result = decode_url(result);
+			}
+			
+			break;
+		}
+		
+		b = e == std::string::npos ? e : e + 1;
+	}
+
+	return std::make_pair(result, found);
+}
+
 std::string request::get_parameter(const char* name) const
 {
 	std::string result, contentType = get_header("Content-Type");
-	bool post = method == method_type::POST or method == method_type::PUT;
-	std::string::size_type nlen = strlen(name);
+	bool found;
 	
-	if (method == method_type::GET or method == method_type::DELETE or
-		(post and contentType == "application/x-www-form-urlencoded"))
+	if (contentType == "application/x-www-form-urlencoded")
 	{
-		const std::string& s = post ? payload : uri;
-		std::string::size_type b = 0;
-		if (not post)
-		{
-			b = s.find('?');
-			if (b != std::string::npos)
-				b = b + 1;
-		}
-		
-		while (b != std::string::npos)
-		{
-			std::string::size_type e = s.find_first_of("&;", b);
-			std::string::size_type n = (e == std::string::npos) ? s.length() - b : e - b;
-			
-			if ((n == nlen or (n > nlen + 1 and s[b + nlen] == '=')) and strncmp(name, s.c_str() + b, nlen) == 0)
-			{
-				if (n == nlen)
-					result = name;	// what else?
-				else
-				{
-					b += nlen + 1;
-					result = s.substr(b, e - b);
-				}
-				
-				result = decode_url(result);
-				break;
-			}
-			
-			b = e == std::string::npos ? e : e + 1;
-		}
+		tie(result, found) = get_urlencode_parameter(payload, name);
+		if (found)
+			return result;
 	}
-	else if (post and ba::starts_with(contentType, "multipart/form-data"))
+
+	auto b = uri.find('?');
+	if (b != std::string::npos)
+	{
+		tie(result, found) = get_urlencode_parameter(uri.substr(b + 1), name);
+		if (found)
+			return result;
+	}
+
+	if (ba::starts_with(contentType, "multipart/form-data"))
 	{
 		std::string::size_type b = contentType.find("boundary=");
 		if (b != std::string::npos)

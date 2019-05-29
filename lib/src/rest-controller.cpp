@@ -9,6 +9,7 @@
 #include <boost/algorithm/string.hpp>
 
 #include <zeep/http/rest-controller.hpp>
+#include <zeep/http/server.hpp>
 
 namespace ba = boost::algorithm;
 
@@ -39,6 +40,8 @@ bool rest_controller::handle_request(const request& req, reply& rep)
 	auto pp = p.find('?');
 	if (pp != std::string::npos)
 		p.erase(pp);
+	
+	p = decode_url(p);
 
 	auto mp = find_if(m_mountpoints.begin(), m_mountpoints.end(),
 		[&](auto e) { return e->m_method == req.method and e->m_path == p; });

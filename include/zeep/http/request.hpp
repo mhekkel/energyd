@@ -45,6 +45,8 @@ inline constexpr const char* to_string(method_type method)
 
 struct request
 {
+	using param = header;	// alias name
+
 	method_type method;		///< POST, GET, etc.
 	std::string uri;		///< The uri as requested
 	int http_version_major; ///< HTTP major number (usually 1)
@@ -54,6 +56,8 @@ struct request
 	std::string payload;  ///< For POST requests
 	bool close;			  ///< Whether 'Connection: close' was specified
 	std::string username; ///< The authenticated user for this request (filled in by webapp::validate_authentication)
+	std::vector<param>
+		path_params;      ///< The parameters found in the path (used by e.g. rest-controller)
 
 	// for redirects...
 	std::string local_address; ///< The address the request was received upon

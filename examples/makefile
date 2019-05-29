@@ -14,6 +14,8 @@ firstTarget: all
 # installation prefix
 PREFIX              ?= /usr/local
 
+PACKAGES			+= libpqxx
+
 # main build variables
 CXX                 ?= c++
 CXXFLAGS            += $(BOOST_INC_DIR:%=-I%) -I. -pthread -std=c++17
@@ -27,10 +29,15 @@ DEBUG               = 0
 
 -include ../make.config
 
+ifneq ($(PACKAGES),)
+CXXFLAGS			+= $(shell PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) pkg-config --cflags $(PACKAGES))
+LDFLAGS				+= $(shell PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) pkg-config --libs $(PACKAGES) --static )
+endif
+
 BOOST_LIB_DIR       = $(BOOST:%=%/lib)
 BOOST_INC_DIR       = $(BOOST:%=%/include)
 
-BOOST_LIBS          = system thread filesystem regex random
+BOOST_LIBS          = system thread filesystem regex random program_options
 BOOST_LIBS          := $(BOOST_LIBS:%=boost_%$(BOOST_LIB_SUFFIX))
 LIBS                = zeep $(BOOST_LIBS) stdc++ m pthread
 LDFLAGS             += $(BOOST_LIB_DIR:%=-L%) -L../lib $(LIBS:%=-l%) -g
