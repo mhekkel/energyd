@@ -108,7 +108,7 @@ public:
 
 	/// Support for HTTP Authentication, returns the validated user name
 	virtual std::string validate_authentication(const std::string& authorization,
-												const std::string& method, const std::string& uri, const std::string& realm);
+												method_type method, const std::string& uri, const std::string& realm);
 
 	/// Subclasses should implement this to return the password for the user,
 	/// result should be the MD5 hash of the string username + ':' + realm + ':' + password

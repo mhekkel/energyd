@@ -271,7 +271,7 @@ void server::log_request(const std::string& client,
 		 << "-" << ' '
 		 << username << ' '
 		 << start_local << ' '
-		 << '"' << req.method << ' ' << req.uri << ' '
+		 << '"' << to_string(req.method) << ' ' << req.uri << ' '
 				<< "HTTP/" << req.http_version_major << '.' << req.http_version_minor << "\" "
 		 << rep.get_status() << ' '
 		 << rep.get_size() << ' '

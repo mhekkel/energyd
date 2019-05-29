@@ -294,7 +294,17 @@ parser::result_type request_parser::parse(request& req, const char* text, size_t
 	if (result)
 	{
 		req.uri = m_uri;
-		req.method = m_method;
+
+			 if (m_method == "OPTIONS")		req.method = method_type::OPTIONS;
+		else if (m_method == "GET")			req.method = method_type::GET;
+		else if (m_method == "HEAD")		req.method = method_type::HEAD;
+		else if (m_method == "POST")		req.method = method_type::POST;
+		else if (m_method == "PUT")			req.method = method_type::PUT;
+		else if (m_method == "DELETE")		req.method = method_type::DELETE;
+		else if (m_method == "TRACE")		req.method = method_type::TRACE;
+		else if (m_method == "CONNECT")		req.method = method_type::CONNECT;
+		else								req.method = method_type::UNDEFINED;
+
 		req.http_version_major = m_http_version_major;
 		req.http_version_minor = m_http_version_minor;
 	}
@@ -382,7 +392,17 @@ boost::tribool request_parser::parse(request& req, std::streambuf& text)
 	if (result)
 	{
 		req.uri = m_uri;
-		req.method = m_method;
+
+			 if (m_method == "OPTIONS")		req.method = method_type::OPTIONS;
+		else if (m_method == "GET")			req.method = method_type::GET;
+		else if (m_method == "HEAD")		req.method = method_type::HEAD;
+		else if (m_method == "POST")		req.method = method_type::POST;
+		else if (m_method == "PUT")			req.method = method_type::PUT;
+		else if (m_method == "DELETE")		req.method = method_type::DELETE;
+		else if (m_method == "TRACE")		req.method = method_type::TRACE;
+		else if (m_method == "CONNECT")		req.method = method_type::CONNECT;
+		else								req.method = method_type::UNDEFINED;
+
 		req.http_version_major = m_http_version_major;
 		req.http_version_minor = m_http_version_minor;
 	}

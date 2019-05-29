@@ -217,6 +217,13 @@ bool reply::keep_alive() const
 	return result;
 }
 
+void reply::set_content(el::element& json)
+{
+	std::ostringstream s;
+	s << json;
+	set_content(s.str(), "application/json");
+}
+
 void reply::set_content(xml::element* data)
 {
 	xml::document doc;

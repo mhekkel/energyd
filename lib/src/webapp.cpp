@@ -80,7 +80,7 @@ struct auth_info
 {
 	auth_info(const std::string& realm);
 
-	bool validate(const std::string& method, const std::string& uri, const std::string& ha1, std::map<std::string, std::string>& info);
+	bool validate(method_type method, const std::string& uri, const std::string& ha1, std::map<std::string, std::string>& info);
 
 	std::string get_challenge() const;
 	bool stale() const;
@@ -115,14 +115,14 @@ bool auth_info::stale() const
 	return age.total_seconds() > 1800;
 }
 
-bool auth_info::validate(const std::string& method, const std::string& uri, const std::string& ha1, std::map<std::string, std::string>& info)
+bool auth_info::validate(method_type method, const std::string& uri, const std::string& ha1, std::map<std::string, std::string>& info)
 {
 	bool valid = false;
 
 	uint32_t nc = strtol(info["nc"].c_str(), nullptr, 16);
 	if (not m_replay_check.count(nc))
 	{
-		std::string ha2 = md5(method + ':' + info["uri"]).finalise();
+		std::string ha2 = md5(to_string(method) + std::string{':'} + info["uri"]).finalise();
 
 		std::string response = md5(
 								   ha1 + ':' +
@@ -169,8 +169,8 @@ void basic_webapp::handle_request(const request& req, reply& rep)
 	std::string uri = req.uri;
 
 	// shortcut, only handle GET, POST and PUT
-	if (req.method != "GET" and req.method != "POST" and req.method != "PUT" and
-		req.method != "OPTIONS" and req.method != "HEAD")
+	if (req.method == method_type::GET and req.method != method_type::POST and req.method != method_type::PUT and
+		req.method != method_type::OPTIONS and req.method != method_type::HEAD)
 	{
 		create_error_reply(req, bad_request, rep);
 		return;
@@ -180,7 +180,7 @@ void basic_webapp::handle_request(const request& req, reply& rep)
 	{
 		// start by sanitizing the request's URI, first parse the parameters
 		std::string ps = req.payload;
-		if (req.method != "POST")
+		if (req.method != method_type::POST)
 		{
 			std::string::size_type d = uri.find('?');
 			if (d != std::string::npos)
@@ -230,7 +230,7 @@ void basic_webapp::handle_request(const request& req, reply& rep)
 
 		if (handler != m_dispatch_table.end())
 		{
-			if (req.method == "OPTIONS")
+			if (req.method == method_type::OPTIONS)
 			{
 				rep = reply::stock_reply(ok);
 				rep.set_header("Allow", "GET,HEAD,POST,OPTIONS");
@@ -253,7 +253,7 @@ void basic_webapp::handle_request(const request& req, reply& rep)
 
 				handler->handler(req, scope, rep);
 
-				if (req.method == "HEAD")
+				if (req.method == method_type::HEAD)
 					rep.set_content("", rep.get_content_type());
 			}
 		}
@@ -308,7 +308,7 @@ void basic_webapp::create_error_reply(const request& req, status_type status, co
 
 	el::object request;
 	request["line"] =
-		ba::starts_with(req.uri, "http://") ? (boost::format("%1% %2% HTTP%3%/%4%") % req.method % req.uri % req.http_version_major % req.http_version_minor).str() : (boost::format("%1% http://%2%%3% HTTP%4%/%5%") % req.method % req.get_header("Host") % req.uri % req.http_version_major % req.http_version_minor).str();
+		ba::starts_with(req.uri, "http://") ? (boost::format("%1% %2% HTTP%3%/%4%") % to_string(req.method) % req.uri % req.http_version_major % req.http_version_minor).str() : (boost::format("%1% http://%2%%3% HTTP%4%/%5%") % to_string(req.method) % req.get_header("Host") % req.uri % req.http_version_major % req.http_version_minor).str();
 	request["username"] = req.username;
 	error["request"] = request;
 
@@ -901,7 +901,7 @@ void basic_webapp::get_parameters(const el::scope& scope, parameter_map& paramet
 
 	std::string ps;
 
-	if (req.method == "POST")
+	if (req.method == method_type::POST)
 	{
 		std::string contentType = req.get_header("Content-Type");
 
@@ -912,7 +912,7 @@ void basic_webapp::get_parameters(const el::scope& scope, parameter_map& paramet
 		//
 		//		}
 	}
-	else if (req.method == "GET" or req.method == "PUT")
+	else if (req.method == method_type::GET or req.method == method_type::PUT)
 	{
 		std::string::size_type d = req.uri.find('?');
 		if (d != std::string::npos)
@@ -941,7 +941,7 @@ void basic_webapp::get_parameters(const el::scope& scope, parameter_map& paramet
 //
 
 std::string basic_webapp::validate_authentication(const std::string& authorization,
-												  const std::string& method, const std::string& uri, const std::string& realm)
+												  method_type method, const std::string& uri, const std::string& realm)
 {
 	if (authorization.empty())
 		throw unauthorized_exception(false, realm);

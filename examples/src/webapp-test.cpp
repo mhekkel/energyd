@@ -6,6 +6,7 @@
 #include <zeep/config.hpp>
 
 #include <functional>
+#include <utility>
 
 #include <zeep/http/webapp.hpp>
 #include <zeep/http/md5.hpp>

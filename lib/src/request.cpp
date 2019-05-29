@@ -25,7 +25,7 @@ void request::clear()
 	m_request_line.clear();
 	m_timestamp = boost::posix_time::second_clock::local_time();
 
-	method.clear();
+	method = method_type::UNDEFINED;
 	uri.clear();
 	http_version_major = 1;
 	http_version_minor = 0;
@@ -178,10 +178,10 @@ void request::remove_header(const char* name)
 std::string request::get_parameter(const char* name) const
 {
 	std::string result, contentType = get_header("Content-Type");
-	bool post = method == "POST";
+	bool post = method == method_type::POST;
 	std::string::size_type nlen = strlen(name);
 	
-	if (method == "GET" or method == "PUT" or
+	if (method == method_type::GET or method == method_type::PUT or
 		(post and contentType == "application/x-www-form-urlencoded"))
 	{
 		const std::string& s = post ? payload : uri;
@@ -215,7 +215,7 @@ std::string request::get_parameter(const char* name) const
 			b = e == std::string::npos ? e : e + 1;
 		}
 	}
-	else if (method == "POST" and ba::starts_with(contentType, "multipart/form-data"))
+	else if (method == method_type::POST and ba::starts_with(contentType, "multipart/form-data"))
 	{
 		std::string::size_type b = contentType.find("boundary=");
 		if (b != std::string::npos)
@@ -293,7 +293,7 @@ std::string request::get_parameter(const char* name) const
 
 std::string request::get_request_line() const
 {
-	return method + ' ' + uri + " HTTP/" + std::to_string(http_version_major) + '.' + std::to_string(http_version_minor);
+	return to_string(method) + std::string{' '} + uri + " HTTP/" + std::to_string(http_version_major) + '.' + std::to_string(http_version_minor);
 }
 
 namespace

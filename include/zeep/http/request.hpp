@@ -19,12 +19,33 @@ namespace zeep
 namespace http
 {
 
+enum class method_type
+{
+	UNDEFINED, OPTIONS, GET, HEAD, POST, PUT, DELETE, TRACE, CONNECT
+};
+
+inline constexpr const char* to_string(method_type method)
+{
+	switch (method)
+	{
+		case method_type::UNDEFINED:	return "UNDEFINED";
+		case method_type::OPTIONS:		return "OPTIONS";
+		case method_type::GET:			return "GET";
+		case method_type::HEAD:			return "HEAD";
+		case method_type::POST:			return "POST";
+		case method_type::PUT:			return "PUT";
+		case method_type::DELETE:		return "DELETE";
+		case method_type::TRACE:		return "TRACE";
+		case method_type::CONNECT:		return "CONNECT";
+	}
+}
+
 /// request contains the parsed original HTTP request as received
 /// by the server.
 
 struct request
 {
-	std::string method;		///< POST or GET
+	method_type method;		///< POST, GET, etc.
 	std::string uri;		///< The uri as requested
 	int http_version_major; ///< HTTP major number (usually 1)
 	int http_version_minor; ///< HTTP major number (0 or 1)

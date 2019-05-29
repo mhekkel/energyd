@@ -28,7 +28,7 @@
 /// The second method of the handler class is collect which is used
 /// to collect all the information required to create a complete schema.
 
-#ifndef SOAP_DISPATCHER_H
+#pragma once
 
 #include <type_traits>
 
@@ -46,37 +46,6 @@ namespace detail
 
 using namespace xml;
 
-// template <typename Iterator>
-// struct parameter_types
-// {
-// 	typedef Iterator result_type;
-
-// 	type_map& m_types;
-// 	element* m_node;
-
-// 	parameter_types(type_map& types, element* node)
-// 		: m_types(types), m_node(node) {}
-
-// 	template <typename T>
-// 	Iterator operator()(Iterator i, T& t) const
-// 	{
-// 		xml::schema_creator d(m_types, m_node);
-// 		d.add_element(i->c_str(), t);
-// 		return ++i;
-// 	}
-
-// 	template <typename T>
-// 	Iterator operator()(T& t, Iterator i) const
-// 	{
-// 		xml::schema_creator d(m_types, m_node);
-// 		d.add_element(i->c_str(), t);
-// 		return ++i;
-// 	}
-// };
-
-// The signature of a webservice callback is
-// void(Arguments..., Response&)
-
 template<typename T1, typename... T>
 struct result_type
 {
@@ -93,7 +62,7 @@ template<typename F>
 struct invoker
 {
 	template<typename Function, typename Response, typename... Args>
-	static void invoke(Function f, deserializer& d, const char** name, Response& response, Args... args)
+	static void invoke(Function f, ::zeep::xml::deserializer& d, const char** name, Response& response, Args... args)
 	{
 		f(args..., response);
 	}
@@ -109,7 +78,7 @@ struct invoker<void(A0, A1, A...)>
 	typedef invoker<void(A1, A...)>	next_invoker;
 
 	template<typename Function, typename Response, typename... Args>
-	static void invoke(Function f, deserializer& d, const char** name, Response& response, Args... args)
+	static void invoke(Function f, ::zeep::xml::deserializer& d, const char** name, Response& response, Args... args)
 	{
 		typedef typename std::remove_const<typename std::remove_reference<A0>::type>::type argument_type;
 
@@ -142,7 +111,7 @@ struct handler_traits<void(Args...)>
 	template<typename Function>
 	static void invoke(Function func, element* in, const char* names[], result_type& response)
 	{
-		deserializer d(in);
+		::zeep::xml::deserializer d(in);
 		invoker<void(Args...)>::invoke(func, d, names, response);
 	}
 
@@ -199,7 +168,7 @@ struct handler<void(Args...)> : public handler_base
 
 		// and serialize the result back into XML
 		element* result(new element(get_response_name()));
-		serializer sr(result);
+		::zeep::xml::serializer sr(result);
 		sr.serialize_element(m_names[name_count - 1], response);
 
 		// that's all, we're done
@@ -303,11 +272,11 @@ template<typename Class, typename Method> struct handler_factory;
 template<typename Class, typename... Arguments>
 struct handler_factory<Class, void(Class::*)(Arguments...)>
 {
-	typedef void(Class::*method_type)(Arguments...);
+	typedef void(Class::*callback_method_type)(Arguments...);
 	typedef handler<void(Arguments...)>			handler_type;
 	typedef std::function<void(Arguments...)>	callback_type;
 
-	static callback_type create_callback(Class* server, method_type method)
+	static callback_type create_callback(Class* server, callback_method_type method)
 	{
 		return [server, method](Arguments... args)
 		{
@@ -454,4 +423,3 @@ public:
 
 } // namespace zeep
 
-#endif

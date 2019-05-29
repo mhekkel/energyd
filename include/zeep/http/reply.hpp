@@ -14,6 +14,7 @@
 
 #include <zeep/http/header.hpp>
 #include <zeep/xml/document.hpp>
+#include <zeep/el/element.hpp>
 
 namespace zeep { namespace http {
 
@@ -72,6 +73,9 @@ public:
 	std::string get_content_type() const;
 	void set_content_type(
 			const std::string& type); ///< Set the Content-Type header
+
+	/// Set the content and the content-type header based on JSON data
+	void set_content(el::element& json);
 
 	/// Set the content and the content-type header
 	void set_content(xml::document& doc);

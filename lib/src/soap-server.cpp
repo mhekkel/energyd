@@ -48,7 +48,7 @@ void server::handle_request(const http::request& req, http::reply& rep)
 	{
 		xml::element* response;
 		
-		if (req.method == "POST")	// must be a SOAP call
+		if (req.method == http::method_type::POST)	// must be a SOAP call
 		{
 			xml::document doc;
 			doc.read(req.payload);
@@ -59,7 +59,7 @@ void server::handle_request(const http::request& req, http::reply& rep)
 			log() << action << ' ';
 			response = make_envelope(dispatch(action, env.request()));
 		}
-		else if (req.method == "GET")
+		else if (req.method == http::method_type::GET)
 		{
 			// start by sanitizing the request's URI
 			std::string uri = req.uri;

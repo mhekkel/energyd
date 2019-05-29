@@ -16,7 +16,7 @@ PREFIX              ?= /usr/local
 
 # main build variables
 CXX                 ?= c++
-CXXFLAGS            += $(BOOST_INC_DIR:%=-I%) -I. -pthread -std=c++14
+CXXFLAGS            += $(BOOST_INC_DIR:%=-I%) -I. -pthread -std=c++17
 CXXFLAGS            += -Wall
 CXXFLAGS            += -g
 LD                  ?= ld
@@ -53,7 +53,7 @@ endif
 $(OBJDIR):
 	mkdir -p $(OBJDIR)
 
-TEST_APPS = zeep-test webapp-test
+TEST_APPS = rest-test zeep-test webapp-test
 
 OBJECTS = $(TEST_APPS:%=$(OBJDIR)/%.o)
 	
