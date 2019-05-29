@@ -275,6 +275,32 @@ struct deserializer
 	const element_type&	m_elem;
 };
 
+template<typename J, typename T, std::enable_if_t<has_serialize<T, serializer<J>>::value, int> = 0>
+void to_element(J& e, T& v)
+{
+	serializer<J> sr;
+	v.serialize(sr, 0);
+	e = sr.m_elem;
+}
+
+template<typename J, typename T, std::enable_if_t<is_serializable_array_type<T, serializer<J>>::value, int> = 0>
+void to_element(J& e, T& v)
+{
+	e = J::value_type::array;
+	for (auto& vi: v)
+	{
+		serializer<J> sr;
+		vi.serialize(sr, 0);
+		e.push_back(std::move(sr.m_elem));
+	}
+}
+
+template<typename J, typename T, std::enable_if_t<has_serialize<T, deserializer<J>>::value, int> = 0>
+void from_element(J& e, T& v)
+{
+	deserializer<J> dsr(e);
+	v.serialize(dsr, 0);
+}
 
 namespace el
 {

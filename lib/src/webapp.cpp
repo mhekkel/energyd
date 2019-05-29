@@ -169,8 +169,8 @@ void basic_webapp::handle_request(const request& req, reply& rep)
 	std::string uri = req.uri;
 
 	// shortcut, only handle GET, POST and PUT
-	if (req.method == method_type::GET and req.method != method_type::POST and req.method != method_type::PUT and
-		req.method != method_type::OPTIONS and req.method != method_type::HEAD)
+	if (req.method != method_type::GET and req.method != method_type::POST and req.method != method_type::PUT and
+		req.method != method_type::OPTIONS and req.method != method_type::HEAD and req.method != method_type::DELETE)
 	{
 		create_error_reply(req, bad_request, rep);
 		return;

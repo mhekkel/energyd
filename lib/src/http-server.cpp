@@ -134,6 +134,14 @@ void server::bind(const std::string& address, unsigned short port)
 server::~server()
 {
 	stop();
+
+	for (auto c: m_controllers)
+		delete c;
+}
+
+void server::add_controller(controller* c)
+{
+	m_controllers.push_back(c);
 }
 
 void server::run(int nr_of_threads)
@@ -183,8 +191,7 @@ void server::handle_request(const request& req, reply& rep)
 	rep = reply::stock_reply(not_found);
 }
 
-void server::handle_request(boost::asio::ip::tcp::socket& socket,
-	const request& req, reply& rep)
+void server::handle_request(boost::asio::ip::tcp::socket& socket, const request& req, reply& rep)
 {
 	using namespace boost::posix_time;
 	
@@ -224,7 +231,18 @@ void server::handle_request(boost::asio::ip::tcp::socket& socket,
 		}
 
 		// do the actual work.
-		handle_request(req, rep);
+		bool handled = false;
+		for (auto c: m_controllers)
+		{
+			if (c->handle_request(req, rep))
+			{
+				handled = true;
+				break;
+			}
+		}
+
+		if (not handled)
+			handle_request(req, rep);
 		
 		// work around buggy IE... also, using req.accept() doesn't work since it contains */* ... duh
 		if (ba::starts_with(rep.get_content_type(), "application/xhtml+xml") and

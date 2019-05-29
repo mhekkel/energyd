@@ -16,7 +16,7 @@ PREFIX              ?= /usr/local
 
 # main build variables
 CXX                 ?= c++
-CXXFLAGS            += $(BOOST_INC_DIR:%=-I%) -I. -fPIC -pthread -std=c++14
+CXXFLAGS            += $(BOOST_INC_DIR:%=-I%) -I. -fPIC -pthread -std=c++17
 CXXFLAGS            += -Wall
 CXXFLAGS            += -g
 LD                  ?= ld
@@ -71,6 +71,7 @@ $(OBJDIR):
 
 OBJECTS = \
 	$(OBJDIR)/connection.o \
+	$(OBJDIR)/controller.o \
 	$(OBJDIR)/doctype.o \
 	$(OBJDIR)/document.o \
 	$(OBJDIR)/element.o \
@@ -84,6 +85,7 @@ OBJECTS = \
 	$(OBJDIR)/preforked-http-server.o \
 	$(OBJDIR)/reply.o \
 	$(OBJDIR)/request.o \
+	$(OBJDIR)/rest-controller.o \
 	$(OBJDIR)/soap-envelope.o \
 	$(OBJDIR)/soap-server.o \
 	$(OBJDIR)/unicode_support.o \

@@ -4,8 +4,7 @@
 //     (See accompanying file LICENSE_1_0.txt or copy at
 //           http://www.boost.org/LICENSE_1_0.txt)
 
-#ifndef SOAP_HTTP_REQUEST_HANDLER_HPP
-#define SOAP_HTTP_REQUEST_HANDLER_HPP
+#pragma once
 
 #include <zeep/http/request.hpp>
 #include <zeep/http/reply.hpp>
@@ -26,5 +25,3 @@ public:
 
 } // namespace http
 } // namespace zeep
-
-#endif

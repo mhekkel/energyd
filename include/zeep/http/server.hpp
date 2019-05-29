@@ -4,15 +4,14 @@
 //     (See accompanying file LICENSE_1_0.txt or copy at
 //           http://www.boost.org/LICENSE_1_0.txt)
 
-#ifndef SOAP_HTTP_SERVER_HPP
-#define SOAP_HTTP_SERVER_HPP
+#pragma once
 
 #include <thread>
 
 #include <boost/asio.hpp>
 
 #include <zeep/http/request_handler.hpp>
-#include <zeep/http/reply.hpp>
+#include <zeep/http/controller.hpp>
 
 namespace zeep
 {
@@ -37,6 +36,9 @@ class server : public request_handler
 {
 public:
 	server();
+
+	/// Add controllers
+	void add_controller(controller* c);
 
 	/// Bind the server to \a address and \a port
 	virtual void bind(const std::string& address,
@@ -84,16 +86,14 @@ private:
 	void handle_accept(boost::system::error_code ec);
 
 	boost::asio::io_service m_io_service;
-	std::shared_ptr<boost::asio::ip::tcp::acceptor>
-		m_acceptor;
+	std::shared_ptr<boost::asio::ip::tcp::acceptor> m_acceptor;
 	std::list<std::thread> m_threads;
 	std::shared_ptr<connection> m_new_connection;
 	std::string m_address;
 	unsigned short m_port;
 	bool m_log_forwarded;
+	std::list<controller*> m_controllers;
 };
 
 } // namespace http
 } // namespace zeep
-
-#endif

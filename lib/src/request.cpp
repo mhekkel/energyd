@@ -178,10 +178,10 @@ void request::remove_header(const char* name)
 std::string request::get_parameter(const char* name) const
 {
 	std::string result, contentType = get_header("Content-Type");
-	bool post = method == method_type::POST;
+	bool post = method == method_type::POST or method == method_type::PUT;
 	std::string::size_type nlen = strlen(name);
 	
-	if (method == method_type::GET or method == method_type::PUT or
+	if (method == method_type::GET or method == method_type::DELETE or
 		(post and contentType == "application/x-www-form-urlencoded"))
 	{
 		const std::string& s = post ? payload : uri;
@@ -215,7 +215,7 @@ std::string request::get_parameter(const char* name) const
 			b = e == std::string::npos ? e : e + 1;
 		}
 	}
-	else if (method == method_type::POST and ba::starts_with(contentType, "multipart/form-data"))
+	else if (post and ba::starts_with(contentType, "multipart/form-data"))
 	{
 		std::string::size_type b = contentType.find("boundary=");
 		if (b != std::string::npos)
