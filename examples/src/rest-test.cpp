@@ -84,7 +84,6 @@ struct Opname
 	}
 };
 
-
 class my_rest_controller : public zh::rest_controller
 {
   public:
@@ -98,9 +97,20 @@ class my_rest_controller : public zh::rest_controller
 		map_get_request("opname", &my_rest_controller::get_all_opnames);
 		map_delete_request("opname", &my_rest_controller::delete_opname, "id");
 
-		m_connection.prepare("get-opname-all", "SELECT * FROM opname");
-		m_connection.prepare("get-opname", "SELECT * FROM opname WHERE id=$1");
+		m_connection.prepare("get-opname-all",
+			"SELECT a.id AS id, a.tijd AS tijd, b.teller_id AS teller_id, b.stand AS stand"
+			" FROM opname a, tellerstand b"
+			" WHERE a.id = b.opname_id"
+			" ORDER BY a.tijd");
+
+		m_connection.prepare("get-opname",
+			"SELECT a.id AS id, a.tijd AS tijd, b.teller_id AS teller_id, b.stand AS stand"
+			" FROM opname a, tellerstand b"
+			" WHERE a.id = b.opname_id AND a.id = $1"
+			" ORDER BY a.tijd");
+
 		m_connection.prepare("put-opname", "INSERT INTO opname (id, tijd) VALUES($1, $2)");
+
 		m_connection.prepare("del-opname", "DELETE FROM opname WHERE id=$1");
 	}
 
@@ -164,6 +174,74 @@ class my_rest_controller : public zh::rest_controller
 	pqxx::connection m_connection;
 };
 
+class my_server : public zh::webapp
+{
+  public:
+	my_server(const std::string& dbConnectString)
+		: zh::webapp("http://www.hekkelman.com/libzeep/ml", fs::current_path() / "docroot")
+		, m_rest_controller(new my_rest_controller(dbConnectString))
+	{
+		add_controller(m_rest_controller);
+	
+		mount("", &my_server::opname);
+		mount("opname", &my_server::opname);
+		mount("grafiek", &my_server::grafiek);
+		mount("error", &my_server::error);
+		mount("css", &my_server::handle_file);
+		mount("scripts", &my_server::handle_file);
+	}
+
+	void opname(const zh::request& request, const el::scope& scope, zh::reply& reply);
+	void grafiek(const zh::request& request, const el::scope& scope, zh::reply& reply);
+	// void status(const zh::request& request, const el::scope& scope, zh::reply& reply);
+	void error(const zh::request& request, const el::scope& scope, zh::reply& reply);
+	void handle_file(const zh::request& request, const el::scope& scope, zh::reply& reply);
+
+  private:
+	my_rest_controller*	m_rest_controller;
+};
+
+void my_server::opname(const zh::request& request, const el::scope& scope, zh::reply& reply)
+{
+	el::scope sub(scope);
+
+	sub.put("page", "opname");
+
+	static_assert(zeep::el::detail::is_compatible_type<vector<Opname>>::value, "x");
+
+	vector<Opname> v = m_rest_controller->get_all_opnames();
+	json opnames{ v };
+
+	sub.put("opnames", opnames);
+
+	create_reply_from_template("opnames.html", sub, reply);
+}
+
+void my_server::grafiek(const zh::request& request, const el::scope& scope, zh::reply& reply)
+{
+
+}
+
+// void my_server::status(const zh::request& request, const el::scope& scope, zh::reply& reply)
+// {
+
+// }
+
+void my_server::error(const zh::request& request, const el::scope& scope, zh::reply& reply)
+{
+}
+
+void my_server::handle_file(const zh::request& request, const el::scope& scope, zh::reply& reply)
+{
+	fs::path file = get_docroot() / scope["baseuri"].as<string>();
+	
+	webapp::handle_file(request, scope, reply);
+	
+	if (file.extension() == ".html" or file.extension() == ".xhtml")
+		reply.set_content_type("application/xhtml+xml");
+}
+
+
 int main(int argc, const char* argv[])
 {
 	po::options_description visible_options(argv[0] + " options"s);
@@ -225,8 +303,7 @@ int main(int argc, const char* argv[])
 			vConn.push_back(opt.substr(3) + "=" + vm[opt].as<string>());
 		}
 
-		zh::webapp app("http://www.hekkelman.com/libzeep/ml", fs::current_path() / "docroot");
-		app.add_controller(new my_rest_controller(ba::join(vConn, " ")));
+		my_server app(ba::join(vConn, " "));
 
 		string address = "0.0.0.0";
 		uint16_t port = 10333;
@@ -236,7 +313,7 @@ int main(int argc, const char* argv[])
 			port = vm["port"].as<uint16_t>();
 
 		app.bind(address, port);
-		thread t(bind(&zh::webapp::run, &app, 2));
+		thread t(bind(&my_server::run, &app, 2));
 		t.join();
 
 	}

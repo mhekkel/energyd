@@ -632,8 +632,10 @@ object interpreter::parse_primary_expr()
 				match(m_lookahead);
 				if (result.type() == object::value_type::array and (m_token_string == "count" or m_token_string == "length"))
 					result = object((uint32_t)result.size());
-				else
+				else if (result.type() == object::value_type::object)
 					result = const_cast<const object &>(result)[m_token_string];
+				else
+					result = object::value_type::null;
 				match(elt_object);
 				continue;
 			}
@@ -647,8 +649,10 @@ object interpreter::parse_primary_expr()
 
 				if (index.empty() or (result.type() != object::value_type::array and result.type() != object::value_type::object))
 					result = object();
-				else
+				else if (result.type() == object::value_type::object)
 					result = const_cast<const object &>(result)[index.as<string>()];
+				else
+					result = object::value_type::null;
 				continue;
 			}
 

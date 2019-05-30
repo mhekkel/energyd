@@ -528,8 +528,9 @@ public:
 	{
 		static_assert(std::is_default_constructible<U>::value, "Type must be default constructible to use with get()");
 
-		U ret;
-		element_serializer<U>::from_element(*this, ret);
+		U ret = {};
+		if (not is_null())
+			element_serializer<U>::from_element(*this, ret);
 		return ret;
 	}
 
@@ -636,6 +637,9 @@ private:
 	value_type		m_type;
 	element_data	m_data;
 };
+
+template<>
+std::string element::as<std::string>() const;
 
 namespace detail
 {

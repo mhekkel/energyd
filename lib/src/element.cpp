@@ -484,6 +484,9 @@ element operator+(const element& lhs, const element& rhs)
 				result = *lhs.m_data.m_string + *rhs.m_data.m_string;
 				break;
 			
+			case value_type::null:
+				break;
+
 			default:
 				throw std::runtime_error("Invalid types for operator +");
 		}
@@ -492,6 +495,10 @@ element operator+(const element& lhs, const element& rhs)
 		result = lhs.m_data.m_float + rhs.as<double>();
 	else if (lhs_type == value_type::number_int and rhs.is_number())
 		result = lhs.m_data.m_int + rhs.as<int64_t>();
+	else if (lhs_type == value_type::null)
+		result = rhs;
+	else if (rhs_type == value_type::null)
+		result = lhs;
 	else
 		throw std::runtime_error("Invalid types for operator +");
 
@@ -634,6 +641,17 @@ element operator%(const element& lhs, const element& rhs)
 		throw std::runtime_error("Invalid types for operator %");
 
 	return result;
+}
+
+template<>
+std::string element::as<std::string>() const
+{
+	if (type() == value_type::string)
+		return *m_data.m_string;
+	
+	std::ostringstream s;
+	s << *this;
+	return s.str();
 }
 
 // --------------------------------------------------------------------
