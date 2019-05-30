@@ -29,36 +29,51 @@ namespace po = boost::program_options;
 
 using json = el::element;
 
+struct TellerStand
+{
+	string	tellerId;
+	float	stand;
 
+	template<typename Archive>
+	void serialize(Archive& ar, unsigned long version)
+	{
+		ar & zeep::make_nvp("tellerId", tellerId)
+		   & zeep::make_nvp("stand", stand);
+	}
+};
 
+struct Opname
+{
+	string				id;
+	string				datum;
+	// vector<TellerStand> standen;
+	map<string,float>	standen;
 
-// struct TellerStand
-// {
-// 	int	tellerId;
-// 	float stand;
+	template<typename Archive>
+	void serialize(Archive& ar, unsigned long version)
+	{
+		ar & zeep::make_nvp("id", id)
+		   & zeep::make_nvp("datum", datum)
+		   & zeep::make_nvp("standen", standen);
+	}
+};
 
-// 	template<typename Archive>
-// 	void serialize(Archive& ar, unsigned long version)
-// 	{
-// 		ar & zeep::make_nvp("tellerId", tellerId)
-// 		   & zeep::make_nvp("stand", stand);
-// 	}
-// };
+struct Teller
+{
+	string id;
+	string naam;
+	string naam_kort;
+	int schaal;
 
-// struct Opname
-// {
-// 	string						id;
-// 	boost::posix_time::ptime	datum;
-// 	vector<TellerStand> 		standen;
-
-// 	template<typename Archive>
-// 	void serialize(Archive& ar, unsigned long version)
-// 	{
-// 		ar & zeep::make_nvp("id", id)
-// 		   & zeep::make_nvp("datum", datum)
-// 		   & zeep::make_nvp("standen", standen);
-// 	}
-// };
+	template<typename Archive>
+	void serialize(Archive& ar, unsigned long)
+	{
+		ar & zeep::make_nvp("id", id)
+		   & zeep::make_nvp("naam", naam)
+		   & zeep::make_nvp("korteNaam", naam_kort)
+		   & zeep::make_nvp("schaal", schaal);
+	}
+};
 
 
 struct Antwoord
@@ -69,18 +84,6 @@ struct Antwoord
 	void serialize(Archive& ar, unsigned long)
 	{
 		ar & zeep::make_nvp("message", boodschap);
-	}
-};
-
-struct Opname
-{
-	string	id;
-	string	tijd;
-
-	template<typename Archive>
-	void serialize(Archive& ar, unsigned long)
-	{
-		ar & zeep::make_nvp("id", id) & zeep::make_nvp("tijd", tijd);
 	}
 };
 
@@ -101,7 +104,7 @@ class my_rest_controller : public zh::rest_controller
 			"SELECT a.id AS id, a.tijd AS tijd, b.teller_id AS teller_id, b.stand AS stand"
 			" FROM opname a, tellerstand b"
 			" WHERE a.id = b.opname_id"
-			" ORDER BY a.tijd");
+			" ORDER BY a.tijd DESC");
 
 		m_connection.prepare("get-opname",
 			"SELECT a.id AS id, a.tijd AS tijd, b.teller_id AS teller_id, b.stand AS stand"
@@ -112,6 +115,9 @@ class my_rest_controller : public zh::rest_controller
 		m_connection.prepare("put-opname", "INSERT INTO opname (id, tijd) VALUES($1, $2)");
 
 		m_connection.prepare("del-opname", "DELETE FROM opname WHERE id=$1");
+
+		m_connection.prepare("get-tellers-all",
+			"SELECT id, naam, naam_kort, schaal FROM teller ORDER BY id");
 	}
 
 	// CRUD routines
@@ -135,14 +141,16 @@ class my_rest_controller : public zh::rest_controller
 		pqxx::transaction tx(m_connection);
 		auto rows = tx.prepared("get-opname")(id).exec();
 
-		if (rows.size() != 1)
-			throw runtime_error("Unexpected number of opnames");
+		if (rows.empty())
+			throw runtime_error("opname niet gevonden");
 
-		auto row = rows.front();
-		auto c1 = row.column_number("id");
-		auto c2 = row.column_number("tijd");
+		Opname result{ rows.front()[0].as<string>(), rows.front()[1].as<string>() };
 
-		return {row[c1].as<string>(), row[c2].as<string>()};
+		for (auto row: rows)
+			// result.standen.push_back({row[2].as<string>(), row[3].as<float>() });
+			result.standen[row[2].as<string>()] = row[3].as<float>();
+		
+		return result;
 	}
 
 	vector<Opname> get_all_opnames()
@@ -154,10 +162,13 @@ class my_rest_controller : public zh::rest_controller
 		auto rows = tx.prepared("get-opname-all").exec();
 		for (auto row: rows)
 		{
-			auto c1 = row.column_number("id");
-			auto c2 = row.column_number("tijd");
+			auto id = row[0].as<string>();
 
-			result.push_back({row[c1].as<string>(), row[c2].as<string>()});
+			if (result.empty() or result.back().id != id)
+				result.push_back({id, row[1].as<string>()});
+
+			// result.back().standen.push_back({row[2].as<string>(), row[3].as<float>() });
+			result.back().standen[row[2].as<string>()] = row[3].as<float>();
 		}
 
 		return result;
@@ -168,6 +179,26 @@ class my_rest_controller : public zh::rest_controller
 		pqxx::transaction tx(m_connection);
 		tx.prepared("del-opname")(id).exec();
 		tx.commit();
+	}
+
+	vector<Teller> get_tellers()
+	{
+		vector<Teller> result;
+
+		pqxx::transaction tx(m_connection);
+
+		auto rows = tx.prepared("get-tellers-all").exec();
+		for (auto row: rows)
+		{
+			auto c1 = row.column_number("id");
+			auto c2 = row.column_number("naam");
+			auto c3 = row.column_number("naam_kort");
+			auto c4 = row.column_number("schaal");
+
+			result.push_back({row[c1].as<string>(), row[c2].as<string>(), row[c3].as<string>(), row[c4].as<int>()});
+		}
+
+		return result;
 	}
 
   private:
@@ -207,12 +238,18 @@ void my_server::opname(const zh::request& request, const el::scope& scope, zh::r
 
 	sub.put("page", "opname");
 
-	static_assert(zeep::el::detail::is_compatible_type<vector<Opname>>::value, "x");
+	// static_assert(zeep::el::detail::is_compatible_type<vector<Opname>>::value, "x");
+	// static_assert(zeep::el::detail::is_compatible_type<Opname>::value, "x");
 
-	vector<Opname> v = m_rest_controller->get_all_opnames();
-	json opnames{ v };
-
+	auto v = m_rest_controller->get_all_opnames();
+	json opnames;
+	zeep::to_element(opnames, v);
 	sub.put("opnames", opnames);
+
+	auto u = m_rest_controller->get_tellers();
+	json tellers;
+	zeep::to_element(tellers, u);
+	sub.put("tellers", tellers);
 
 	create_reply_from_template("opnames.html", sub, reply);
 }

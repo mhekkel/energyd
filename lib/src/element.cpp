@@ -654,6 +654,22 @@ std::string element::as<std::string>() const
 	return s.str();
 }
 
+template<>
+bool element::as<bool>() const
+{
+	switch (m_type)
+	{
+		case value_type::boolean:
+			return m_data.m_boolean;
+		case value_type::number_int:
+			return m_data.m_int != 0;
+		case value_type::number_float:
+			return m_data.m_float != 0;
+		default:
+			return not empty();
+	}
+}
+
 // --------------------------------------------------------------------
 
 void serialize(std::ostream& os, const element& v)

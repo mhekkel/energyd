@@ -641,6 +641,9 @@ private:
 template<>
 std::string element::as<std::string>() const;
 
+template<>
+bool element::as<bool>() const;
+
 namespace detail
 {
 

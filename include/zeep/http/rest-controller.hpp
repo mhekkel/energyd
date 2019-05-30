@@ -84,7 +84,7 @@ class rest_controller : public controller
 		{
 			try
 			{
-                reply.set_status(ok);
+				reply.set_status(ok);
 				ArgsTuple args = collect_arguments(req, std::make_index_sequence<N>());
 				invoke<Result>(std::move(args), reply);
 			}

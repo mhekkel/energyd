@@ -129,20 +129,6 @@ void to_element(element& j, const boost::optional<T>& v)
 		to_element(j, *v);
 }
 
-struct to_element_fn
-{
-    template<typename T>
-    auto operator()(element& j, T&& val) const noexcept(noexcept(to_element(j, std::forward<T>(val))))
-    -> decltype(to_element(j, std::forward<T>(val)), void())
-    {
-        return to_element(j, std::forward<T>(val));
-    }
-};
-
-namespace
-{
-    constexpr const auto& to_element = typename ::zeep::el::detail::to_element_fn{};
-}
 
 } // detail
 } // el

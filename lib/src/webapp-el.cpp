@@ -649,8 +649,10 @@ object interpreter::parse_primary_expr()
 
 				if (index.empty() or (result.type() != object::value_type::array and result.type() != object::value_type::object))
 					result = object();
+				else if (result.type() == object::value_type::array)
+					result = result[index.as<int>()];
 				else if (result.type() == object::value_type::object)
-					result = const_cast<const object &>(result)[index.as<string>()];
+					result = result[index.as<string>()];
 				else
 					result = object::value_type::null;
 				continue;
