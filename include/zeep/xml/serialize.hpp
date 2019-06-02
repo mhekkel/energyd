@@ -313,7 +313,7 @@ template<typename T>
 struct arithmetic_serializer : public arithmetic_schema_name<T>
 {
 	typedef T value_type;
-	typedef std::common_type<T,int>	promoted_type;
+	typedef typename std::common_type<T,int>::type	promoted_type;
 
 	// use promoted type to force writing out char as an integer
 	// typedef typename boost::integral_promotion<T>::type		promoted_type;
@@ -754,8 +754,8 @@ struct enum_map
 #endif
 
 #define SOAP_XML_ADD_ENUM(e,v)	zeep::xml::enum_map<e>::instance(BOOST_PP_STRINGIZE(e)).m_name_mapping[v] = BOOST_PP_STRINGIZE(v);
-// #define SOAP_XML_ADD_ENUMS(enum_type, enum_name, ...) \
-// 	zeep::xml::enum_map<enum_type>::instance(enum_name).m_name_mapping.insert(__VA_ARGS__);
+#define SOAP_XML_ADD_ENUMS(enum_type, enum_name, ...) \
+	zeep::xml::enum_map<enum_type>::instance(enum_name).m_name_mapping.insert(__VA_ARGS__);
 
 #ifndef LIBZEEP_DOXYGEN_INVOKED
 
