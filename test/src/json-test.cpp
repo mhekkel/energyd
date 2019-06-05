@@ -99,10 +99,17 @@ int main()
 		json j_array2(std::vector<int>{ 1, 2, 3});
 		json j_array3({ 1, 2, 3});
 
+		static_assert(zeep::is_serializable_array_type<std::vector<float>, zeep::serializer<json>>::value, "een");
+		static_assert(zeep::el::detail::is_compatible_type<std::vector<float>>::value, "een");
+
+		std::vector<float> vf({ 1.0, 1.1, 1.2 });
+		json j_array5 = vf;
+
 		std::map<std::string,int> m = {
 			{ "een", 1 }, { "twee", 2 }
 		};
 		json j_object2(m);
+		j_object2["drie"] = vf;
 
 		json j_array4(10, j_object2);
 
@@ -120,6 +127,7 @@ int main()
 				  << j_array << std::endl
 				  << j_array2 << std::endl
 				  << j_array3 << std::endl
+				  << j_array5 << std::endl
 				  << j_object << std::endl
 				  << j_object2 << std::endl
 				  << j_string << std::endl

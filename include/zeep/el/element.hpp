@@ -305,6 +305,25 @@ public:
         validate();
     }
 
+    // template<typename T>
+    // const_iterator find(T&& key) const
+    // {
+    //     auto result = cend();
+
+    //     if (is_object())
+    //     {
+    //         result.m_it.m_object_it = m_data.m_object->find(std::forward<T>(key));
+    //     }
+	// 	else if (is_array())
+	// 	{
+	// 		result.m_it.m_array_it = std::find(m_data.m_array->begin(), m_data.m_array->end(), std::forward<T>(key));
+	// 	}
+
+    //     return result;
+    // }
+
+	bool contains(element test) const;
+
 	// TODO: no reverse iterators yet
 
 	iteration_proxy<iterator> items() noexcept

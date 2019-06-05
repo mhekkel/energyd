@@ -37,7 +37,7 @@ class scope;
 /// \param scope  The scope for this el script
 /// \param text   The el script
 /// \return       The result of the script
-bool process_el(const scope &scope, std::string &text);
+bool process_el(const scope& scope, std::string& text);
 
 /// \brief Process the text in \a text. The result is put in \a result
 ///
@@ -46,7 +46,7 @@ bool process_el(const scope &scope, std::string &text);
 /// \param scope  The scope for this el script
 /// \param text   The el script
 /// \param result The result of the script
-void evaluate_el(const scope &scope, const std::string &text, object &result);
+void evaluate_el(const scope& scope, const std::string& text, object& result);
 
 /// \brief Process the text in \a text and replace it with the result
 ///
@@ -55,34 +55,35 @@ void evaluate_el(const scope &scope, const std::string &text, object &result);
 /// \param scope  The scope for the el scripts
 /// \param text   The text optionally containing el scripts.
 /// \return       Returns true if \a text was changed.
-bool evaluate_el(const scope &scope, const std::string &text);
+bool evaluate_el(const scope& scope, const std::string& text);
 
 // --------------------------------------------------------------------
 
 class scope
 {
 public:
-	scope(const http::request &req);
-	explicit scope(const scope &next);
+	scope(const http::request& req);
+	explicit scope(const scope& next);
 
 	template <typename T>
-	void put(const std::string &name, const T &value);
+	void put(const std::string& name, const T& value);
 
 	template <typename ForwardIterator>
-	void put(const std::string &name, ForwardIterator begin, ForwardIterator end);
+	void put(const std::string& name, ForwardIterator begin, ForwardIterator end);
 
-	const object &lookup(const std::string &name) const;
-	const object &operator[](const std::string &name) const;
+	const object& lookup(const std::string& name) const;
+	const object& operator[](const std::string& name) const;
 
-	object &lookup(const std::string &name);
-	object &operator[](const std::string &name);
+	object& lookup(const std::string& name);
+	object& operator[](const std::string& name);
 
-	const http::request &get_request() const;
+	const http::request& get_request() const;
 
 private:
-	friend std::ostream &operator<<(std::ostream &lhs, const scope &rhs);
+	/// for debugging purposes
+	friend std::ostream& operator<<(std::ostream& lhs, const scope& rhs);
 
-	scope &operator=(const scope &);
+	scope& operator=(const scope& );
 
 	typedef std::map<std::string, object> data_map;
 
@@ -91,23 +92,20 @@ private:
 	const http::request *m_req;
 };
 
-/// for debugging purposes
-std::ostream &operator<<(std::ostream &lhs, const scope &rhs);
-
 template <typename T>
-inline void scope::put(const std::string &name, const T &value)
+inline void scope::put(const std::string& name, const T& value)
 {
 	m_data[name] = value;
 }
 
 template <>
-inline void scope::put(const std::string &name, const object &value)
+inline void scope::put(const std::string& name, const object& value)
 {
 	m_data[name] = value;
 }
 
 template <typename ForwardIterator>
-inline void scope::put(const std::string &name, ForwardIterator begin, ForwardIterator end)
+inline void scope::put(const std::string& name, ForwardIterator begin, ForwardIterator end)
 {
 	std::vector<object> elements;
 	while (begin != end)

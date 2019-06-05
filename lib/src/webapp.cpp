@@ -28,6 +28,7 @@
 #include <zeep/xml/unicode_support.hpp>
 #include <zeep/el/process.hpp>
 #include <zeep/http/md5.hpp>
+#include <zeep/http/tag-processor.hpp>
 
 namespace ba = boost::algorithm;
 namespace io = boost::iostreams;
@@ -42,36 +43,36 @@ namespace http
 // --------------------------------------------------------------------
 //
 
-// add a name/value pair as a std::string formatted as 'name=value'
-void parameter_map::add(const std::string& param)
-{
-	std::string name, value;
+// // add a name/value pair as a std::string formatted as 'name=value'
+// void parameter_map::add(const std::string& param)
+// {
+// 	std::string name, value;
 
-	std::string::size_type d = param.find('=');
-	if (d != std::string::npos)
-	{
-		name = param.substr(0, d);
-		value = param.substr(d + 1);
-	}
+// 	std::string::size_type d = param.find('=');
+// 	if (d != std::string::npos)
+// 	{
+// 		name = param.substr(0, d);
+// 		value = param.substr(d + 1);
+// 	}
 
-	add(name, value);
-}
+// 	add(name, value);
+// }
 
-void parameter_map::add(std::string name, std::string value)
-{
-	name = decode_url(name);
-	if (not value.empty())
-		value = decode_url(value);
+// void parameter_map::add(std::string name, std::string value)
+// {
+// 	name = decode_url(name);
+// 	if (not value.empty())
+// 		value = decode_url(value);
 
-	insert(make_pair(name, parameter_value(value, false)));
-}
+// 	insert(make_pair(name, parameter_value(value, false)));
+// }
 
-void parameter_map::replace(std::string name, std::string value)
-{
-	if (count(name))
-		erase(lower_bound(name), upper_bound(name));
-	add(name, value);
-}
+// void parameter_map::replace(std::string name, std::string value)
+// {
+// 	if (count(name))
+// 		erase(lower_bound(name), upper_bound(name));
+// 	add(name, value);
+// }
 
 // --------------------------------------------------------------------
 //
@@ -144,31 +145,27 @@ bool auth_info::validate(method_type method, const std::string& uri, const std::
 // --------------------------------------------------------------------
 //
 
-basic_webapp::basic_webapp(const std::string& ns, const fs::path& docroot)
-	: m_ns(ns), m_docroot(docroot)
+basic_webapp::basic_webapp(const fs::path& docroot)
+	: m_docroot(docroot), m_tag_processor(nullptr)
 {
-	m_processor_table["include"] = bind(&basic_webapp::process_include, this, _1, _2, _3);
-	m_processor_table["if"] = bind(&basic_webapp::process_if, this, _1, _2, _3);
-	m_processor_table["iterate"] = bind(&basic_webapp::process_iterate, this, _1, _2, _3);
-	m_processor_table["for"] = bind(&basic_webapp::process_for, this, _1, _2, _3);
-	m_processor_table["number"] = bind(&basic_webapp::process_number, this, _1, _2, _3);
-	m_processor_table["options"] = bind(&basic_webapp::process_options, this, _1, _2, _3);
-	m_processor_table["option"] = bind(&basic_webapp::process_option, this, _1, _2, _3);
-	m_processor_table["checkbox"] = bind(&basic_webapp::process_checkbox, this, _1, _2, _3);
-	m_processor_table["url"] = bind(&basic_webapp::process_url, this, _1, _2, _3);
-	m_processor_table["param"] = bind(&basic_webapp::process_param, this, _1, _2, _3);
-	m_processor_table["embed"] = bind(&basic_webapp::process_embed, this, _1, _2, _3);
 }
 
 basic_webapp::~basic_webapp()
 {
 }
 
+void basic_webapp::set_tag_processor(tag_processor* p)
+{
+	if (m_tag_processor != nullptr)
+		delete m_tag_processor;
+	m_tag_processor = p;
+}
+
 void basic_webapp::handle_request(const request& req, reply& rep)
 {
 	std::string uri = req.uri;
 
-	// shortcut, only handle GET, POST and PUT
+	// shortcut, check for supported method
 	if (req.method != method_type::GET and req.method != method_type::POST and req.method != method_type::PUT and
 		req.method != method_type::OPTIONS and req.method != method_type::HEAD and req.method != method_type::DELETE)
 	{
@@ -318,10 +315,8 @@ void basic_webapp::create_error_reply(const request& req, status_type status, co
 	rep.set_status(status);
 }
 
-void basic_webapp::handle_file(
-	const zeep::http::request& request,
-	const el::scope& scope,
-	zeep::http::reply& reply)
+void basic_webapp::handle_file(const zeep::http::request& request,
+	const el::scope& scope, zeep::http::reply& reply)
 {
 	using namespace boost::local_time;
 	using namespace boost::posix_time;
@@ -396,27 +391,6 @@ void basic_webapp::handle_file(
 	reply.set_header("Last-Modified", s.str());
 }
 
-void basic_webapp::get_cookies(
-	const el::scope& scope,
-	parameter_map& cookies)
-{
-	const request& req = scope.get_request();
-	for (const header& h : req.headers)
-	{
-		if (h.name != "Cookie")
-			continue;
-
-		std::vector<std::string> rawCookies;
-		ba::split(rawCookies, h.value, ba::is_any_of(";"));
-
-		for (std::string& cookie : rawCookies)
-		{
-			ba::trim(cookie);
-			cookies.add(cookie);
-		}
-	}
-}
-
 void basic_webapp::set_docroot(const fs::path& path)
 {
 	m_docroot = path;
@@ -470,471 +444,14 @@ void basic_webapp::create_reply_from_template(const std::string& file, const el:
 
 	load_template(file, doc);
 
-	xml::element *root = doc.child();
-	process_xml(root, scope, "/");
+	if (m_tag_processor != nullptr)
+		m_tag_processor->process_xml(doc.child(), scope, "/");
+
 	reply.set_content(doc);
-}
-
-void basic_webapp::process_xml(xml::node *node, const el::scope& scope, fs::path dir)
-{
-	xml::text *text = dynamic_cast<xml::text *>(node);
-
-	if (text != nullptr)
-	{
-		std::string s = text->str();
-		if (el::process_el(scope, s))
-			text->str(s);
-		return;
-	}
-
-	xml::element *e = dynamic_cast<xml::element *>(node);
-	if (e == nullptr)
-		return;
-
-	// if node is one of our special nodes, we treat it here
-	if (e->ns() == m_ns)
-	{
-		xml::container *parent = e->parent();
-
-		try
-		{
-			el::scope nested(scope);
-
-			processor_map::iterator p = m_processor_table.find(e->name());
-			if (p != m_processor_table.end())
-				p->second(e, scope, dir);
-			else
-				throw exception((boost::format("unimplemented <mrs:%1%> tag") % e->name()).str());
-		}
-		catch (exception& ex)
-		{
-			xml::node *replacement = new xml::text(
-				(boost::format("Error processing directive 'mrs:%1%': %2%") %
-				 e->name() % ex.what())
-					.str());
-
-			parent->insert(e, replacement);
-		}
-
-		try
-		{
-			//			assert(parent == e->parent());
-			//			assert(find(parent->begin(), parent->end(), e) != parent->end());
-
-			parent->remove(e);
-			delete e;
-		}
-		catch (exception& ex)
-		{
-			std::cerr << "exception: " << ex.what() << std::endl
-					  << *e << std::endl;
-		}
-	}
-	else
-	{
-		for (xml::attribute& a : boost::iterator_range<xml::element::attribute_iterator>(e->attr_begin(), e->attr_end()))
-		{
-			std::string s = a.value();
-			if (process_el(scope, s))
-				a.value(s);
-		}
-
-		std::list<xml::node *> nodes;
-		copy(e->node_begin(), e->node_end(), back_inserter(nodes));
-
-		for (xml::node *n : nodes)
-		{
-			process_xml(n, scope, dir);
-		}
-	}
-}
-
-void basic_webapp::add_processor(const std::string& name, processor_type processor)
-{
-	m_processor_table[name] = processor;
-}
-
-void basic_webapp::process_include(xml::element *node, const el::scope& scope, fs::path dir)
-{
-	// an include directive, load file and include resulting content
-	std::string file = node->get_attribute("file");
-	process_el(scope, file);
-
-	if (file.empty())
-		throw exception("missing file attribute");
-
-	xml::document doc;
-	doc.set_preserve_cdata(true);
-	load_template(dir / file, doc);
-
-	xml::element *replacement = doc.child();
-	doc.root()->remove(replacement);
-
-	xml::container *parent = node->parent();
-	parent->insert(node, replacement);
-
-	process_xml(replacement, scope, (dir / file).parent_path());
-}
-
-void basic_webapp::process_if(xml::element *node, const el::scope& scope, fs::path dir)
-{
-	std::string test = node->get_attribute("test");
-	if (evaluate_el(scope, test))
-	{
-		for (xml::node *c : node->nodes())
-		{
-			xml::node *clone = c->clone();
-
-			xml::container *parent = node->parent();
-			assert(parent);
-
-			parent->insert(node, clone); // insert before processing, to assign namespaces
-			process_xml(clone, scope, dir);
-		}
-	}
-}
-
-void basic_webapp::process_iterate(xml::element *node, const el::scope& scope, fs::path dir)
-{
-	using el::detail::value_type;
-
-	el::object collection = scope[node->get_attribute("collection")];
-	if (collection.type() != value_type::array)
-		evaluate_el(scope, node->get_attribute("collection"), collection);
-
-	std::string var = node->get_attribute("var");
-	if (var.empty())
-		throw exception("missing var attribute in mrs:iterate");
-
-	for (el::object& o : collection)
-	{
-		el::scope s(scope);
-		s.put(var, o);
-
-		for (xml::node *c : node->nodes())
-		{
-			xml::node *clone = c->clone();
-
-			xml::container *parent = node->parent();
-			assert(parent);
-
-			parent->insert(node, clone); // insert before processing, to assign namespaces
-			process_xml(clone, s, dir);
-		}
-	}
-}
-
-void basic_webapp::process_for(xml::element *node, const el::scope& scope, fs::path dir)
-{
-	el::object b, e;
-
-	evaluate_el(scope, node->get_attribute("begin"), b);
-	evaluate_el(scope, node->get_attribute("end"), e);
-
-	std::string var = node->get_attribute("var");
-	if (var.empty())
-		throw exception("missing var attribute in mrs:iterate");
-
-	for (int32_t i = b.as<int32_t>(); i <= e.as<int32_t>(); ++i)
-	{
-		el::scope s(scope);
-		s.put(var, el::object(i));
-
-		for (xml::node *c : node->nodes())
-		{
-			xml::container *parent = node->parent();
-			assert(parent);
-			xml::node *clone = c->clone();
-
-			parent->insert(node, clone); // insert before processing, to assign namespaces
-			process_xml(clone, s, dir);
-		}
-	}
-}
-
-class with_thousands : public std::numpunct<char>
-{
-protected:
-	//	char_type do_thousands_sep() const	{ return tsp; }
-	std::string do_grouping() const { return "\03"; }
-	//	char_type do_decimal_point() const	{ return dsp; }
-};
-
-void basic_webapp::process_number(xml::element *node, const el::scope& scope, fs::path dir)
-{
-	std::string number = node->get_attribute("n");
-	std::string format = node->get_attribute("f");
-
-	if (format == "#,##0B") // bytes, convert to a human readable form
-	{
-		const char kBase[] = {'B', 'K', 'M', 'G', 'T', 'P', 'E'}; // whatever
-
-		el::object n;
-		evaluate_el(scope, number, n);
-
-		uint64_t nr = n.as<uint64_t>();
-		int base = 0;
-
-		while (nr > 1024)
-		{
-			nr /= 1024;
-			++base;
-		}
-
-		std::locale mylocale(std::locale(), new with_thousands);
-
-		std::ostringstream s;
-		s.imbue(mylocale);
-		s.setf(std::ios::fixed, std::ios::floatfield);
-		s.precision(1);
-		s << nr << ' ' << kBase[base];
-		number = s.str();
-	}
-	else if (format.empty() or ba::starts_with(format, "#,##0"))
-	{
-		el::object n;
-		evaluate_el(scope, number, n);
-
-		uint64_t nr = n.as<uint64_t>();
-
-		std::locale mylocale(std::locale(), new with_thousands);
-
-		std::ostringstream s;
-		s.imbue(mylocale);
-		s << nr;
-		number = s.str();
-	}
-
-	zeep::xml::node *replacement = new zeep::xml::text(number);
-
-	zeep::xml::container *parent = node->parent();
-	parent->insert(node, replacement);
-}
-
-void basic_webapp::process_options(xml::element *node, const el::scope& scope, fs::path dir)
-{
-	using ::zeep::el::detail::value_type;
-
-	el::object collection = scope[node->get_attribute("collection")];
-	if (collection.type() != value_type::array)
-		evaluate_el(scope, node->get_attribute("collection"), collection);
-
-	std::string value = node->get_attribute("value");
-	std::string label = node->get_attribute("label");
-
-	std::string selected = node->get_attribute("selected");
-	if (not selected.empty())
-	{
-		el::object o;
-		evaluate_el(scope, selected, o);
-		selected = o.as<std::string>();
-	}
-
-	for (el::object& o : collection)
-	{
-		zeep::xml::element *option = new zeep::xml::element("option");
-
-		if (not(value.empty() or label.empty()))
-		{
-			option->set_attribute("value", o[value].as<std::string>());
-			if (selected == o[value].as<std::string>())
-				option->set_attribute("selected", "selected");
-			option->add_text(o[label].as<std::string>());
-		}
-		else
-		{
-			option->set_attribute("value", o.as<std::string>());
-			if (selected == o.as<std::string>())
-				option->set_attribute("selected", "selected");
-			option->add_text(o.as<std::string>());
-		}
-
-		zeep::xml::container *parent = node->parent();
-		assert(parent);
-		parent->insert(node, option);
-	}
-}
-
-void basic_webapp::process_option(xml::element *node, const el::scope& scope, fs::path dir)
-{
-	std::string value = node->get_attribute("value");
-	if (not value.empty())
-	{
-		el::object o;
-		evaluate_el(scope, value, o);
-		value = o.as<std::string>();
-	}
-
-	std::string selected = node->get_attribute("selected");
-	if (not selected.empty())
-	{
-		el::object o;
-		evaluate_el(scope, selected, o);
-		selected = o.as<std::string>();
-	}
-
-	zeep::xml::element *option = new zeep::xml::element("option");
-
-	option->set_attribute("value", value);
-	if (selected == value)
-		option->set_attribute("selected", "selected");
-
-	zeep::xml::container *parent = node->parent();
-	assert(parent);
-	parent->insert(node, option);
-
-	for (zeep::xml::node *c : node->nodes())
-	{
-		zeep::xml::node *clone = c->clone();
-		option->push_back(clone);
-		process_xml(clone, scope, dir);
-	}
-}
-
-void basic_webapp::process_checkbox(xml::element *node, const el::scope& scope, fs::path dir)
-{
-	std::string name = node->get_attribute("name");
-	if (not name.empty())
-	{
-		el::object o;
-		evaluate_el(scope, name, o);
-		name = o.as<std::string>();
-	}
-
-	bool checked = false;
-	if (not node->get_attribute("checked").empty())
-	{
-		el::object o;
-		evaluate_el(scope, node->get_attribute("checked"), o);
-		checked = o.as<bool>();
-	}
-
-	zeep::xml::element *checkbox = new zeep::xml::element("input");
-	checkbox->set_attribute("type", "checkbox");
-	checkbox->set_attribute("name", name);
-	checkbox->set_attribute("value", "true");
-	if (checked)
-		checkbox->set_attribute("checked", "true");
-
-	zeep::xml::container *parent = node->parent();
-	assert(parent);
-	parent->insert(node, checkbox);
-
-	for (zeep::xml::node *c : node->nodes())
-	{
-		zeep::xml::node *clone = c->clone();
-		checkbox->push_back(clone);
-		process_xml(clone, scope, dir);
-	}
-}
-
-void basic_webapp::process_url(xml::element *node, const el::scope& scope, fs::path dir)
-{
-	std::string var = node->get_attribute("var");
-
-	parameter_map parameters;
-	get_parameters(scope, parameters);
-
-	for (zeep::xml::element *e : *node)
-	{
-		if (e->ns() == m_ns and e->name() == "param")
-		{
-			std::string name = e->get_attribute("name");
-			std::string value = e->get_attribute("value");
-
-			process_el(scope, value);
-			parameters.replace(name, value);
-		}
-	}
-
-	std::string url = scope["baseuri"].as<std::string>();
-
-	bool first = true;
-	for (parameter_map::value_type p : parameters)
-	{
-		if (first)
-			url += '?';
-		else
-			url += '&';
-		first = false;
-
-		url += zeep::http::encode_url(p.first) + '=' + zeep::http::encode_url(p.second.as<std::string>());
-	}
-
-	el::scope& s(const_cast<el::scope& >(scope));
-	s.put(var, url);
-}
-
-void basic_webapp::process_param(xml::element *node, const el::scope& scope, fs::path dir)
-{
-	throw exception("Invalid XML, cannot have a stand-alone mrs:param element");
-}
-
-void basic_webapp::process_embed(xml::element *node, const el::scope& scope, fs::path dir)
-{
-	// an embed directive, load xml from attribute and include parsed content
-	std::string xml = scope[node->get_attribute("var")].as<std::string>();
-
-	if (xml.empty())
-		throw exception("Missing var attribute in embed tag");
-
-	zeep::xml::document doc;
-	doc.set_preserve_cdata(true);
-	doc.read(xml);
-
-	zeep::xml::element *replacement = doc.child();
-	doc.root()->remove(replacement);
-
-	zeep::xml::container *parent = node->parent();
-	parent->insert(node, replacement);
-
-	process_xml(replacement, scope, dir);
 }
 
 void basic_webapp::init_scope(el::scope& scope)
 {
-}
-
-void basic_webapp::get_parameters(const el::scope& scope, parameter_map& parameters)
-{
-	const request& req = scope.get_request();
-
-	std::string ps;
-
-	if (req.method == method_type::POST)
-	{
-		std::string contentType = req.get_header("Content-Type");
-
-		if (ba::starts_with(contentType, "application/x-www-form-urlencoded"))
-			ps = req.payload;
-		//		else
-		//		{
-		//
-		//		}
-	}
-	else if (req.method == method_type::GET or req.method == method_type::PUT)
-	{
-		std::string::size_type d = req.uri.find('?');
-		if (d != std::string::npos)
-			ps = req.uri.substr(d + 1);
-	}
-
-	while (not ps.empty())
-	{
-		std::string::size_type e = ps.find_first_of("&;");
-		std::string param;
-
-		if (e != std::string::npos)
-		{
-			param = ps.substr(0, e);
-			ps.erase(0, e + 1);
-		}
-		else
-			swap(param, ps);
-
-		if (not param.empty())
-			parameters.add(param);
-	}
 }
 
 // --------------------------------------------------------------------
@@ -996,8 +513,9 @@ std::string basic_webapp::get_hashed_password(const std::string& username, const
 //
 
 webapp::webapp(const std::string& ns, const boost::filesystem::path& docroot)
-	: basic_webapp(ns, docroot)
+	: basic_webapp(docroot)
 {
+	set_tag_processor(new tag_processor(*this, ns));
 }
 
 webapp::~webapp()

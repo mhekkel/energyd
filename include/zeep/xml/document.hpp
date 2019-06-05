@@ -42,7 +42,15 @@ struct document_imp;
 
 class document
 {
-public:
+  public:
+	document(const document &) = delete;
+	document& operator=(const document &) = delete;
+
+	/// !brief Move constructor
+	document(document&& other);
+	/// !brief Move operator=
+	document& operator=(document&& other);
+
 	/// \brief Constructor for an empty document.
 	document();
 
@@ -141,7 +149,7 @@ public:
 	void set_preserve_cdata(bool preserve_cdata);
 
 #ifndef LIBZEEP_DOXYGEN_INVOKED
-protected:
+  protected:
 	document(struct document_imp* impl);
 
 	friend void process_document_elements(std::istream& data, const std::string& element_xpath,
@@ -149,9 +157,6 @@ protected:
 
 	document_imp* m_impl;
 
-private:
-	document(const document &);
-	document& operator=(const document &);
 #endif
 };
 

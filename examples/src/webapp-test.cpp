@@ -75,13 +75,10 @@ void my_webapp::status(const zh::request& request, const el::scope& scope, zh::r
 
 void my_webapp::error(const zh::request& request, const el::scope& scope, zh::reply& reply)
 {
-	zh::parameter_map params;
-	get_parameters(scope, params);
-
 	el::scope sub(scope);
 	
 	el::object error;
-	error["nr"] = params.get("err", 0).as<int>();
+	error["nr"] = request.get_parameter("err");
 	error["head"] = "Test of error page";
 	error["message"] = "A test of the error page is being looked at";
 

@@ -29,24 +29,10 @@ namespace po = boost::program_options;
 
 using json = el::element;
 
-struct TellerStand
-{
-	string	tellerId;
-	float	stand;
-
-	template<typename Archive>
-	void serialize(Archive& ar, unsigned long version)
-	{
-		ar & zeep::make_nvp("tellerId", tellerId)
-		   & zeep::make_nvp("stand", stand);
-	}
-};
-
 struct Opname
 {
 	string				id;
 	string				datum;
-	// vector<TellerStand> standen;
 	map<string,float>	standen;
 
 	template<typename Archive>
@@ -72,18 +58,6 @@ struct Teller
 		   & zeep::make_nvp("naam", naam)
 		   & zeep::make_nvp("korteNaam", naam_kort)
 		   & zeep::make_nvp("schaal", schaal);
-	}
-};
-
-
-struct Antwoord
-{
-	string	boodschap;
-
-	template<typename Archive>
-	void serialize(Archive& ar, unsigned long)
-	{
-		ar & zeep::make_nvp("message", boodschap);
 	}
 };
 
@@ -147,7 +121,6 @@ class my_rest_controller : public zh::rest_controller
 		Opname result{ rows.front()[0].as<string>(), rows.front()[1].as<string>() };
 
 		for (auto row: rows)
-			// result.standen.push_back({row[2].as<string>(), row[3].as<float>() });
 			result.standen[row[2].as<string>()] = row[3].as<float>();
 		
 		return result;
@@ -167,7 +140,6 @@ class my_rest_controller : public zh::rest_controller
 			if (result.empty() or result.back().id != id)
 				result.push_back({id, row[1].as<string>()});
 
-			// result.back().standen.push_back({row[2].as<string>(), row[3].as<float>() });
 			result.back().standen[row[2].as<string>()] = row[3].as<float>();
 		}
 
@@ -217,15 +189,13 @@ class my_server : public zh::webapp
 		mount("", &my_server::opname);
 		mount("opname", &my_server::opname);
 		mount("grafiek", &my_server::grafiek);
-		mount("error", &my_server::error);
 		mount("css", &my_server::handle_file);
 		mount("scripts", &my_server::handle_file);
+		mount("fonts", &my_server::handle_file);
 	}
 
 	void opname(const zh::request& request, const el::scope& scope, zh::reply& reply);
 	void grafiek(const zh::request& request, const el::scope& scope, zh::reply& reply);
-	// void status(const zh::request& request, const el::scope& scope, zh::reply& reply);
-	void error(const zh::request& request, const el::scope& scope, zh::reply& reply);
 	void handle_file(const zh::request& request, const el::scope& scope, zh::reply& reply);
 
   private:
@@ -237,9 +207,6 @@ void my_server::opname(const zh::request& request, const el::scope& scope, zh::r
 	el::scope sub(scope);
 
 	sub.put("page", "opname");
-
-	// static_assert(zeep::el::detail::is_compatible_type<vector<Opname>>::value, "x");
-	// static_assert(zeep::el::detail::is_compatible_type<Opname>::value, "x");
 
 	auto v = m_rest_controller->get_all_opnames();
 	json opnames;
@@ -256,16 +223,21 @@ void my_server::opname(const zh::request& request, const el::scope& scope, zh::r
 
 void my_server::grafiek(const zh::request& request, const el::scope& scope, zh::reply& reply)
 {
+	el::scope sub(scope);
 
-}
+	sub.put("page", "opname");
 
-// void my_server::status(const zh::request& request, const el::scope& scope, zh::reply& reply)
-// {
+	auto v = m_rest_controller->get_all_opnames();
+	json opnames;
+	zeep::to_element(opnames, v);
+	sub.put("opnames", opnames);
 
-// }
+	auto u = m_rest_controller->get_tellers();
+	json tellers;
+	zeep::to_element(tellers, u);
+	sub.put("tellers", tellers);
 
-void my_server::error(const zh::request& request, const el::scope& scope, zh::reply& reply)
-{
+	create_reply_from_template("grafiek.html", sub, reply);
 }
 
 void my_server::handle_file(const zh::request& request, const el::scope& scope, zh::reply& reply)
@@ -278,13 +250,11 @@ void my_server::handle_file(const zh::request& request, const el::scope& scope, 
 		reply.set_content_type("application/xhtml+xml");
 }
 
-
 int main(int argc, const char* argv[])
 {
 	po::options_description visible_options(argv[0] + " options"s);
 	visible_options.add_options()
 		("help,h",										"Display help message")
-		// ("version",										"Print version")
 		("verbose,v",									"Verbose output")
 		
 		("address",				po::value<string>(),	"External address, default is 0.0.0.0")
@@ -300,28 +270,14 @@ int main(int argc, const char* argv[])
 		("db-password",			po::value<string>(),	"Database password")
 		;
 	
-	po::options_description hidden_options("hidden options");
-	hidden_options.add_options()
-		("debug,d",				po::value<int>(),		"Debug level (for even more verbose output)");
-
 	po::options_description cmdline_options;
-	cmdline_options.add(visible_options).add(hidden_options);
+	cmdline_options.add(visible_options);
 
-	po::positional_options_description p;
-	// p.add("xyzin", 1);
-	// p.add("output", 1);
-	
 	po::variables_map vm;
-	po::store(po::command_line_parser(argc, argv).options(cmdline_options).positional(p).run(), vm);
+	po::store(po::command_line_parser(argc, argv).options(cmdline_options).run(), vm);
 	po::notify(vm);
 
 	// --------------------------------------------------------------------
-
-	// if (vm.count("version"))
-	// {
-	// 	cout << argv[0] << " version " << VERSION << endl;
-	// 	exit(0);
-	// }
 
 	if (vm.count("help"))
 	{
@@ -359,8 +315,6 @@ int main(int argc, const char* argv[])
 		cerr << ex.what() << endl;
 		exit(1);
 	}
-
-
 
 	return 0;
 }

@@ -108,7 +108,12 @@ enum token_type
 	elt_rbracket,
 	elt_if,
 	elt_else,
-	elt_dot
+	elt_dot,
+
+	elt_true,
+	elt_false,
+	elt_in,
+	elt_comma
 };
 
 object interpreter::evaluate(
@@ -306,6 +311,9 @@ void interpreter::get_next_token()
 			case '.':
 				token = elt_dot;
 				break;
+			case ',':
+				token = elt_comma;
+				break;
 			case '=':
 				state = els_Equals;
 				break;
@@ -437,6 +445,12 @@ void interpreter::get_next_token()
 					token = elt_ne;
 				else if (m_token_string == "eq")
 					token = elt_eq;
+				else if (m_token_string == "true")
+					token = elt_true;
+				else if (m_token_string == "false")
+					token = elt_false;
+				else if (m_token_string == "in")
+					token = elt_in;
 				else
 					token = elt_object;
 			}
@@ -459,19 +473,29 @@ void interpreter::get_next_token()
 
 object interpreter::parse_expr()
 {
-	object result = parse_or_expr();
-	if (m_lookahead == elt_if)
+	object result;
+	
+	for (;;)
 	{
-		match(m_lookahead);
-		object a = parse_expr();
-		match(elt_else);
-		object b = parse_expr();
-		if (result.as<bool>())
-			result = a;
-		else
-			result = b;
+		result = parse_or_expr();
+
+		if (m_lookahead == elt_if)
+		{
+			match(m_lookahead);
+			object a = parse_expr();
+			match(elt_else);
+			object b = parse_expr();
+			if (result.as<bool>())
+				result = a;
+			else
+				result = b;
+		}
+
+		if (m_lookahead != elt_comma)
+			break;
+
+		match(elt_comma);
 	}
-	return result;
 }
 
 object interpreter::parse_or_expr()
@@ -537,6 +561,24 @@ object interpreter::parse_relational_expr()
 		match(m_lookahead);
 		result = (parse_additive_expr() < result);
 		break;
+	case elt_not:
+	{
+		match(elt_not);
+		match(elt_in);
+
+		object list = parse_additive_expr();
+
+		result = not list.contains(result);
+		break;
+	}
+	case elt_in:
+	{
+		match(m_lookahead);
+		object list = parse_additive_expr();
+
+		result = list.contains(result);
+		break;
+	}
 	default:
 		break;
 	}
@@ -609,6 +651,12 @@ object interpreter::parse_primary_expr()
 	object result;
 	switch (m_lookahead)
 	{
+	case elt_true:
+		result = true;
+		break;
+	case elt_false:
+		result = false;
+		break;
 	case elt_number:
 		result = m_token_number;
 		match(m_lookahead);

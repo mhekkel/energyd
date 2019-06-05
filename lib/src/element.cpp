@@ -383,6 +383,17 @@ void element::push_back(const element& val)
 	m_data.m_array->push_back(val);
 }
 
+bool element::contains(element test) const
+{
+	bool result = false;
+	if (is_object())
+		result = m_data.m_object->count(test.as<std::string>()) > 0;
+	else if (is_array())
+		result = std::find(m_data.m_array->begin(), m_data.m_array->end(), test) != m_data.m_array->end();
+
+	return result;
+}
+
 bool operator==(element::const_reference& lhs, element::const_reference& rhs)
 {
 	using detail::value_type;

@@ -88,6 +88,8 @@ OBJECTS = \
 	$(OBJDIR)/rest-controller.o \
 	$(OBJDIR)/soap-envelope.o \
 	$(OBJDIR)/soap-server.o \
+	$(OBJDIR)/tag-processor.o \
+	$(OBJDIR)/tag-processor-v2.o \
 	$(OBJDIR)/unicode_support.o \
 	$(OBJDIR)/webapp.o \
 	$(OBJDIR)/webapp-el.o \

@@ -52,7 +52,7 @@ endif
 $(OBJDIR):
 	mkdir -p $(OBJDIR)
 
-PROGRAMS			= parser-test xpath-test json-test
+PROGRAMS			= parser-test xpath-test json-test processor-test
 
 OBJECTS = $(PROGRAMS:%=$(OBJDIR)/%.o)
 	

@@ -305,6 +305,32 @@ std::string request::get_parameter(const char* name) const
 	return result;
 }
 
+std::string request::get_cookie(const char* name) const
+{
+	for (const header& h : headers)
+	{
+		if (h.name != "Cookie")
+			continue;
+
+		std::vector<std::string> rawCookies;
+		ba::split(rawCookies, h.value, ba::is_any_of(";"));
+
+		for (std::string& cookie : rawCookies)
+		{
+			ba::trim(cookie);
+
+			auto d = cookie.find('=');
+			if (d == std::string::npos)
+				continue;
+			
+			if (cookie.compare(0, d, name) == 0)
+				return cookie.substr(d + 1);
+		}
+	}
+
+	return "";
+}
+
 std::string request::get_request_line() const
 {
 	return to_string(method) + std::string{' '} + uri + " HTTP/" + std::to_string(http_version_major) + '.' + std::to_string(http_version_minor);

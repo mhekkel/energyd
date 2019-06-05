@@ -263,6 +263,18 @@ document::document()
 {
 }
 
+document::document(document&& other)
+	: m_impl(other.m_impl)
+{
+	other.m_impl = nullptr;
+}
+
+document& document::operator=(document&& other)
+{
+	std::swap(m_impl, other.m_impl);
+	return *this;
+}
+
 document::document(const std::string& s)
 	: m_impl(new zeep_document_imp(this))
 {

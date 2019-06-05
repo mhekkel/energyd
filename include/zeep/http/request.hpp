@@ -76,8 +76,12 @@ struct request
 	void remove_header(const char* name);			///< Remove this header from the list of headers
 	std::string get_request_line() const;			///< Return the (reconstructed) request line
 
-	/// Alternative way to fetch parameters (as opposed to using webapp and parameter_map)
+	/// Fetch parameters from a request, either from the URL or from the payload in case
+	/// the request contains a url-encoded or multi-part content-type header
 	std::string get_parameter(const char* name) const; ///< Return the named parameter
+
+	/// Return a parameter_map containing the cookies as found in the current request
+	std::string get_cookie(const char* name) const;
 
 	/// Can be used in code that sends HTTP requests
 	void to_buffers(std::vector<boost::asio::const_buffer> &buffers);
