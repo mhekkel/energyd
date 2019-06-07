@@ -43,16 +43,32 @@ bool rest_controller::handle_request(const request& req, reply& rep)
 	
 	p = decode_url(p);
 
-	auto mp = find_if(m_mountpoints.begin(), m_mountpoints.end(),
-		[&](auto e) { return e->m_method == req.method and e->m_path == p; });
-	
     bool result = false;
+	for (auto& mp: m_mountpoints)
+	{
+		if (req.method != mp->m_method)
+			continue;
 
-	if (mp != m_mountpoints.end())
-    {
-		(*mp)->call(req, rep);
-        result = true;
-    }
+		if (mp->m_path_params.empty())
+		{
+			if (mp->m_path != p)
+				continue;
+		}
+		else
+		{
+			std::smatch m;
+			if (not std::regex_match(p, m, mp->m_rx))
+				continue;
+
+			for (size_t i = 0; i < mp->m_path_params.size(); ++i)
+				const_cast<request&>(req).path_params.push_back({mp->m_path_params[i], m[i + 1].str()});
+		}
+
+		mp->call(req, rep);
+
+		result = true;
+		break;
+	}
 
 	return result;
 }

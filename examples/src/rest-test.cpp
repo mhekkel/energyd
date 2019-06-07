@@ -69,10 +69,10 @@ class my_rest_controller : public zh::rest_controller
 		, m_connection(connectionString)
 	{
 		map_post_request("opname", &my_rest_controller::post_opname, "opname");
-		map_put_request("opname", &my_rest_controller::put_opname, "id", "opname");
+		map_put_request("opname/{id}", &my_rest_controller::put_opname, "id", "opname");
 		map_get_request("opname/{id}", &my_rest_controller::get_opname, "id");
 		map_get_request("opname", &my_rest_controller::get_all_opnames);
-		map_delete_request("opname", &my_rest_controller::delete_opname, "id");
+		map_delete_request("opname/{id}", &my_rest_controller::delete_opname, "id");
 
 		m_connection.prepare("get-opname-all",
 			"SELECT a.id AS id, a.tijd AS tijd, b.teller_id AS teller_id, b.stand AS stand"
@@ -86,7 +86,8 @@ class my_rest_controller : public zh::rest_controller
 			" WHERE a.id = b.opname_id AND a.id = $1"
 			" ORDER BY a.tijd");
 
-		m_connection.prepare("put-opname", "INSERT INTO opname (id, tijd) VALUES($1, $2)");
+		m_connection.prepare("put-opname", "INSERT INTO opname DEFAULT VALUES RETURNING id");
+		m_connection.prepare("put-stand", "INSERT INTO tellerstand (opname_id, teller_id, stand) VALUES($1, $2, $3);");
 
 		m_connection.prepare("del-opname", "DELETE FROM opname WHERE id=$1");
 
@@ -97,10 +98,19 @@ class my_rest_controller : public zh::rest_controller
 	// CRUD routines
 	string post_opname(Opname opname)
 	{
-		// string id = to_string(m_next_id++);
-		// m_opnames[id] = opname;
-		// return id;
-		return "";
+		pqxx::transaction tx(m_connection);
+		auto r = tx.prepared("put-opname").exec();
+		if (r.empty() or r.size() != 1)
+			throw runtime_error("Kon geen opname aanmaken");
+
+		int opnameId = r.front()[0].as<int>();
+
+		for (auto stand: opname.standen)
+			tx.prepared("put-stand")(opnameId)(stol(stand.first))(stand.second).exec();
+
+		tx.commit();
+
+		return to_string(opnameId);
 	}
 
 	void put_opname(string id, Opname opname)

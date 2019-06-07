@@ -213,6 +213,11 @@ std::string request::get_parameter(const char* name) const
 {
 	std::string result, contentType = get_header("Content-Type");
 	bool found;
+
+	// shortcuts
+	auto pp = std::find_if(path_params.begin(), path_params.end(), [name](auto& p) { return p.name == name; });
+	if (pp != path_params.end())
+		return pp->value;
 	
 	if (contentType == "application/x-www-form-urlencoded")
 	{

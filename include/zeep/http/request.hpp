@@ -88,7 +88,7 @@ struct request
 
 	void debug(std::ostream& os) const;
 
-private:
+  private:
 	std::string m_request_line;
 	boost::posix_time::ptime m_timestamp;
 };

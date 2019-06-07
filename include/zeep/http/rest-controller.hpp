@@ -6,6 +6,8 @@
 
 #include <zeep/config.hpp>
 
+#include <boost/filesystem/path.hpp>
+
 #include <utility>
 
 #include <zeep/http/controller.hpp>
@@ -41,6 +43,8 @@ class rest_controller : public controller
 
 		std::string m_path;
 		method_type m_method;
+		std::regex m_rx;
+		std::vector<std::string> m_path_params;
 	};
 
 	template<typename Callback, typename...>
@@ -78,13 +82,51 @@ class rest_controller : public controller
 			size_t i = 0;
 			for (auto name: {names...})
 				m_names[i++] = name;
+
+			// construct a regex for matching paths
+			namespace fs = boost::filesystem;
+
+			fs::path p = path;
+			std::string ps;
+
+			for (auto pp: p)
+			{
+				if (pp.empty())
+					continue;
+				
+				if (not ps.empty())
+					ps += '/';
+				
+				if (pp.string().front() == '{' and pp.string().back() == '}')
+				{
+					auto param = pp.string().substr(1, pp.string().length() - 2);
+					
+					auto i = std::find(m_names.begin(), m_names.end(), param);
+					if (i == m_names.end())
+					{
+						assert(false);
+						throw std::runtime_error("Invalid path for mount point, a parameter was not found in the list of parameter names");
+					}
+
+					size_t ni = i - m_names.begin();
+					m_path_params.emplace_back(m_names[ni]);
+					ps += "([^/]+)";
+				}
+				else
+					ps += pp.string();
+			}
+
+			m_rx.assign(ps);
 		}
 
 		virtual void call(const request& req, reply& reply)
 		{
 			try
 			{
+				json message("ok");
+				reply.set_content(message);
 				reply.set_status(ok);
+
 				ArgsTuple args = collect_arguments(req, std::make_index_sequence<N>());
 				invoke<Result>(std::move(args), reply);
 			}
@@ -146,7 +188,12 @@ class rest_controller : public controller
 		T get_parameter(const request& req, const char* name)
 		{
 			json v;
-			zeep::el::parse_json(req.get_parameter(name), v);
+
+			// sigh... is this correct?
+			if (req.get_header("content-type") == "application/json")
+				zeep::el::parse_json(req.payload, v);
+			else
+				zeep::el::parse_json(req.get_parameter(name), v);
 
 			T tv;
 			zeep::from_element(v, tv);

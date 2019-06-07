@@ -496,6 +496,8 @@ object interpreter::parse_expr()
 
 		match(elt_comma);
 	}
+
+	return result;
 }
 
 object interpreter::parse_or_expr()
