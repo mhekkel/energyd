@@ -54,7 +54,8 @@ class rest_controller : public controller
 	struct mount_point<Result(ControllerType::*)(Args...)> : mount_point_base
 	{
 		using Sig = Result(ControllerType::*)(Args...);
-		using ArgsTuple = std::tuple<Args...>;
+		// using ArgsTuple = std::tuple<Args...>;
+		using ArgsTuple = std::tuple<typename std::remove_const<typename std::remove_reference<Args>::type>::type...>;
 		using Callback = std::function<Result(Args...)>;
         using json = el::element;
 
@@ -178,10 +179,21 @@ class rest_controller : public controller
 			return std::make_tuple(get_parameter<typename std::tuple_element<I, ArgsTuple>::type>(req, m_names[I])...);
 		}
 
-		template<typename T, std::enable_if_t<not zeep::has_serialize<T, zeep::deserializer<json>>::value, int> = 0>
+		template<typename T, std::enable_if_t<
+			not (zeep::has_serialize<T, zeep::deserializer<json>>::value or std::is_enum<T>::value), int> = 0>
 		T get_parameter(const request& req, const char* name)
 		{
 			return boost::lexical_cast<T>(req.get_parameter(name));
+		}
+
+		template<typename T, std::enable_if_t<std::is_enum<T>::value, int> = 0>
+		T get_parameter(const request& req, const char* name)
+		{
+
+
+			// static_assert(false, "boe");
+			// return boost::lexical_cast<T>(req.get_parameter(name));
+			return {};
 		}
 
 		template<typename T, std::enable_if_t<zeep::has_serialize<T, zeep::deserializer<json>>::value, int> = 0>

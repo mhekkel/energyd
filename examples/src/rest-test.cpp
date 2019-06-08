@@ -61,6 +61,46 @@ struct Teller
 	}
 };
 
+enum class Aggregatie
+{
+	dag, week, maand, kwartaal, jaar
+};
+
+void to_element(json& e, Aggregatie aggregatie)
+{
+	switch (aggregatie)
+	{
+		case Aggregatie::dag:		e = "dag"; break;
+		case Aggregatie::week:		e = "week"; break;
+		case Aggregatie::maand:		e = "maand"; break;
+		case Aggregatie::kwartaal:	e = "kwartaal"; break;
+		case Aggregatie::jaar:		e = "jaar"; break;
+	}
+}
+
+void from_element(const json& e, Aggregatie& aggregatie)
+{
+	if (e == "dag")				aggregatie = Aggregatie::dag;
+	else if (e == "week")		aggregatie = Aggregatie::week;
+	else if (e == "maand")		aggregatie = Aggregatie::maand;
+	else if (e == "kwartaal")	aggregatie = Aggregatie::kwartaal;
+	else if (e == "jaar")		aggregatie = Aggregatie::jaar;
+	else throw runtime_error("Ongeldige aggregatie");
+}
+
+struct GrafiekData
+{
+	string 				type;
+	map<string,float>	punten;
+
+	template<typename Archive>
+	void serialize(Archive& ar, unsigned long)
+	{
+		ar & zeep::make_nvp("type", type)
+		   & zeep::make_nvp("punten", punten);
+	}
+};
+
 class my_rest_controller : public zh::rest_controller
 {
   public:
@@ -74,6 +114,8 @@ class my_rest_controller : public zh::rest_controller
 		map_get_request("opname", &my_rest_controller::get_all_opnames);
 		map_delete_request("opname/{id}", &my_rest_controller::delete_opname, "id");
 
+		map_get_request("grafiek/{type}", &my_rest_controller::get_grafiek, "grafiek", "aggregatie");
+
 		m_connection.prepare("get-opname-all",
 			"SELECT a.id AS id, a.tijd AS tijd, b.teller_id AS teller_id, b.stand AS stand"
 			" FROM opname a, tellerstand b"
@@ -86,8 +128,10 @@ class my_rest_controller : public zh::rest_controller
 			" WHERE a.id = b.opname_id AND a.id = $1"
 			" ORDER BY a.tijd");
 
-		m_connection.prepare("put-opname", "INSERT INTO opname DEFAULT VALUES RETURNING id");
-		m_connection.prepare("put-stand", "INSERT INTO tellerstand (opname_id, teller_id, stand) VALUES($1, $2, $3);");
+		m_connection.prepare("insert-opname", "INSERT INTO opname DEFAULT VALUES RETURNING id");
+		m_connection.prepare("insert-stand", "INSERT INTO tellerstand (opname_id, teller_id, stand) VALUES($1, $2, $3);");
+
+		m_connection.prepare("update-stand", "UPDATE tellerstand SET stand = $1 WHERE opname_Id = $2 AND teller_id = $3;");
 
 		m_connection.prepare("del-opname", "DELETE FROM opname WHERE id=$1");
 
@@ -99,25 +143,28 @@ class my_rest_controller : public zh::rest_controller
 	string post_opname(Opname opname)
 	{
 		pqxx::transaction tx(m_connection);
-		auto r = tx.prepared("put-opname").exec();
+		auto r = tx.prepared("insert-opname").exec();
 		if (r.empty() or r.size() != 1)
 			throw runtime_error("Kon geen opname aanmaken");
 
 		int opnameId = r.front()[0].as<int>();
 
 		for (auto stand: opname.standen)
-			tx.prepared("put-stand")(opnameId)(stol(stand.first))(stand.second).exec();
+			tx.prepared("insert-stand")(opnameId)(stol(stand.first))(stand.second).exec();
 
 		tx.commit();
 
 		return to_string(opnameId);
 	}
 
-	void put_opname(string id, Opname opname)
+	void put_opname(string opnameId, Opname opname)
 	{
-		// if (m_opnames.count(id) == 0)
-		// 	throw std::runtime_error("Invalid ID for PUT");
-		// m_opnames[id] = opname;
+		pqxx::transaction tx(m_connection);
+
+		for (auto stand: opname.standen)
+			tx.prepared("update-stand")(stand.second)(opnameId)(stol(stand.first)).exec();
+
+		tx.commit();
 	}
 
 	Opname get_opname(std::string id)
@@ -181,6 +228,11 @@ class my_rest_controller : public zh::rest_controller
 		}
 
 		return result;
+	}
+
+	GrafiekData get_grafiek(const std::string& grafiek, Aggregatie aggregatie)
+	{
+		return { "leeg" };
 	}
 
   private:
