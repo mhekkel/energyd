@@ -186,14 +186,14 @@ class rest_controller : public controller
 			return boost::lexical_cast<T>(req.get_parameter(name));
 		}
 
-		template<typename T, std::enable_if_t<std::is_enum<T>::value, int> = 0>
+		template<typename T, std::enable_if_t<zeep::el::detail::has_from_element<T>::value and std::is_enum<T>::value, int> = 0>
 		T get_parameter(const request& req, const char* name)
 		{
+			json v = req.get_parameter(name);
 
-
-			// static_assert(false, "boe");
-			// return boost::lexical_cast<T>(req.get_parameter(name));
-			return {};
+			T tv;
+			from_element(v, tv);
+			return tv;
 		}
 
 		template<typename T, std::enable_if_t<zeep::has_serialize<T, zeep::deserializer<json>>::value, int> = 0>
@@ -208,7 +208,7 @@ class rest_controller : public controller
 				zeep::el::parse_json(req.get_parameter(name), v);
 
 			T tv;
-			zeep::from_element(v, tv);
+			from_element(v, tv);
 			return tv;
 		}
 

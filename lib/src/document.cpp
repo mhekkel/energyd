@@ -338,6 +338,9 @@ void document::write(writer& w) const
 
 	w.xml_decl(m_impl->m_standalone);
 
+	if (not m_impl->m_doctype.m_root.empty())
+		w.doctype(m_impl->m_doctype.m_root, m_impl->m_doctype.m_pubid, m_impl->m_doctype.m_dtd);
+
 	if (not m_impl->m_notations.empty())
 	{
 		w.start_doctype(e->qname(), "");
@@ -452,6 +455,13 @@ void document::set_validating(bool validate)
 void document::set_preserve_cdata(bool preserve_cdata)
 {
 	m_impl->m_preserve_cdata = preserve_cdata;
+}
+
+void document::set_doctype(const std::string& root, const std::string& pubid, const std::string& dtd)
+{
+	m_impl->m_doctype.m_root = root;
+	m_impl->m_doctype.m_pubid = pubid;
+	m_impl->m_doctype.m_dtd = dtd;
 }
 
 bool document::operator==(const document& other) const

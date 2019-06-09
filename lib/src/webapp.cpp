@@ -447,7 +447,11 @@ void basic_webapp::create_reply_from_template(const std::string& file, const el:
 	if (m_tag_processor != nullptr)
 		m_tag_processor->process_xml(doc.child(), scope, "/");
 
+	doc.set_doctype("html", "", "about:legacy-compat");
+	
 	reply.set_content(doc);
+
+	reply.set_content_type("text/html; charset=utf-8");
 }
 
 void basic_webapp::init_scope(el::scope& scope)

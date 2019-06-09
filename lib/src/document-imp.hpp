@@ -41,6 +41,13 @@ struct document_imp
 	bool m_validating;
 	bool m_preserve_cdata;
 
+	struct
+	{
+		std::string m_root;
+		std::string m_pubid;
+		std::string m_dtd;
+	}	m_doctype;
+
 	std::istream* external_entity_ref(const std::string& base,
 									  const std::string& pubid,
 									  const std::string& sysid);

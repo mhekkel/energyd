@@ -238,6 +238,8 @@ void reply::set_content(xml::document& doc)
 	xml::writer w(s);
 	w.set_wrap(false);
 	w.set_indent(0);
+	w.set_collapse_empty_elements(false);
+	// w.set_preserve_script_elements(true);
 //	w.trim(true);
 	doc.write(w);
 	

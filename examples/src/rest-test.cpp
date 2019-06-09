@@ -10,6 +10,8 @@
 
 #include <boost/algorithm/string.hpp>
 #include <boost/program_options.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
+#include <boost/date_time/gregorian/gregorian.hpp>
 
 #include <zeep/http/webapp.hpp>
 #include <zeep/http/md5.hpp>
@@ -61,31 +63,122 @@ struct Teller
 	}
 };
 
-enum class Aggregatie
+enum class aggregatie_type
 {
-	dag, week, maand, kwartaal, jaar
+	dag, week, maand, jaar
 };
 
-void to_element(json& e, Aggregatie aggregatie)
+void to_element(json& e, aggregatie_type aggregatie)
 {
 	switch (aggregatie)
 	{
-		case Aggregatie::dag:		e = "dag"; break;
-		case Aggregatie::week:		e = "week"; break;
-		case Aggregatie::maand:		e = "maand"; break;
-		case Aggregatie::kwartaal:	e = "kwartaal"; break;
-		case Aggregatie::jaar:		e = "jaar"; break;
+		case aggregatie_type::dag:		e = "dag"; break;
+		case aggregatie_type::week:		e = "week"; break;
+		case aggregatie_type::maand:	e = "maand"; break;
+		case aggregatie_type::jaar:		e = "jaar"; break;
 	}
 }
 
-void from_element(const json& e, Aggregatie& aggregatie)
+void from_element(const json& e, aggregatie_type& aggregatie)
 {
-	if (e == "dag")				aggregatie = Aggregatie::dag;
-	else if (e == "week")		aggregatie = Aggregatie::week;
-	else if (e == "maand")		aggregatie = Aggregatie::maand;
-	else if (e == "kwartaal")	aggregatie = Aggregatie::kwartaal;
-	else if (e == "jaar")		aggregatie = Aggregatie::jaar;
+	if (e == "dag")				aggregatie = aggregatie_type::dag;
+	else if (e == "week")		aggregatie = aggregatie_type::week;
+	else if (e == "maand")		aggregatie = aggregatie_type::maand;
+	else if (e == "jaar")		aggregatie = aggregatie_type::jaar;
 	else throw runtime_error("Ongeldige aggregatie");
+}
+
+enum class grafiek_type
+{
+	warmte,
+	electriciteit,
+	electriciteit_hoog,
+	electriciteit_laag,
+	electriciteit_verbruik,
+	electriciteit_levering,
+	electriciteit_verbruik_hoog,
+	electriciteit_verbruik_laag,
+	electriciteit_levering_hoog,
+	electriciteit_levering_laag
+};
+
+void to_element(json& e, grafiek_type type)
+{
+	switch (type)
+	{
+		case grafiek_type::warmte:						e = "warmte"; break;
+		case grafiek_type::electriciteit:				e = "electriciteit"; break;
+		case grafiek_type::electriciteit_hoog:			e = "electriciteit-hoog"; break;
+		case grafiek_type::electriciteit_laag:			e = "electriciteit-laag"; break;
+		case grafiek_type::electriciteit_verbruik:		e = "electriciteit-verbruik"; break;
+		case grafiek_type::electriciteit_levering:		e = "electriciteit-levering"; break;
+		case grafiek_type::electriciteit_verbruik_hoog:	e = "electriciteit-verbruik-hoog"; break;
+		case grafiek_type::electriciteit_verbruik_laag:	e = "electriciteit-verbruik-laag"; break;
+		case grafiek_type::electriciteit_levering_hoog:	e = "electriciteit-levering-hoog"; break;
+		case grafiek_type::electriciteit_levering_laag:	e = "electriciteit-levering-laag"; break;
+	}
+}
+
+void from_element(const json& e, grafiek_type& type)
+{
+		 if (e == "warmte")						 type = grafiek_type::warmte;						
+	else if (e == "electriciteit")				 type = grafiek_type::electriciteit;				
+	else if (e == "electriciteit-hoog")			 type = grafiek_type::electriciteit_hoog;			
+	else if (e == "electriciteit-laag")			 type = grafiek_type::electriciteit_laag;			
+	else if (e == "electriciteit-verbruik")		 type = grafiek_type::electriciteit_verbruik;		
+	else if (e == "electriciteit-levering")		 type = grafiek_type::electriciteit_levering;		
+	else if (e == "electriciteit-verbruik-hoog") type = grafiek_type::electriciteit_verbruik_hoog;	
+	else if (e == "electriciteit-verbruik-laag") type = grafiek_type::electriciteit_verbruik_laag;	
+	else if (e == "electriciteit-levering-hoog") type = grafiek_type::electriciteit_levering_hoog;	
+	else if (e == "electriciteit-levering-laag") type = grafiek_type::electriciteit_levering_laag;	
+	else throw runtime_error("Ongeldige grafiek type");
+}
+
+string selector(grafiek_type g)
+{
+	switch (g)
+	{
+		case grafiek_type::warmte:
+			return "SELECT a.tijd, SUM(c.teken * b.stand) "
+				   " FROM opname a LEFT OUTER JOIN tellerstand b LEFT OUTER JOIN teller c ON b.teller_id = c.id ON a.id = b.opname_id "
+				   " WHERE c.id IN (1) GROUP BY a.tijd ORDER BY a.tijd ASC";
+		case grafiek_type::electriciteit:
+			return "SELECT a.tijd, SUM(c.teken * b.stand) "
+				   " FROM opname a LEFT OUTER JOIN tellerstand b LEFT OUTER JOIN teller c ON b.teller_id = c.id ON a.id = b.opname_id "
+				   " WHERE c.id IN (2, 3, 4, 5) GROUP BY a.tijd ORDER BY a.tijd ASC";
+		case grafiek_type::electriciteit_hoog:
+			return "SELECT a.tijd, SUM(c.teken * b.stand) "
+				   " FROM opname a LEFT OUTER JOIN tellerstand b LEFT OUTER JOIN teller c ON b.teller_id = c.id ON a.id = b.opname_id "
+				   " WHERE c.id IN (3, 5) GROUP BY a.tijd ORDER BY a.tijd ASC";
+		case grafiek_type::electriciteit_laag:
+			return "SELECT a.tijd, SUM(c.teken * b.stand) "
+				   " FROM opname a LEFT OUTER JOIN tellerstand b LEFT OUTER JOIN teller c ON b.teller_id = c.id ON a.id = b.opname_id "
+				   " WHERE c.id IN (2, 4) GROUP BY a.tijd ORDER BY a.tijd ASC";
+		case grafiek_type::electriciteit_verbruik:
+			return "SELECT a.tijd, SUM(b.stand) "
+				   " FROM opname a LEFT OUTER JOIN tellerstand b ON a.id = b.opname_id "
+				   " WHERE b.teller_id IN (2, 3) GROUP BY a.tijd ORDER BY a.tijd ASC";
+		case grafiek_type::electriciteit_levering:
+			return "SELECT a.tijd, SUM(b.stand) "
+				   " FROM opname a LEFT OUTER JOIN tellerstand b ON a.id = b.opname_id "
+				   " WHERE b.teller_id IN (4, 5) GROUP BY a.tijd ORDER BY a.tijd ASC";
+		case grafiek_type::electriciteit_verbruik_hoog:
+			return "SELECT a.tijd, b.stand "
+				   " FROM opname a LEFT OUTER JOIN tellerstand b ON a.id = b.opname_id "
+				   " WHERE b.teller_id = 3 ORDER BY a.tijd ASC";
+		case grafiek_type::electriciteit_verbruik_laag:
+			return "SELECT a.tijd, b.stand "
+				   " FROM opname a LEFT OUTER JOIN tellerstand b ON a.id = b.opname_id "
+				   " WHERE b.teller_id = 2 ORDER BY a.tijd ASC";
+		case grafiek_type::electriciteit_levering_hoog:
+			return "SELECT a.tijd, b.stand "
+				   " FROM opname a LEFT OUTER JOIN tellerstand b ON a.id = b.opname_id "
+				   " WHERE b.teller_id = 5 ORDER BY a.tijd ASC";
+		case grafiek_type::electriciteit_levering_laag:
+			return "SELECT a.tijd, b.stand "
+				   " FROM opname a LEFT OUTER JOIN tellerstand b ON a.id = b.opname_id "
+				   " WHERE b.teller_id = 4 ORDER BY a.tijd ASC";
+	}
 }
 
 struct GrafiekData
@@ -114,7 +207,7 @@ class my_rest_controller : public zh::rest_controller
 		map_get_request("opname", &my_rest_controller::get_all_opnames);
 		map_delete_request("opname/{id}", &my_rest_controller::delete_opname, "id");
 
-		map_get_request("grafiek/{type}", &my_rest_controller::get_grafiek, "grafiek", "aggregatie");
+		map_get_request("data/{type}/{aggr}", &my_rest_controller::get_grafiek, "type", "aggr");
 
 		m_connection.prepare("get-opname-all",
 			"SELECT a.id AS id, a.tijd AS tijd, b.teller_id AS teller_id, b.stand AS stand"
@@ -230,14 +323,105 @@ class my_rest_controller : public zh::rest_controller
 		return result;
 	}
 
-	GrafiekData get_grafiek(const std::string& grafiek, Aggregatie aggregatie)
-	{
-		return { "leeg" };
-	}
+	// GrafiekData get_grafiek(const string& type, aggregatie_type aggregatie);
+	GrafiekData get_grafiek(grafiek_type type, aggregatie_type aggregatie);
 
   private:
 	pqxx::connection m_connection;
 };
+
+GrafiekData my_rest_controller::get_grafiek(grafiek_type type, aggregatie_type aggr)
+{
+	using namespace boost::posix_time;
+	using namespace boost::gregorian;
+
+	pqxx::transaction tx(m_connection);
+
+	map<date,float> data;
+	float standVan = 0, standTot;
+	ptime van, tot;
+
+	unique_ptr<date_iterator> iter;
+	auto start_w = first_day_of_the_week_before(Sunday);
+
+	for (auto r: tx.exec(selector(type)))
+	{
+		if (standVan == 0)
+		{
+			van = time_from_string(r[0].as<string>());
+			standVan = r[1].as<float>();
+			continue;
+		}
+
+		tot = time_from_string(r[0].as<string>());
+		standTot = r[1].as<float>();
+
+		auto verbruik = standTot - standVan;
+
+		time_duration dt = tot - van;
+		float verbruikPerSeconde = verbruik / dt.total_seconds();
+
+		switch (aggr)
+		{
+			case aggregatie_type::dag:
+				iter.reset(new day_iterator(van.date()));
+				break;
+
+			case aggregatie_type::week:
+				iter.reset(new week_iterator(start_w.get_date(van.date())));
+				break;
+
+			case aggregatie_type::maand:
+				iter.reset(new month_iterator(date(van.date().year(), van.date().month(), 1)));
+				break;
+
+			case aggregatie_type::jaar:
+				iter.reset(new year_iterator(date(van.date().year(), Jan, 1)));
+				break;
+		}
+
+		auto eind = ((tot + days(1)).date());
+
+		while (**iter < eind)
+		{
+			auto dag = **iter;
+
+			ptime tijdVan(dag);
+			if (tijdVan < van)
+				tijdVan = van;
+
+			++*iter;
+
+			ptime tijdTot(**iter);
+			if (tijdTot > tot)
+				tijdTot = tot;
+
+			auto dagDuur = (tijdTot - tijdVan).total_seconds();
+			if (dagDuur <= 0)
+				continue;
+
+			float dagVerbruik = verbruikPerSeconde * dagDuur;
+			data[dag] += dagVerbruik;
+		}
+
+		van = tot;
+		standVan = standTot;
+	}
+
+	GrafiekData result;
+
+	for (auto p: data)
+	{
+		date dag;
+		float verbruik;
+		tie(dag, verbruik) = p;
+
+		result.punten.emplace(to_iso_extended_string(dag), verbruik);
+	}
+
+	return result;
+}
+
 
 class my_server : public zh::webapp
 {
@@ -249,7 +433,7 @@ class my_server : public zh::webapp
 		add_controller(m_rest_controller);
 	
 		mount("", &my_server::opname);
-		mount("opname", &my_server::opname);
+		mount("opnames", &my_server::opname);
 		mount("grafiek", &my_server::grafiek);
 		mount("css", &my_server::handle_file);
 		mount("scripts", &my_server::handle_file);

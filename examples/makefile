@@ -37,7 +37,7 @@ endif
 BOOST_LIB_DIR       = $(BOOST:%=%/lib)
 BOOST_INC_DIR       = $(BOOST:%=%/include)
 
-BOOST_LIBS          = system thread filesystem regex random program_options
+BOOST_LIBS          = system thread filesystem regex random program_options date_time
 BOOST_LIBS          := $(BOOST_LIBS:%=boost_%$(BOOST_LIB_SUFFIX))
 LIBS                = zeep $(BOOST_LIBS) stdc++ m pthread
 LDFLAGS             += $(BOOST_LIB_DIR:%=-L%) -L../lib $(LIBS:%=-l%) -g

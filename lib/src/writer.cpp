@@ -36,25 +36,13 @@ writer::writer(std::ostream& os)
 }
 				
 writer::writer(std::ostream& os, bool write_decl, bool standalone)
-	: m_os(os)
-	, m_encoding(encoding_type::enc_UTF8)
-	, m_version(1.0f)
-	, m_write_xml_decl(write_decl)
-	, m_wrap(true)
-	, m_wrap_prolog(true)
-	, m_wrap_attributes(false)
-	, m_collapse_empty(true)
-	, m_escape_whitespace(false)
-	, m_trim(false)
-	, m_no_comment(false)
-	, m_indent(2)
-	, m_level(0)
-	, m_element_open(false)
-	, m_wrote_element(false)
-	, m_prolog(true)
+	: writer(os)
 {
-	if (m_write_xml_decl)
+	if (write_decl)
+	{
+		m_write_xml_decl = true;
 		xml_decl(standalone);
+	}
 }
 				
 writer::~writer()

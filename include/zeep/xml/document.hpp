@@ -148,6 +148,9 @@ class document
 	/// into text nodes.
 	void set_preserve_cdata(bool preserve_cdata);
 
+	/// Set the doctype to write out
+	void set_doctype(const std::string& root, const std::string& pubid, const std::string& dtd);
+
 #ifndef LIBZEEP_DOXYGEN_INVOKED
   protected:
 	document(struct document_imp* impl);
