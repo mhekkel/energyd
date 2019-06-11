@@ -570,6 +570,7 @@ public:
 	/// the DOCTYPE can specify some attributes as ID
 	void set_attribute(const std::string& qname, const std::string& value, bool id = false);
 	void remove_attribute(const std::string& qname);
+	void remove_attribute(attribute* attr);
 
 	/// to set the default namespace, pass an empty string as prefix
 	void set_name_space(const std::string& prefix,
@@ -580,6 +581,9 @@ public:
 	/// and if so, it appends the string to this node's value. Otherwise,
 	/// it adds a new text node child with the new text.
 	void add_text(const std::string& s);
+
+	/// The set_text method replaces any text node with the new text
+	void set_text(const std::string& s);
 
 	/// to iterate over the attribute nodes
 	attribute_set attributes() const;

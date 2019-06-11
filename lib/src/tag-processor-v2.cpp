@@ -32,6 +32,7 @@ tag_processor_v2::tag_processor_v2(template_loader& tldr, const std::string& ns)
     using namespace std::placeholders;
 
     register_attr_handler("if", std::bind(&tag_processor_v2::process_attr_if, this, _1, _2, _3, _4));
+    register_attr_handler("text", std::bind(&tag_processor_v2::process_attr_text, this, _1, _2, _3, _4));
 }
 
 tag_processor_v2::~tag_processor_v2()
@@ -41,6 +42,9 @@ tag_processor_v2::~tag_processor_v2()
 void tag_processor_v2::process_xml(xml::node *node, const el::scope& parentScope, fs::path dir)
 {
     xml::element* element = dynamic_cast<xml::element*>(node);
+
+	if (element == nullptr)
+		return;
 
     el::scope scope(parentScope);
 
@@ -69,7 +73,7 @@ void tag_processor_v2::process_attr_if(xml::element* element, xml::attribute* at
 	el::element obj;
 	el::evaluate_el(scope, attr->value(), obj);
 	
-	std::cout << "Het resultaat van de test is: " << obj << std::endl;
+	std::cout << "Het resultaat van de test is: " << (bool)obj << std::endl;
 
 	// xml::text *text = dynamic_cast<xml::text *>(node);
 
@@ -141,6 +145,16 @@ void tag_processor_v2::process_attr_if(xml::element* element, xml::attribute* at
 	// 		process_xml(n, scope, dir);
 	// 	}
 	// }
+}
+
+void tag_processor_v2::process_attr_text(xml::element* element, xml::attribute* attr, const el::scope& scope, fs::path dir)
+{
+	el::element obj;
+	el::evaluate_el(scope, attr->value(), obj);
+
+	element->set_text(obj.as<std::string>());
+	element->remove_attribute(attr);
+	delete attr;
 }
 
 // void tag_processor::add_processor(const std::string& name, processor_type processor)

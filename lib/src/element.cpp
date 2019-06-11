@@ -134,6 +134,21 @@ std::string element::type_name() const
 	}
 }
 
+element::operator bool() const noexcept
+{
+	bool result;
+	switch (m_type)
+	{
+		case value_type::null:			result = false; break;
+		case value_type::boolean:		result = m_data.m_boolean; break;
+		case value_type::number_int:	result = m_data.m_int != 0; break;
+		case value_type::number_float:	result = m_data.m_float != 0; break;
+		case value_type::string:		result = not m_data.m_string->empty(); break;
+		default:						result = not empty(); break;
+	}
+	return result;
+}
+
 // array access
 
 element::reference element::at(size_t index)

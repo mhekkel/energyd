@@ -935,6 +935,12 @@ void element::add_text(const std::string& s)
 		append(new text(s));
 }
 
+void element::set_text(const std::string& s)
+{
+	clear();
+	add_text(s);
+}
+
 attribute_set element::attributes() const
 {
 	attribute_set result;
@@ -1015,20 +1021,22 @@ void element::set_attribute(const std::string& qname, const std::string& value, 
 void element::remove_attribute(const std::string& qname)
 {
 	attribute* n = get_attribute_node(qname);
-	
 	if (n != nullptr)
+		remove_attribute(n);
+}
+
+void element::remove_attribute(attribute* attr)
+{
+	assert(attr->m_parent == this);
+	
+	if (m_attribute == attr)
 	{
-		assert(n->m_parent == this);
-		
-		if (m_attribute == n)
-		{
-			m_attribute = static_cast<attribute*>(m_attribute->m_next);
-			if (m_attribute != nullptr)
-				m_attribute->m_prev = nullptr;
-		}
-		else
-			m_attribute->remove_sibling(n);
-	}	
+		m_attribute = static_cast<attribute*>(m_attribute->m_next);
+		if (m_attribute != nullptr)
+			m_attribute->m_prev = nullptr;
+	}
+	else
+		m_attribute->remove_sibling(attr);
 }
 
 std::string element::namespace_for_prefix(const std::string& prefix) const

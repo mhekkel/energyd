@@ -98,9 +98,6 @@ void tag_processor::process_xml(xml::node *node, const el::scope& scope, fs::pat
 
 		try
 		{
-			//			assert(parent == e->parent());
-			//			assert(find(parent->begin(), parent->end(), e) != parent->end());
-
 			parent->remove(e);
 			delete e;
 		}

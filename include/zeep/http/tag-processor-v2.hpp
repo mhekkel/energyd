@@ -35,6 +35,7 @@ class tag_processor_v2 : public tag_processor
 
 	// virtual void process_node_attr(xml::node* node, const el::scope& scope, boost::filesystem::path dir);
 	virtual void process_attr_if(xml::element* node, xml::attribute* attr, const el::scope& scope, boost::filesystem::path dir);
+	virtual void process_attr_text(xml::element* node, xml::attribute* attr, const el::scope& scope, boost::filesystem::path dir);
 
 	std::map<std::string, attr_handler> m_attr_handlers;
 };

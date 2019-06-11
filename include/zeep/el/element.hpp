@@ -100,13 +100,14 @@ public:
 	constexpr value_type type() const							{ return m_type; }
 	std::string type_name() const;
 
+	explicit operator bool() const noexcept;
+
 	// access to object elements
 	reference at(const typename object_type::key_type& key);
 	const_reference at(const typename object_type::key_type& key) const;
 
 	reference operator[](const typename object_type::key_type& key);
 	const_reference operator[](const typename object_type::key_type& key) const;
-
 
 	// access to array elements
 	reference at(size_t index);

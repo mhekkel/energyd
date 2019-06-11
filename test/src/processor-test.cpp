@@ -66,12 +66,42 @@ void test_2()
     cout << doc << endl;
 }
 
+void test_3()
+{
+    cout << __FUNCTION__ << endl;
+
+    auto doc = R"(<?xml version="1.0"?>
+<data xmlns:m="http://www.hekkelman.com/libzeep/m2">
+    <test m:text="${x}"/>
+</data>
+    )"_xml;
+
+    // auto xml = doc.child();
+    cout << doc << endl;
+
+    class tl : public zeep::http::template_loader
+    {
+       	void load_template(const std::string& file, zeep::xml::document& doc)
+           {}
+    } tldr;
+
+    zeep::http::tag_processor_v2 tp(tldr, "http://www.hekkelman.com/libzeep/m2");
+
+    zeep::el::scope scope(*static_cast<zeep::http::request*>(nullptr));
+ 
+    scope.put("x", "<hallo, wereld!>");
+ 
+    tp.process_xml(doc.child(), scope, "");
+
+    cout << doc << endl;
+}
 int main()
 {
     try
     {
         test_1();
         test_2();
+        test_3();
     }
     catch(const std::exception& e)
     {

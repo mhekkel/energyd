@@ -1,4 +1,4 @@
-# Makefile for libzeep, the examples
+# Makefile for example app using libzeep
 #
 # Copyright Maarten L. Hekkelman, UMC St. Radboud 2008-2013.
 #        Copyright Maarten L. Hekkelman, 2014-2019
@@ -80,7 +80,7 @@ all: $(APPS)
 .PHONY: all
 
 $(ZEEP_LIB_DIR)/libzeep.a:
-	+$(MAKE) -C ../lib static-lib
+	+$(MAKE) -C $(ZEEP_LIB_DIR) static-lib
 
 $(APPS): $(ZEEP_LIB_DIR)/libzeep.a
 
