@@ -60,13 +60,13 @@ void from_element(const E& e, typename E::boolean_type& b)
     b = *e.template get_ptr<const typename E::boolean_type*>();
 }
 
-template<typename E>
-void from_element(const E& e, typename E::string_type& s)
-{
-    if (not e.is_string())
-        throw std::runtime_error("Type should have been string but was " + e.type_name());
-    s = *e.template get_ptr<const typename E::string_type*>();
-}
+// template<typename E>
+// void from_element(const E& e, typename E::string_type& s)
+// {
+//     if (not e.is_string())
+//         throw std::runtime_error("Type should have been string but was " + e.type_name());
+//     s = *e.template get_ptr<const typename E::string_type*>();
+// }
 
 template<typename E>
 void from_element(const E& e, std::string& s)
