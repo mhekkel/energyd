@@ -260,7 +260,7 @@ class my_rest_controller : public zh::rest_controller
 		tx.commit();
 	}
 
-	Opname get_opname(std::string id)
+	Opname get_opname(string id)
 	{
 		pqxx::transaction tx(m_connection);
 		auto rows = tx.prepared("get-opname")(id).exec();
@@ -426,7 +426,7 @@ GrafiekData my_rest_controller::get_grafiek(grafiek_type type, aggregatie_type a
 class my_server : public zh::webapp
 {
   public:
-	my_server(const std::string& dbConnectString)
+	my_server(const string& dbConnectString)
 		: zh::webapp("http://www.hekkelman.com/libzeep/ml", fs::current_path() / "docroot")
 		, m_rest_controller(new my_rest_controller(dbConnectString))
 	{
