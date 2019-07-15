@@ -76,7 +76,8 @@ void to_element(element& v, T e)
 	factory<value_type::number_int>::construct(v, static_cast<int_type>(e));
 }
 
-inline void to_element(element& j, const std::vector<bool>& v)
+template<typename T, std::enable_if_t<std::is_same<T, bool>::value, int> = 0>
+void to_element(element& j, const std::vector<T>& v)
 {
 	factory<value_type::array>::construct(j, v);
 }

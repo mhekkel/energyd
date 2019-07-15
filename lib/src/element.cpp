@@ -99,8 +99,8 @@ element::element(size_t cnt, const element& v)
 element& element::operator=(element j) noexcept(
 		std::is_nothrow_move_constructible<value_type>::value and
 		std::is_nothrow_move_assignable<value_type>::value and
-		std::is_nothrow_move_constructible<element>::value and
-		std::is_nothrow_move_assignable<element>::value)
+		std::is_nothrow_move_constructible<element_data>::value and
+		std::is_nothrow_move_assignable<element_data>::value)
 {
 	j.validate();
 
@@ -114,7 +114,7 @@ element& element::operator=(element j) noexcept(
 	return *this; 
 }
 
-element::~element()
+element::~element() noexcept
 {
 	validate();
 	m_data.destroy(m_type);

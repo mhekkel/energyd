@@ -37,6 +37,7 @@ inline constexpr const char* to_string(method_type method)
 		case method_type::DELETE:		return "DELETE";
 		case method_type::TRACE:		return "TRACE";
 		case method_type::CONNECT:		return "CONNECT";
+		default:						assert(false); return "ERROR";
 	}
 }
 

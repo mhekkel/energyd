@@ -59,6 +59,95 @@ public:
 
     template<value_type> friend struct detail::factory;
 
+  private:
+
+	union element_data
+	{
+		object_type*	m_object;
+		array_type*		m_array;
+		string_type*	m_string;
+		int64_t			m_int;
+		double			m_float;
+		bool			m_boolean;
+
+		element_data() = default;
+		element_data(bool v) noexcept : m_boolean(v) {}
+		element_data(int64_t v) noexcept : m_int(v) {}
+		element_data(double v) noexcept : m_float(v) {}
+		element_data(value_type t)
+		{
+			switch (t)
+			{
+				case value_type::array:			m_array = create<array_type>(); 	break;
+				case value_type::boolean:		m_boolean = false;					break;
+				case value_type::null:			m_object = nullptr;					break;
+				case value_type::number_float:	m_float = 0;						break;
+				case value_type::number_int:	m_int = 0;							break;
+				case value_type::object:		m_object = create<object_type>(); 	break;
+				case value_type::string:		m_string = create<string_type>();	break;
+			}
+		}
+		element_data(const object_type& v)		{ m_object = create<object_type>(v); }
+		element_data(object_type&& v)			{ m_object = create<object_type>(std::move(v)); }
+		element_data(const string_type& v)		{ m_string = create<string_type>(v); }
+		element_data(string_type&& v)			{ m_string = create<string_type>(std::move(v)); }
+		element_data(const array_type& v)		{ m_array = create<array_type>(v); }
+		element_data(array_type&& v)			{ m_array = create<array_type>(std::move(v)); }
+
+		void destroy(value_type t) noexcept
+		{
+			switch (t)
+			{
+				case value_type::object:
+				{
+					std::allocator<object_type> alloc;
+					std::allocator_traits<decltype(alloc)>::destroy(alloc, m_object);
+					std::allocator_traits<decltype(alloc)>::deallocate(alloc, m_object, 1);
+					break;
+				}
+
+				case value_type::array:
+				{
+					std::allocator<array_type> alloc;
+					std::allocator_traits<decltype(alloc)>::destroy(alloc, m_array);
+					std::allocator_traits<decltype(alloc)>::deallocate(alloc, m_array, 1);
+					break;
+				}
+
+				case value_type::string:
+				{
+					std::allocator<string_type> alloc;
+					std::allocator_traits<decltype(alloc)>::destroy(alloc, m_string);
+					std::allocator_traits<decltype(alloc)>::deallocate(alloc, m_string, 1);
+					break;
+				}
+
+				default:
+					break;
+			}
+		}
+	};
+
+	template<typename T, typename... Args>
+	static T* create(Args&&... args)
+	{
+		// return new T(args...);
+        std::allocator<T> alloc;
+        using AllocatorTraits = std::allocator_traits<std::allocator<T>>;
+
+        auto deleter = [&](T * object)
+        {
+            AllocatorTraits::deallocate(alloc, object, 1);
+        };
+
+        std::unique_ptr<T, decltype(deleter)> object(AllocatorTraits::allocate(alloc, 1), deleter);
+        assert(object != nullptr);
+        AllocatorTraits::construct(alloc, object.get(), std::forward<Args>(args)...);
+        return object.release();
+	}
+
+  public:
+
 	/// empty constructor with a certain type
 	element(value_type t);
 
@@ -70,7 +159,7 @@ public:
 	template<typename T,
 		typename U = typename std::remove_cv<typename std::remove_reference<T>::type>::type,
 		std::enable_if_t<not std::is_same<U,element>::value and detail::is_compatible_type<T>::value, int> = 0>
-	element(T&& v) 
+	element(T&& v) noexcept(noexcept(element_serializer<U,void>::to_element(std::declval<element&>(), std::forward<T>(v))))
 	{
 		element_serializer<U,void>::to_element(*this, std::forward<T>(v));
 	}
@@ -81,10 +170,10 @@ public:
 	element& operator=(element j) noexcept(
         std::is_nothrow_move_constructible<value_type>::value and
         std::is_nothrow_move_assignable<value_type>::value and
-        std::is_nothrow_move_constructible<element>::value and
-        std::is_nothrow_move_assignable<element>::value);
+        std::is_nothrow_move_constructible<element_data>::value and
+        std::is_nothrow_move_assignable<element_data>::value);
 
-	~element();
+	~element() noexcept;
 
 	constexpr bool is_null() const noexcept						{ return m_type == value_type::null; }
 	constexpr bool is_object() const noexcept					{ return m_type == value_type::object; }
@@ -297,8 +386,8 @@ public:
 	void swap(reference other) noexcept (
         std::is_nothrow_move_constructible<value_type>::value and
         std::is_nothrow_move_assignable<value_type>::value and
-        std::is_nothrow_move_constructible<element>::value and
-        std::is_nothrow_move_assignable<element>::value
+        std::is_nothrow_move_constructible<element_data>::value and
+        std::is_nothrow_move_assignable<element_data>::value
     )
     {
         std::swap(m_type, other.m_type);
@@ -557,93 +646,6 @@ public:
 	friend std::ostream& operator<<(std::ostream& os, const element& v);
 	friend void serialize(std::ostream& os, const element& data);
 	// friend void serialize(std::ostream& os, const element& data, int indent, int level = 0);
-
-private:
-
-	union element_data
-	{
-		object_type*	m_object;
-		array_type*		m_array;
-		string_type*	m_string;
-		int64_t			m_int;
-		double			m_float;
-		bool			m_boolean;
-
-		element_data() = default;
-		element_data(bool v) noexcept : m_boolean(v) {}
-		element_data(int64_t v) noexcept : m_int(v) {}
-		element_data(double v) noexcept : m_float(v) {}
-		element_data(value_type t)
-		{
-			switch (t)
-			{
-				case value_type::array:			m_array = create<array_type>(); 	break;
-				case value_type::boolean:		m_boolean = false;					break;
-				case value_type::null:			m_object = nullptr;					break;
-				case value_type::number_float:	m_float = 0;						break;
-				case value_type::number_int:	m_int = 0;							break;
-				case value_type::object:		m_object = create<object_type>(); 	break;
-				case value_type::string:		m_string = create<string_type>();	break;
-			}
-		}
-		element_data(const object_type& v)		{ m_object = create<object_type>(v); }
-		element_data(object_type&& v)			{ m_object = create<object_type>(std::move(v)); }
-		element_data(const string_type& v)		{ m_string = create<string_type>(v); }
-		element_data(string_type&& v)			{ m_string = create<string_type>(std::move(v)); }
-		element_data(const array_type& v)		{ m_array = create<array_type>(v); }
-		element_data(array_type&& v)			{ m_array = create<array_type>(std::move(v)); }
-
-		void destroy(value_type t) noexcept
-		{
-			switch (t)
-			{
-				case value_type::object:
-				{
-					std::allocator<object_type> alloc;
-					std::allocator_traits<decltype(alloc)>::destroy(alloc, m_object);
-					std::allocator_traits<decltype(alloc)>::deallocate(alloc, m_object, 1);
-					break;
-				}
-
-				case value_type::array:
-				{
-					std::allocator<array_type> alloc;
-					std::allocator_traits<decltype(alloc)>::destroy(alloc, m_array);
-					std::allocator_traits<decltype(alloc)>::deallocate(alloc, m_array, 1);
-					break;
-				}
-
-				case value_type::string:
-				{
-					std::allocator<string_type> alloc;
-					std::allocator_traits<decltype(alloc)>::destroy(alloc, m_string);
-					std::allocator_traits<decltype(alloc)>::deallocate(alloc, m_string, 1);
-					break;
-				}
-
-				default:
-					break;
-			}
-		}
-	};
-
-	template<typename T, typename... Args>
-	static T* create(Args&&... args)
-	{
-		// return new T(args...);
-        std::allocator<T> alloc;
-        using AllocatorTraits = std::allocator_traits<std::allocator<T>>;
-
-        auto deleter = [&](T * object)
-        {
-            AllocatorTraits::deallocate(alloc, object, 1);
-        };
-
-        std::unique_ptr<T, decltype(deleter)> object(AllocatorTraits::allocate(alloc, 1), deleter);
-        assert(object != nullptr);
-        AllocatorTraits::construct(alloc, object.get(), std::forward<Args>(args)...);
-        return object.release();
-	}
 
 private:
 
