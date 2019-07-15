@@ -19,7 +19,10 @@
 #include <zeep/el/to_element.hpp>
 #include <zeep/el/from_element.hpp>
 
-#include <optional>
+//#include <optional>
+#include <boost/optional.hpp>
+
+namespace std { using boost::optional; }
 
 namespace zeep
 {

@@ -9,6 +9,7 @@
 #include <boost/filesystem/path.hpp>
 
 #include <utility>
+#include <experimental/tuple>
 
 #include <zeep/http/controller.hpp>
 #include <zeep/el/parser.hpp>
@@ -143,13 +144,13 @@ class rest_controller : public controller
 		template<typename ResultType, typename ArgsTuple, std::enable_if_t<std::is_void<ResultType>::value, int> = 0>
 		void invoke(ArgsTuple&& args, reply& reply)
 		{
-			std::apply(m_callback, std::forward<ArgsTuple>(args));
+			std::experimental::apply(m_callback, std::forward<ArgsTuple>(args));
 		}
 
 		template<typename ResultType, typename ArgsTuple, std::enable_if_t<not std::is_void<ResultType>::value, int> = 0>
 		void invoke(ArgsTuple&& args, reply& reply)
 		{
-			set_reply(reply, std::apply(m_callback, std::forward<ArgsTuple>(args)));
+			set_reply(reply, std::experimental::apply(m_callback, std::forward<ArgsTuple>(args)));
 		}
 
 		template<typename T, std::enable_if_t<

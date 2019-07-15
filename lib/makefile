@@ -16,7 +16,7 @@ PREFIX              ?= /usr/local
 
 # main build variables
 CXX                 ?= c++
-CXXFLAGS            += $(BOOST_INC_DIR:%=-I%) -I. -fPIC -pthread -std=c++17
+CXXFLAGS            += $(BOOST_INC_DIR:%=-I%) -I. -fPIC -pthread -std=c++14
 CXXFLAGS            += -Wall
 CXXFLAGS            += -g
 LD                  ?= ld

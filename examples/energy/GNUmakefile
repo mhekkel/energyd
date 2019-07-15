@@ -42,7 +42,7 @@ BOOST_LIB_DIR       = $(BOOST:%=%/lib)
 
 BOOST_LIBS          = system thread filesystem regex random program_options date_time
 BOOST_LIBS          := $(BOOST_LIBS:%=boost_%$(BOOST_LIB_SUFFIX))
-LIBS                = zeep $(BOOST_LIBS) stdc++ m pthread
+LIBS                := zeep $(BOOST_LIBS) stdc++ m pthread $(LIBS)
 LDFLAGS             += $(BOOST_LIB_DIR:%=-L%) -L../lib $(LIBS:%=-l%) -g
 
 ifneq "$(DEBUG)" "1"
