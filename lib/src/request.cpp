@@ -209,21 +209,21 @@ std::pair<std::string,bool> get_urlencode_parameter(const std::string& s, const 
 	return std::make_pair(result, found);
 }
 
-std::string request::get_parameter(const char* name) const
+std::tuple<std::string,bool> request::get_parameter_ex(const char* name) const
 {
 	std::string result, contentType = get_header("Content-Type");
-	bool found;
+	bool found = false;
 
 	// shortcuts
 	auto pp = std::find_if(path_params.begin(), path_params.end(), [name](auto& p) { return p.name == name; });
 	if (pp != path_params.end())
-		return pp->value;
+		return std::make_tuple(pp->value, true);
 	
 	if (contentType == "application/x-www-form-urlencoded")
 	{
 		tie(result, found) = get_urlencode_parameter(payload, name);
 		if (found)
-			return result;
+			return std::make_tuple(result, true);
 	}
 
 	auto b = uri.find('?');
@@ -231,7 +231,7 @@ std::string request::get_parameter(const char* name) const
 	{
 		tie(result, found) = get_urlencode_parameter(uri.substr(b + 1), name);
 		if (found)
-			return result;
+			return std::make_tuple(result, true);
 	}
 
 	if (ba::starts_with(contentType, "multipart/form-data"))
@@ -284,6 +284,7 @@ std::string request::get_parameter(const char* name) const
 					{
 						if (contentName == name)
 						{
+							found = true;
 							state = CONTENT;
 
 							r = i + 1;
@@ -307,7 +308,7 @@ std::string request::get_parameter(const char* name) const
 		ba::replace_all(result, "\r\n", "\n");
 	}
 	
-	return result;
+	return make_tuple(result, found);
 }
 
 std::string request::get_cookie(const char* name) const

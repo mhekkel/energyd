@@ -79,7 +79,39 @@ struct request
 
 	/// Fetch parameters from a request, either from the URL or from the payload in case
 	/// the request contains a url-encoded or multi-part content-type header
-	std::string get_parameter(const char* name) const; ///< Return the named parameter
+	std::string get_parameter(const char* name) const ///< Return the named parameter
+	{
+		std::string result;
+		std::tie(result, std::ignore) = get_parameter_ex(name);
+		return result;
+	}
+
+	std::string get_parameter(const char* name, const std::string& defaultValue) const ///< Return the named parameter
+	{
+		std::string result = get_parameter(name);
+		if (result.empty())
+			result = defaultValue;
+		return result;
+	}
+
+	template<typename T, typename std::enable_if_t<std::is_floating_point<T>::value, int> = 0>
+	T get_parameter(const char* name, const T& defaultValue) const ///< Return the named parameter
+	{
+		return static_cast<T>(std::stod(get_parameter(name, std::to_string(defaultValue))));
+	}
+
+	template<typename T, typename std::enable_if_t<std::is_integral<T>::value, int> = 0>
+	T get_parameter(const char* name, const T& defaultValue) const ///< Return the named parameter
+	{
+		return static_cast<T>(std::stol(get_parameter(name, std::to_string(defaultValue))));
+	}
+
+	bool has_parameter(const char* name) const ///< Return whether the named parameter is present in the request
+	{
+		bool result;
+		tie(std::ignore, result) = get_parameter_ex(name);
+		return result;
+	}
 
 	/// Return a parameter_map containing the cookies as found in the current request
 	std::string get_cookie(const char* name) const;
@@ -90,6 +122,8 @@ struct request
 	void debug(std::ostream& os) const;
 
   private:
+	std::tuple<std::string,bool> get_parameter_ex(const char* name) const;
+
 	std::string m_request_line;
 	boost::posix_time::ptime m_timestamp;
 };
