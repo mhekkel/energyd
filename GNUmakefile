@@ -34,8 +34,8 @@ CXXFLAGS			+= $(shell PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) pkg-config --cflags $(P
 LDFLAGS				+= $(shell PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) pkg-config --libs $(PACKAGES) --static )
 endif
 
-ZEEP_INC_DIR		= ../libzeep/include
-ZEEP_LIB_DIR		= ../libzeep/lib
+ZEEP_INC_DIR		?= ../libzeep/include
+ZEEP_LIB_DIR		?= ../libzeep/lib
 
 BOOST_INC_DIR       = $(BOOST:%=%/include)
 BOOST_LIB_DIR       = $(BOOST:%=%/lib)
