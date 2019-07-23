@@ -76,20 +76,27 @@ $(OBJDIR)/%.o: %.cpp | $(OBJDIR)
 	@ echo ">>" $<
 	@ $(CXX) -MD -c -o $@ $< $(CFLAGS) $(CXXFLAGS)
 
-all: $(APPS)
+all: energyd
 .PHONY: all
 
-$(ZEEP_LIB_DIR)/libzeep.a:
+docroot/scripts/%.js: webapp/%.js
+	yarn webpack
+
+assets: docroot/scripts/grafiek.js docroot/scripts/opname.js
+.PHONY: assets
+
+$(ZEEP_LIB_DIR)/libzeep.a: FORCE
 	+$(MAKE) -C $(ZEEP_LIB_DIR) static-lib
 
-$(APPS): $(ZEEP_LIB_DIR)/libzeep.a
+energyd: $(ZEEP_LIB_DIR)/libzeep.a
 
-$(APPS): %: $(OBJDIR)/%.o
+energyd: %: $(OBJDIR)/%.o | assets
 	@ echo '->' $@
 	@ $(CXX) -o $@ $^ $(LDFLAGS)
+	@ $(MAKE) assets
 
 clean:
-	rm -rf $(OBJDIR)/* $(APPS)
+	rm -rf $(OBJDIR)/* energyd
 
 dist-clean: clean
 

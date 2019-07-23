@@ -4,7 +4,6 @@ import 'bootstrap';
 import 'bootstrap/js/dist/modal'
 import 'bootstrap/dist/css/bootstrap.min.css';
 import * as d3 from 'd3';
-import { color } from 'd3-color';
 
 class grafiek {
 	constructor() {
@@ -85,19 +84,6 @@ class grafiek {
 			.attr("width", this.width)
 			.attr("height", this.height);
 
-		const kleurLijn = '#1f78b4';
-		const kleurArea = '#a6cee3';
-
-		// this.lijn = this.plotData.append('path')
-		// 	.attr('class', 'grafiek-lijn')
-		// 	.attr('stroke', kleurLijn)
-		// 	.attr('stroke-width', 2)
-		// 	.attr('fill', 'none');
-
-		// this.area = this.plotData.append('path')
-		// 	.attr('class', 'area')
-		// 	.attr('fill', kleurArea);
-
 		const zoom = d3.zoom()
 			.scaleExtent([1, 40])
 			.translateExtent([[0, 0], [this.width + 90, this.height + 90]])
@@ -148,7 +134,6 @@ class grafiek {
 	}
 
 	processData(data) {
-		
 		const dataPunten = [];
 		const years = new Set();
 
@@ -172,21 +157,18 @@ class grafiek {
 		
 		const colors = d3.scaleOrdinal([...years], d3.schemeCategory10);
 
-		// const domX = d3.extent(dataPunten, d => d.date);
-
-		// const x = d3.scaleTime().domain(domX).range([1, this.width - 2]);
 		const domX = [1, 366];
-		const x = d3.scaleLinear().domain(domX).range([1, this.width - 2]);
 
-		const xAxis = d3.axisBottom(x);
+		const tickFormat = t => d3.timeFormat("%b")(d3.timeParse("%j")(t));
+
+		const x = d3.scaleLinear().domain(domX).range([1, this.width - 2]);
+		const xAxis = d3.axisBottom(x).ticks(12).tickFormat(tickFormat);
 
 		this.gX.call(xAxis);
 
 		const domY = d3.extent(dataPunten, d => d.verbruik);
-
 		const y = d3.scaleLinear().domain(domY).range([this.height - 2, 1]);
-
-		const yAxis = d3.axisLeft(y);
+		const yAxis = d3.axisLeft(y).tickSizeInner(-this.width);
 
 		this.gY.call(yAxis);
 
@@ -207,26 +189,6 @@ class grafiek {
 						.y(d => y(d.verbruik))
 						(d.values)
 				);
-
-		// this.lijn
-		// 	.datum(dataPunten)
-		// 	.attr('d', line)
-		// 	.attr("class", "line");
-
-		// if (domY[0] < 0 && domY[1] > 0) {
-
-
-		// 	const area = d3.area()
-		// 		.x(d => x(d.date))
-		// 		.y0(d => y(0))
-		// 		.y1(d => y(d.verbruik));
-
-		// 	this.area
-		// 		.datum(dataPunten)
-		// 		.attr('d', area);
-		// }
-		// else
-		// 	this.area.attr('d', null);
 	}
 
 	zoomed() {

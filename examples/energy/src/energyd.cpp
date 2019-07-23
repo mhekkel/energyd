@@ -178,6 +178,8 @@ string selector(grafiek_type g)
 			return "SELECT a.tijd, b.stand "
 				   " FROM opname a LEFT OUTER JOIN tellerstand b ON a.id = b.opname_id "
 				   " WHERE b.teller_id = 4 ORDER BY a.tijd ASC";
+		default:
+			return "";
 	}
 }
 
