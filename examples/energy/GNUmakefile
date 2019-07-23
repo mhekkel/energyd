@@ -80,9 +80,10 @@ all: energyd
 .PHONY: all
 
 docroot/scripts/%.js: webapp/%.js
-	yarn webpack
 
 assets: docroot/scripts/grafiek.js docroot/scripts/opname.js
+	yarn webpack
+
 .PHONY: assets
 
 $(ZEEP_LIB_DIR)/libzeep.a: FORCE
