@@ -162,7 +162,13 @@ class grafiek {
 		const tickFormat = t => d3.timeFormat("%b")(d3.timeParse("%j")(t));
 
 		const x = d3.scaleLinear().domain(domX).range([1, this.width - 2]);
-		const xAxis = d3.axisBottom(x).ticks(12).tickFormat(tickFormat);
+
+		const xTicks = d3.timeMonth
+			.every(1)
+			.range(new Date(2000, 0, 1), new Date(2000, 11, 31))
+			.map(d3.timeFormat("%j"));
+
+		const xAxis = d3.axisBottom(x).tickValues(xTicks).tickFormat(tickFormat);
 
 		this.gX.call(xAxis);
 

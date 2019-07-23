@@ -17,7 +17,7 @@ PREFIX              ?= /usr/local
 PACKAGES			+= libpqxx
 
 # main build variables
-CXX                 ?= clangc++
+# CXX                 ?= clangc++
 CXXFLAGS            += $(BOOST_INC_DIR:%=-I%) -I. -pthread -std=c++17
 CXXFLAGS            += -Wall
 CXXFLAGS            += -g
