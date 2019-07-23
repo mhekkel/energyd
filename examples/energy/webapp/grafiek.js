@@ -4,6 +4,7 @@ import 'bootstrap';
 import 'bootstrap/js/dist/modal'
 import 'bootstrap/dist/css/bootstrap.min.css';
 import * as d3 from 'd3';
+import { color } from 'd3-color';
 
 class grafiek {
 	constructor() {
@@ -87,17 +88,15 @@ class grafiek {
 		const kleurLijn = '#1f78b4';
 		const kleurArea = '#a6cee3';
 
-		console.log([kleurLijn, kleurArea]);
+		// this.lijn = this.plotData.append('path')
+		// 	.attr('class', 'grafiek-lijn')
+		// 	.attr('stroke', kleurLijn)
+		// 	.attr('stroke-width', 2)
+		// 	.attr('fill', 'none');
 
-		this.lijn = this.plotData.append('path')
-			.attr('class', 'grafiek-lijn')
-			.attr('stroke', kleurLijn)
-			.attr('stroke-width', 2)
-			.attr('fill', 'none');
-
-		this.area = this.plotData.append('path')
-			.attr('class', 'area')
-			.attr('fill', kleurArea);
+		// this.area = this.plotData.append('path')
+		// 	.attr('class', 'area')
+		// 	.attr('fill', kleurArea);
 
 		const zoom = d3.zoom()
 			.scaleExtent([1, 40])
@@ -151,35 +150,33 @@ class grafiek {
 	processData(data) {
 		
 		const dataPunten = [];
+		const years = new Set();
+
 		for (let d in data.punten)
 		{
+			const date = new Date(d);
+
+			years.add(date.getFullYear());
+
 			dataPunten.push({
-				date: new Date(d),
+				date: date,
+				year: date.getFullYear(),
+				xdate: d3.timeFormat("%j")(date),
 				verbruik: data.punten[d]
 			});
 		}
 
-		// const dataPunten = data.standen.entries()
-		// 	.map(e => {
-		// 		[datum, verbruik] = e;
-		// 		return {
-		// 			date: new Date(datum),
-		// 			verbruik: verbruik
-		// 		};
-		// 	});
+		const dataPunten2 = d3.nest()
+			.key(d => d.date.getFullYear())
+			.entries(dataPunten);
+		
+		const colors = d3.scaleOrdinal([...years], d3.schemeCategory10);
 
-		// const dataPunten = data.punten.sort((a, b) => {
-		// 	let d = a.datum[0] - b.datum[0];
-		// 	if (d === 0) d = a.datum[1] - b.datum[1];
-		// 	if (d === 0) d = a.datum[2] - b.datum[2];
-		// 	return d;
-		// });
+		// const domX = d3.extent(dataPunten, d => d.date);
 
-		// dataPunten.forEach(d => d.date = new Date(...d.datum));
-
-		const domX = d3.extent(dataPunten, d => d.date);
-
-		const x = d3.scaleTime().domain(domX).range([1, this.width - 2]);
+		// const x = d3.scaleTime().domain(domX).range([1, this.width - 2]);
+		const domX = [1, 366];
+		const x = d3.scaleLinear().domain(domX).range([1, this.width - 2]);
 
 		const xAxis = d3.axisBottom(x);
 
@@ -193,27 +190,43 @@ class grafiek {
 
 		this.gY.call(yAxis);
 
-		const line = d3.line()
-			.x(d => x(d.date))
-			.y(d => y(d.verbruik));
+		this.plotData.selectAll(".line")
+			.remove();
+		
+		this.plotData.selectAll(".line")
+			.data(dataPunten2)
+			.enter()
+			.append("path")
+				.attr("class", "line")
+				.attr("fill", "none")
+				.attr("stroke", d => colors(d.key))
+				.attr("stroke-width", 1.5)
+				.attr("d", d => 
+					d3.line()
+						.x(d => x(d.xdate))
+						.y(d => y(d.verbruik))
+						(d.values)
+				);
 
-		this.lijn
-			.datum(dataPunten)
-			.attr('d', line);
+		// this.lijn
+		// 	.datum(dataPunten)
+		// 	.attr('d', line)
+		// 	.attr("class", "line");
 
-		if (domY[0] < 0 && domY[1] > 0) {
+		// if (domY[0] < 0 && domY[1] > 0) {
 
-			const area = d3.area()
-				.x(d => x(d.date))
-				.y0(d => y(0))
-				.y1(d => y(d.verbruik));
 
-			this.area
-				.datum(dataPunten)
-				.attr('d', area);
-		}
-		else
-			this.area.attr('d', null);
+		// 	const area = d3.area()
+		// 		.x(d => x(d.date))
+		// 		.y0(d => y(0))
+		// 		.y1(d => y(d.verbruik));
+
+		// 	this.area
+		// 		.datum(dataPunten)
+		// 		.attr('d', area);
+		// }
+		// else
+		// 	this.area.attr('d', null);
 	}
 
 	zoomed() {

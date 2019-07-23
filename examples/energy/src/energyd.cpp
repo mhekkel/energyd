@@ -337,7 +337,13 @@ GrafiekData my_rest_controller::get_grafiek(grafiek_type type, aggregatie_type a
 
 	pqxx::transaction tx(m_connection);
 
-	map<date,float> data;
+    struct verbruik_per_periode
+    {
+        float verbruik = 0;
+        long duur = 0;
+    };
+
+	map<date,verbruik_per_periode> data;
 	float standVan = 0, standTot;
 	ptime van, tot;
 
@@ -400,8 +406,15 @@ GrafiekData my_rest_controller::get_grafiek(grafiek_type type, aggregatie_type a
 			if (dagDuur <= 0)
 				continue;
 
+            // auto periodeDuur = (ptime(**iter) - ptime(dag)).total_seconds() / (24.0f * 60 * 60);
+			// float dagVerbruik = verbruikPerSeconde * dagDuur / periodeDuur;
+
 			float dagVerbruik = verbruikPerSeconde * dagDuur;
-			data[dag] += dagVerbruik;
+			// data[dag] += dagVerbruik;
+
+            auto& d = data[dag];
+            d.verbruik += dagVerbruik;
+            d.duur += dagDuur;
 		}
 
 		van = tot;
@@ -413,15 +426,14 @@ GrafiekData my_rest_controller::get_grafiek(grafiek_type type, aggregatie_type a
 	for (auto p: data)
 	{
 		date dag;
-		float verbruik;
-		tie(dag, verbruik) = p;
+        verbruik_per_periode v;
+        tie(dag, v) = p;
 
-		result.punten.emplace(to_iso_extended_string(dag), verbruik);
+		result.punten.emplace(to_iso_extended_string(dag), (24 * 60 * 60) * v.verbruik / v.duur);
 	}
 
 	return result;
 }
-
 
 class my_server : public zh::webapp
 {
@@ -492,8 +504,8 @@ void my_server::handle_file(const zh::request& request, const el::scope& scope, 
 	
 	webapp::handle_file(request, scope, reply);
 	
-	if (file.extension() == ".html" or file.extension() == ".xhtml")
-		reply.set_content_type("application/xhtml+xml");
+	// if (file.extension() == ".html" or file.extension() == ".xhtml")
+	// 	reply.set_content_type("application/xhtml+xml");
 }
 
 int main(int argc, const char* argv[])
