@@ -14,6 +14,7 @@
 #include <boost/date_time/gregorian/gregorian.hpp>
 
 #include <zeep/http/webapp.hpp>
+#include <zeep/http/tag-processor-v2.hpp>
 #include <zeep/http/md5.hpp>
 
 #include <boost/filesystem.hpp>
@@ -441,9 +442,11 @@ class my_server : public zh::webapp
 {
   public:
 	my_server(const string& dbConnectString)
-		: zh::webapp("http://www.hekkelman.com/libzeep/ml", fs::current_path() / "docroot")
+		: zh::webapp(fs::current_path() / "docroot")
 		, m_rest_controller(new my_rest_controller(dbConnectString))
 	{
+		register_tag_processor<zh::tag_processor_v2>("http://www.hekkelman.com/libzeep/m2");
+
 		add_controller(m_rest_controller);
 	
 		mount("", &my_server::opname);
@@ -559,7 +562,7 @@ int main(int argc, const char* argv[])
 		my_server app(ba::join(vConn, " "));
 
 		string address = "0.0.0.0";
-		uint16_t port = 10333;
+		uint16_t port = 10336;
 		if (vm.count("address"))
 			address = vm["address"].as<string>();
 		if (vm.count("port"))

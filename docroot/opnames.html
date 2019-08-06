@@ -1,6 +1,8 @@
 <!DOCTYPE html SYSTEM "about:legacy-compat">
+
 <html xmlns="http://www.w3.org/1999/xhtml"
-	  xmlns:z="http://www.hekkelman.com/libzeep/ml"
+	  xmlns:z1="http://www.hekkelman.com/libzeep/m1"
+	  xmlns:z2="http://www.hekkelman.com/libzeep/m2"
 	  lang="nl" >
 
 <head>
@@ -16,7 +18,7 @@
 
 <body>
 
-	<z:include file="/menu.html" />
+	<z1:include file="/menu.html" />
 
 	<div class="container">
 		<div class="container row mt-3 mb-3">
@@ -30,28 +32,20 @@
 			<thead>
 				<tr>
 					<th>Tijdstip</th>
-					<z:iterate collection="${tellers}" var="teller">
-					<th>${teller.korteNaam}</th>
-					</z:iterate> 
+					<th z2:each="teller: ${tellers}" z2:text="${teller.korteNaam}" />
 					<th colspan="2">Actie</th>
 				</tr>
 			</thead>
 			<tbody>
-				<z:iterate collection="${opnames}" var="opname">
-				<tr data-id="${opname.id}">
-					<td>${opname.datum}</td>
-					<z:iterate collection="${tellers}" var="teller">
-						<td class="nummer">
-							<z:if test="${opname.standen[teller.id]}">
-								<span>${opname.standen[teller.id]}</span>
-							</z:if>
-						</td>
-					</z:iterate>
-					<td class="edit-opname-btn" data-id="${opname.id}"><i class="fa fa-edit"></i></td>
-					<td class="delete-opname-btn" data-id="${opname.id}" data-name="${opname.tijd}"><i class="fa fa-trash"></i>
+				<tr z2:each="opname: ${opnames}" z2:attr="data-id=${opname.id}">
+					<td z2:text="${#dates.format(opname.datum, '%d %B %Y, %H:%M')}" />
+					<td z2:each="teller: ${tellers}">
+						<span z2:if="${opname.standen[teller.id]}" z2:text="${opname.standen[teller.id]}" />
+					</td>
+					<td class="edit-opname-btn" z2:attr="data-id=${opname.id}"><i class="fa fa-edit"></i></td>
+					<td class="delete-opname-btn" z2:attr="data-id=${opname.id},data-name=${opname.datum}"><i class="fa fa-trash"></i>
 					</td>
 				</tr>
-				</z:iterate>
 		</tbody>
 	</table>
 </div>
@@ -71,17 +65,14 @@
 				<form id="opname-edit-form" action="/ajax/opname" method="post">
 					<input type="hidden" name="id" value=""/>
 
-					<z:iterate collection="${tellers}" var="teller">
-
-						<div class="form-group">
-							<label for="${'id-' + teller.id}">${teller.naam}</label>
-							<input class="form-control" id="${'id-' + teller.id}" maxlength="254"
-								   data-id="${teller.id}"
-								   name="${teller.id}" type="number" step="${teller.schaal == 3 ? 0.001 : 1}"
-								   value="${opnames[0].standen[teller.id] != null ? opnames[0].standen[teller.id] : ''}"
-								   required="true" />
-						</div>
-					</z:iterate>
+					<div z2:each="teller: ${tellers}" class="form-group">
+						<label for="${'id-' + teller.id}" z2:text="${teller.naam}"></label>
+						<input class="form-control" maxlength="254"
+								z2:attr="id=${'id-' + teller.id},data-id=${teller.id}"
+								z2:name="${teller.id}" type="number" z2:step="${teller.schaal == 3 ? 0.001 : 1}"
+								z2:value="${opnames[0].standen[teller.id] ?: ''}"
+								required="true" />
+					</div>
 				</form>
 			</div>
 			<div class="modal-footer">
