@@ -14,7 +14,6 @@
 #include <boost/date_time/gregorian/gregorian.hpp>
 
 #include <zeep/http/webapp.hpp>
-#include <zeep/http/tag-processor-v2.hpp>
 #include <zeep/http/md5.hpp>
 
 #include <boost/filesystem.hpp>
