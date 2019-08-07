@@ -39,8 +39,9 @@
 			<tbody>
 				<tr z2:each="opname: ${opnames}" z2:attr="data-id=${opname.id}">
 					<td z2:text="${#dates.format(opname.datum, '%d %B %Y, %H:%M')}" />
-					<td z2:each="teller: ${tellers}">
-						<span z2:if="${opname.standen[teller.id]}" z2:text="${opname.standen[teller.id]}" />
+					<td z2:each="teller: ${tellers}" style="text-align: right">
+						<span z2:if="${opname.standen[teller.id]}"
+							  z2:text="${#numbers.formatDecimal(opname.standen[teller.id], 1, teller.id == '1' ? 3 : 0)}"/>
 					</td>
 					<td class="edit-opname-btn" z2:attr="data-id=${opname.id}"><i class="fa fa-edit"></i></td>
 					<td class="delete-opname-btn" z2:attr="data-id=${opname.id},data-name=${opname.datum}"><i class="fa fa-trash"></i>
