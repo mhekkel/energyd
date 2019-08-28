@@ -1,5 +1,16 @@
 {
-  "dependencies": {
+    "name": "energieverbruik",
+    "version": "1.0.0",
+    "description": "A tool to monitor erergy usage",
+    "repository": "svn+ssh://mail.hekkelman.net//home/maarten/svnroot/energyd/trunk",
+    "author": "M.L. Hekkelman",
+    "license": "Boost",
+    "private": true,
+    "scripts": {
+      "start": "webpack-dev-server --config webpack.config.js --env.debug",
+      "build": "webpack --config webpack.config.js"
+    },
+    "dependencies": {
     "@babel/cli": "^7.4.3",
     "@babel/polyfill": "^7.4.4",
     "@babel/preset-env": "^7.4.3",
@@ -16,6 +27,7 @@
     "@fortawesome/fontawesome": "^1.1.8",
     "clean-webpack-plugin": "^2.0.1",
     "css-loader": "^2.1.1",
+    "eslint": "^6.1.0",
     "file-loader": "^3.0.1",
     "imports-loader": "^0.8.0",
     "style-loader": "^0.23.1",

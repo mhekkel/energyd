@@ -332,12 +332,63 @@ class my_rest_controller : public zh::rest_controller
 	pqxx::connection m_connection;
 };
 
+// --------------------------------------------------------------------
+
+typedef std::map<boost::posix_time::ptime,float> StandMap;
+
+float interpolateStand(const StandMap& data, boost::posix_time::ptime t)
+{
+	using namespace boost::posix_time;
+	using namespace boost::gregorian;
+
+	float result = 0;
+
+	for (;;)
+	{
+		if (data.empty())
+			break;
+
+		auto ub = data.upper_bound(t);
+		if (ub == data.end())
+		{
+			result = prev(ub)->second;
+			break;
+		}
+
+		if (ub == data.begin())
+		{
+			result = ub->second;
+			break;
+		}
+
+		auto b = prev(ub);
+		assert(b->first <= t);
+
+		float d1 = (ub->first - b->first).total_seconds();
+		float d2 = (t - b->first).total_seconds();
+
+		float df = ub->second - b->second;
+
+		result = b->second + df * (d2 / d1);
+
+		break;
+	}
+
+	return result;
+}
+
 GrafiekData my_rest_controller::get_grafiek(grafiek_type type, aggregatie_type aggr)
 {
 	using namespace boost::posix_time;
 	using namespace boost::gregorian;
 
 	pqxx::transaction tx(m_connection);
+
+	StandMap sm;
+
+	for (auto r: tx.exec(selector(type)))
+		sm[time_from_string(r[0].as<string>())] = r[1].as<float>();
+
 
     struct verbruik_per_periode
     {
@@ -346,96 +397,61 @@ GrafiekData my_rest_controller::get_grafiek(grafiek_type type, aggregatie_type a
     };
 
 	map<date,verbruik_per_periode> data;
-	float standVan = 0, standTot;
-	ptime van, tot;
 
 	unique_ptr<date_iterator> iter;
 	auto start_w = first_day_of_the_week_before(Sunday);
 
-	for (auto r: tx.exec(selector(type)))
+	ptime van = sm.begin()->first,
+		  tot = prev(sm.end())->first;
+
+	switch (aggr)
 	{
-		if (standVan == 0)
-		{
-			van = time_from_string(r[0].as<string>());
-			standVan = r[1].as<float>();
-			continue;
-		}
+		case aggregatie_type::dag:
+			iter.reset(new day_iterator(van.date()));
+			break;
 
-		tot = time_from_string(r[0].as<string>());
-		standTot = r[1].as<float>();
+		case aggregatie_type::week:
+			iter.reset(new week_iterator(start_w.get_date(van.date())));
+			break;
 
-		auto verbruik = standTot - standVan;
+		case aggregatie_type::maand:
+			iter.reset(new month_iterator(date(van.date().year(), van.date().month(), 1)));
+			break;
 
-		time_duration dt = tot - van;
-		float verbruikPerSeconde = verbruik / dt.total_seconds();
-
-		switch (aggr)
-		{
-			case aggregatie_type::dag:
-				iter.reset(new day_iterator(van.date()));
-				break;
-
-			case aggregatie_type::week:
-				iter.reset(new week_iterator(start_w.get_date(van.date())));
-				break;
-
-			case aggregatie_type::maand:
-				iter.reset(new month_iterator(date(van.date().year(), van.date().month(), 1)));
-				break;
-
-			case aggregatie_type::jaar:
-				iter.reset(new year_iterator(date(van.date().year(), Jan, 1)));
-				break;
-		}
-
-		auto eind = ((tot + days(1)).date());
-
-		while (**iter < eind)
-		{
-			auto dag = **iter;
-
-			ptime tijdVan(dag);
-			if (tijdVan < van)
-				tijdVan = van;
-
-			++*iter;
-
-			ptime tijdTot(**iter);
-			if (tijdTot > tot)
-				tijdTot = tot;
-
-			auto dagDuur = (tijdTot - tijdVan).total_seconds();
-			if (dagDuur <= 0)
-				continue;
-
-            // auto periodeDuur = (ptime(**iter) - ptime(dag)).total_seconds() / (24.0f * 60 * 60);
-			// float dagVerbruik = verbruikPerSeconde * dagDuur / periodeDuur;
-
-			float dagVerbruik = verbruikPerSeconde * dagDuur;
-			// data[dag] += dagVerbruik;
-
-            auto& d = data[dag];
-            d.verbruik += dagVerbruik;
-            d.duur += dagDuur;
-		}
-
-		van = tot;
-		standVan = standTot;
+		case aggregatie_type::jaar:
+			iter.reset(new year_iterator(date(van.date().year(), Jan, 1)));
+			break;
 	}
+
+	auto eind = ((tot + days(1)).date());
 
 	GrafiekData result;
 
-	for (auto p: data)
+	while (**iter < eind)
 	{
-		date dag;
-        verbruik_per_periode v;
-        tie(dag, v) = p;
+		auto dag = **iter;
 
-		result.punten.emplace(to_iso_extended_string(dag), (24 * 60 * 60) * v.verbruik / v.duur);
+		ptime tijdVan(dag);
+		float standVan = interpolateStand(sm, tijdVan);
+
+		++*iter;
+
+		ptime tijdTot(**iter);
+		float standTot = interpolateStand(sm, tijdTot);
+
+		auto duur = (tijdTot - tijdVan).total_seconds();
+		if (duur <= 0)
+			continue;
+
+		float verbruik = (standTot - standVan);
+
+		result.punten.emplace(to_iso_extended_string(dag), (24 * 60 * 60) * verbruik / duur);
 	}
 
 	return result;
 }
+
+// --------------------------------------------------------------------
 
 class my_server : public zh::webapp
 {

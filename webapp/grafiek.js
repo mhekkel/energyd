@@ -4,6 +4,7 @@ import 'bootstrap';
 import 'bootstrap/js/dist/modal'
 import 'bootstrap/dist/css/bootstrap.min.css';
 import * as d3 from 'd3';
+import $ from 'jquery';
 
 class grafiek {
 	constructor() {
@@ -95,7 +96,7 @@ class grafiek {
 	laadGrafiek() {
 		const selected = this.selector.selectedOptions;
 		if (selected.length !== 1)
-			reject("ongeldige keuze");
+			throw("ongeldige keuze");
 
 		const keuze = selected.item(0).value;
 		const grafiekNaam = selected.item(0).textContent;
@@ -192,8 +193,7 @@ class grafiek {
 				.attr("d", d => 
 					d3.line()
 						.x(d => x(d.xdate))
-						.y(d => y(d.verbruik))
-						(d.values)
+						.y(d => y(d.verbruik))(d.values)
 				);
 	}
 
