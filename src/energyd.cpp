@@ -187,12 +187,14 @@ struct GrafiekData
 {
 	string 				type;
 	map<string,float>	punten;
+	map<string,float>   vsGem;
 
 	template<typename Archive>
 	void serialize(Archive& ar, unsigned long)
 	{
 		ar & zeep::make_nvp("type", type)
-		   & zeep::make_nvp("punten", punten);
+		   & zeep::make_nvp("punten", punten)
+		   & zeep::make_nvp("vsgem", vsGem);
 	}
 };
 
@@ -390,11 +392,11 @@ GrafiekData my_rest_controller::get_grafiek(grafiek_type type, aggregatie_type a
 		sm[time_from_string(r[0].as<string>())] = r[1].as<float>();
 
 
-    struct verbruik_per_periode
-    {
-        float verbruik = 0;
-        long duur = 0;
-    };
+	struct verbruik_per_periode
+	{
+		float verbruik = 0;
+		long duur = 0;
+	};
 
 	map<date,verbruik_per_periode> data;
 
@@ -425,27 +427,51 @@ GrafiekData my_rest_controller::get_grafiek(grafiek_type type, aggregatie_type a
 
 	auto eind = ((tot + days(1)).date());
 
+	auto vorigjaar = ptime(date(tot.date().year() - 1, tot.date().month(), tot.date().day()));
+
 	GrafiekData result;
 
-	while (**iter < eind)
+	auto dag = **iter;
+
+	ptime tijdVan(dag);
+	if (tijdVan < van)
+		tijdVan = van;
+
+	float standVan = interpolateStand(sm, tijdVan);
+
+	while (*++*iter < eind)
 	{
-		auto dag = **iter;
-
-		ptime tijdVan(dag);
-		float standVan = interpolateStand(sm, tijdVan);
-
-		++*iter;
+		dag = **iter;
 
 		ptime tijdTot(**iter);
+		if (tijdTot > tot)
+			tijdTot = tot;
+
 		float standTot = interpolateStand(sm, tijdTot);
 
 		auto duur = (tijdTot - tijdVan).total_seconds();
 		if (duur <= 0)
+		{
+			tijdVan = tijdTot;
+			standVan = standTot;
 			continue;
+		}
 
 		float verbruik = (standTot - standVan);
 
 		result.punten.emplace(to_iso_extended_string(dag), (24 * 60 * 60) * verbruik / duur);
+
+		tijdVan = tijdTot;
+		standVan = standTot;
+
+		// voortschrijdend gemiddelde over een jaar
+		if (tijdTot < vorigjaar)
+			continue;
+		
+		auto jaarVoorDag = ptime(date(tijdTot.date().year() - 1, tijdTot.date().month(), tijdTot.date().day()));
+		verbruik = standTot - interpolateStand(sm, jaarVoorDag);
+		duur = (tijdTot - jaarVoorDag).total_seconds();
+		result.vsGem.emplace(to_iso_extended_string(dag), (24 * 60 * 60) * verbruik / duur);
 	}
 
 	return result;

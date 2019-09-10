@@ -195,6 +195,46 @@ class grafiek {
 						.x(d => x(d.xdate))
 						.y(d => y(d.verbruik))(d.values)
 				);
+
+		// voortschrijdend gemiddelde
+
+		const dataPunten3 = [];
+		for (let d in data.vsgem)
+		{
+			const date = new Date(d);
+
+			if (! years.has(date.getFullYear()))
+				console.log("how is this possible, year not known yet");
+
+			dataPunten3.push({
+				date: date,
+				year: date.getFullYear(),
+				xdate: d3.timeFormat("%j")(date),
+				verbruik: data.vsgem[d]
+			});
+		}
+
+		const dataPunten4 = d3.nest()
+			.key(d => d.date.getFullYear())
+			.entries(dataPunten3);
+		
+		this.plotData.selectAll(".ma-line")
+			.remove();
+		
+		this.plotData.selectAll(".ma-line")
+			.data(dataPunten4)
+			.enter()
+			.append("path")
+				.attr("class", "ma-line")
+				.attr("fill", "none")
+				.attr("stroke", "gray")
+				.attr("stroke-width", 2)
+				.attr("d", d => 
+					d3.line()
+						.x(d => x(d.xdate))
+						.y(d => y(d.verbruik))(d.values)
+				);
+
 	}
 
 	zoomed() {
