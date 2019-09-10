@@ -24,6 +24,9 @@ CXXFLAGS            += -g
 LD                  ?= ld
 LDFLAGS				= -g
 
+SVN					= $(shell which svn)
+MRC					= $(shell which mrc)
+
 # Use the DEBUG flag to build debug versions of the code
 DEBUG               = 0
 
@@ -68,7 +71,7 @@ $(OBJDIR):
 
 APPS = energyd
 
-OBJECTS = $(APPS:%=$(OBJDIR)/%.o)
+OBJECTS = $(APPS:%=$(OBJDIR)/%.o) $(APPS:%=$(OBJDIR)/%_rsrc.o) 
 	
 -include $(OBJECTS:%.o=%.d)
 
@@ -81,28 +84,46 @@ $(OBJDIR)/%.o: %.cpp | $(OBJDIR)
 all: energyd
 .PHONY: all
 
-docroot/scripts:
+REVISION = $(shell LANG=C $(SVN) info | tr -d '\n' | sed -e's/.*Revision: \([[:digit:]]*\).*/\1/' )
+REVISION_FILE = version-info-$(REVISION).txt
+
+$(REVISION_FILE):
+	LANG=C $(SVN) info > $@
+
+rsrc/version.txt: $(REVISION_FILE) | rsrc
+	cp $? $@
+
+rsrc:
 	mkdir -p $@
 
-docroot/scripts/grafiek.js docroot/scripts/opname.js: webapp/grafiek.js webapp/opname.js | docroot/scripts
-	yarn webpack
+RSRC = rsrc/version.txt
+ifneq ($(DEBUG),1)
+RSRC += docroot/ 
+endif
 
-yarn.lock:
-	yarn
+# yarn rules
+SCRIPTS = $(shell find webapp -name '*.js')
+WEBAPP_FILES = $(SCRIPTS)
+SCRIPT_FILES = $(SCRIPTS:webapp/%.js=docroot/scripts/%.js)
 
-assets: docroot/scripts/grafiek.js docroot/scripts/opname.js | docroot/scripts yarn.lock
+ifneq ($(DEBUG),1)
+WEBPACK_OPTIONS = --env.PRODUCTIE
+endif
 
-.PHONY: assets
+$(subst .js,%js,$(SCRIPT_FILES)): $(subst .js,%js,$(WEBAPP_FILES))
+	yarn webpack $(WEBPACK_OPTIONS)
+
+$(OBJDIR)/energyd_rsrc.o: $(RSRC) $(SCRIPT_FILES)
+	$(MRC) -o $@ $(RSRC) --verbose
 
 $(ZEEP_LIB_DIR)/libzeep.a: FORCE
 	+$(MAKE) -C $(ZEEP_LIB_DIR) static-lib
 
 energyd: $(ZEEP_LIB_DIR)/libzeep.a
 
-energyd: %: $(OBJDIR)/%.o | assets
+energyd: %: $(OBJECTS)
 	@ echo '->' $@
 	@ $(CXX) -o $@ $^ $(LDFLAGS)
-	@ $(MAKE) assets
 
 clean:
 	rm -rf $(OBJDIR)/* energyd
@@ -110,3 +131,7 @@ clean:
 dist-clean: clean
 
 FORCE:
+
+
+help:
+	echo $(REVISION)
