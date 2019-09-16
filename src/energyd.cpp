@@ -439,8 +439,10 @@ GrafiekData my_rest_controller::get_grafiek(grafiek_type type, aggregatie_type a
 
 	float standVan = interpolateStand(sm, tijdVan);
 
-	while (*++*iter < eind)
+	for (;;)
 	{
+		++*iter;
+
 		dag = **iter;
 
 		ptime tijdTot(**iter);
@@ -472,6 +474,9 @@ GrafiekData my_rest_controller::get_grafiek(grafiek_type type, aggregatie_type a
 		verbruik = standTot - interpolateStand(sm, jaarVoorDag);
 		duur = (tijdTot - jaarVoorDag).total_seconds();
 		result.vsGem.emplace(to_iso_extended_string(dag), (24 * 60 * 60) * verbruik / duur);
+
+		if (dag >= eind)
+			break;
 	}
 
 	return result;
