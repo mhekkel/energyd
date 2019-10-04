@@ -2,7 +2,6 @@
 
 <html xmlns="http://www.w3.org/1999/xhtml"
 	  xmlns:z2="http://www.hekkelman.com/libzeep/m2"
-	  xmlns:z1="http://www.hekkelman.com/libzeep/m1"
 	  lang="nl" >
 
 <head>
@@ -18,7 +17,7 @@
 
 <body>
 
-	<z1:include file="/menu.html" />
+	<nav z2:replace="menu :: navbar" />
 
 	<div class="container">
 		<div class="container row mt-3 mb-3">
@@ -66,14 +65,29 @@
 				<form id="opname-edit-form" action="/ajax/opname" method="post">
 					<input type="hidden" name="id" value=""/>
 
-					<div z2:each="teller: ${tellers}" class="form-group">
-						<label for="${'id-' + teller.id}" z2:text="${teller.naam}"></label>
+					<div z2:each="teller: ${tellers}" class="form-group row">
+						<label class="col-sm-6 col-form-label col-form-label-sm"
+							   z2:for="|id-${teller.id}|" z2:text="${teller.naam}"></label>
+						<div class="col-sm-6">
+							<input class="form-control form-control-sm" maxlength="254"
+									z2:attr="id=|id-${teller.id}|,data-id=${teller.id}"
+									z2:name="${teller.id}" type="number" z2:step="${teller.schaal == 3 ? 0.001 : 1}"
+									z2:value="${opnames[0].standen[teller.id] ?: ''}"
+									required="true" />
+						</div>
+					</div>
+
+					<!-- <div z2:each="teller: ${tellers}" class="input-group">
+						<div class="input-group-prepend">
+							<label class="input-group-text" for="|id-${teller.id}|" z2:text="${teller.naam}"></label>
+						</div>
 						<input class="form-control" maxlength="254"
-								z2:attr="id=${'id-' + teller.id},data-id=${teller.id}"
+								z2:attr="id=|id-${teller.id}|,data-id=${teller.id}"
 								z2:name="${teller.id}" type="number" z2:step="${teller.schaal == 3 ? 0.001 : 1}"
 								z2:value="${opnames[0].standen[teller.id] ?: ''}"
 								required="true" />
-					</div>
+					</div> -->
+
 				</form>
 			</div>
 			<div class="modal-footer">

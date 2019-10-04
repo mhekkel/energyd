@@ -1,7 +1,6 @@
 <!DOCTYPE html SYSTEM "about:legacy-compat">
 <html xmlns="http://www.w3.org/1999/xhtml"
 	  xmlns:z2="http://www.hekkelman.com/libzeep/m2"
-	  xmlns:z1="http://www.hekkelman.com/libzeep/m1"
 	  lang="nl" >
 <head>
 	<meta charset="UTF-8"/>
@@ -14,7 +13,7 @@
 	<link rel="stylesheet" type="text/css" href="css/style.css" />
 </head>
 <body>
-	<z1:include file="/menu.html" />
+	<nav z2:replace="menu :: navbar" />
 
 	<div class="container">
 
