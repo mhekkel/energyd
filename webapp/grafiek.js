@@ -137,12 +137,16 @@ class grafiek {
 	processData(data) {
 		const dataPunten = [];
 		const years = new Set();
+		let lastYear = 0;
 
 		for (let d in data.punten)
 		{
 			const date = new Date(d);
 
-			years.add(date.getFullYear());
+			const year = date.getFullYear();
+			years.add(year);
+			if (lastYear < year)
+				lastYear = year;
 
 			dataPunten.push({
 				date: date,
@@ -188,6 +192,7 @@ class grafiek {
 			.append("path")
 				.attr("class", "line")
 				.attr("fill", "none")
+				.attr("opacity", d => 1 - (lastYear - d.key) / 10)
 				.attr("stroke", d => colors(d.key))
 				.attr("stroke-width", 1.5)
 				.attr("d", d => 
