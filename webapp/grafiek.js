@@ -192,7 +192,8 @@ class grafiek {
 			.append("path")
 				.attr("class", "line")
 				.attr("fill", "none")
-				.attr("opacity", d => 1 - (lastYear - d.key) / 10)
+				.attr("opacity", d => 1 / (lastYear - d.key + 1))
+				// .attr("opacity", d => 1.5 / (lastYear - d.key + 1.5))
 				.attr("stroke", d => colors(d.key))
 				.attr("stroke-width", 1.5)
 				.attr("d", d => 
