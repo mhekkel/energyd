@@ -57,3 +57,19 @@ g.tick line {
 .error-head-text {
 	font-size: large;
 }
+
+/* voor kleinere tabel */
+@media only screen and (max-width: 768px)
+{
+	span.datum-groot, button.groot {
+		display: none;
+	}
+}
+
+@media only screen and (min-width: 768px)
+{
+	span.datum-klein, button.klein {
+		display: none;
+	}
+}
+

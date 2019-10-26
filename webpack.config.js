@@ -10,6 +10,7 @@ module.exports = (env) => {
 	const webpackConf = {
 		entry: {
 			polyfill: '@babel/polyfill',
+			invoer: SCRIPTS + "invoer.js",
 			opname: SCRIPTS + "opname.js",
 			grafiek: SCRIPTS + "grafiek.js"
 		},
@@ -57,8 +58,7 @@ module.exports = (env) => {
 
 	};
 
-//	const PRODUCTIE = [1, '1', 'true'].includes(env.PRODUCTIE);
-	const PRODUCTIE = false;
+    const PRODUCTIE = env != null && env.PRODUCTIE;
 
 	if (PRODUCTIE) {
 		webpackConf.mode = "production";

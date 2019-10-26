@@ -15,6 +15,14 @@ class OpnameEditor {
 	}
 
 	editOpname(id) {
+
+		const btn = document.getElementById("add-opname-btn");
+		if (btn.offsetParent === null)	// must be a small screen
+		{
+			window.location = `invoer?id=${id}`;
+			return;
+		}
+
 		this.id = id;
 
 		$(this.dialog).modal();
@@ -127,11 +135,13 @@ window.addEventListener("load", () => {
 	document.getElementById("add-opname-btn")
 		.addEventListener("click", () => editor.createOpname());
 
+	document.getElementById("add-opname-btn-2")
+		.addEventListener("click", () => window.location = "invoer");
 
-	// Array.from(document.getElementById('opname-table').tBodies[0].rows)
-	// 	.forEach(tr => {
-	// 		tr.addEventListener("dblclick", () => {
-	// 			editor.editOpname(tr.dataset.uid);
-	// 		})
-	// 	});
+	Array.from(document.getElementById('opname-tabel').tBodies[0].rows)
+		.forEach(tr => {
+			tr.addEventListener("dblclick", () => {
+				editor.editOpname(tr.dataset.id);
+			})
+		});
 });

@@ -222,8 +222,12 @@ class my_rest_controller : public zh::rest_controller
 		m_connection.prepare("get-opname",
 			"SELECT a.id AS id, a.tijd AS tijd, b.teller_id AS teller_id, b.stand AS stand"
 			" FROM opname a, tellerstand b"
-			" WHERE a.id = b.opname_id AND a.id = $1"
-			" ORDER BY a.tijd");
+			" WHERE a.id = b.opname_id AND a.id = $1");
+
+		m_connection.prepare("get-last-opname",
+			"SELECT a.id AS id, a.tijd AS tijd, b.teller_id AS teller_id, b.stand AS stand"
+			" FROM opname a, tellerstand b"
+			" WHERE a.id = b.opname_id AND a.id = (SELECT MAX(id) FROM opname)");
 
 		m_connection.prepare("insert-opname", "INSERT INTO opname DEFAULT VALUES RETURNING id");
 		m_connection.prepare("insert-stand", "INSERT INTO tellerstand (opname_id, teller_id, stand) VALUES($1, $2, $3);");
@@ -268,6 +272,22 @@ class my_rest_controller : public zh::rest_controller
 	{
 		pqxx::transaction tx(m_connection);
 		auto rows = tx.prepared("get-opname")(id).exec();
+
+		if (rows.empty())
+			throw runtime_error("opname niet gevonden");
+
+		Opname result{ rows.front()[0].as<string>(), rows.front()[1].as<string>() };
+
+		for (auto row: rows)
+			result.standen[row[2].as<string>()] = row[3].as<float>();
+		
+		return result;
+	}
+
+	Opname get_last_opname()
+	{
+		pqxx::transaction tx(m_connection);
+		auto rows = tx.prepared("get-last-opname").exec();
 
 		if (rows.empty())
 			throw runtime_error("opname niet gevonden");
@@ -497,6 +517,7 @@ class my_server : public zh::webapp
 	
 		mount("", &my_server::opname);
 		mount("opnames", &my_server::opname);
+		mount("invoer", &my_server::invoer);
 		mount("grafiek", &my_server::grafiek);
 		mount("css", &my_server::handle_file);
 		mount("scripts", &my_server::handle_file);
@@ -504,6 +525,7 @@ class my_server : public zh::webapp
 	}
 
 	void opname(const zh::request& request, const el::scope& scope, zh::reply& reply);
+	void invoer(const zh::request& request, const el::scope& scope, zh::reply& reply);
 	void grafiek(const zh::request& request, const el::scope& scope, zh::reply& reply);
 	void handle_file(const zh::request& request, const el::scope& scope, zh::reply& reply);
 
@@ -530,11 +552,41 @@ void my_server::opname(const zh::request& request, const el::scope& scope, zh::r
 	create_reply_from_template("opnames.html", sub, reply);
 }
 
+void my_server::invoer(const zh::request& request, const el::scope& scope, zh::reply& reply)
+{
+	el::scope sub(scope);
+
+	sub.put("page", "invoer");
+
+	Opname o;
+
+	string id = request.get_parameter("id", "");
+	if (id.empty())
+	{
+		o = m_rest_controller->get_last_opname();
+		o.id.clear();
+		o.datum.clear();
+	}
+	else
+		o = m_rest_controller->get_opname(id);
+
+	json opname;
+	zeep::to_element(opname, o);
+	sub.put("opname", opname);
+
+	auto u = m_rest_controller->get_tellers();
+	json tellers;
+	zeep::to_element(tellers, u);
+	sub.put("tellers", tellers);
+
+	create_reply_from_template("invoer.html", sub, reply);
+}
+
 void my_server::grafiek(const zh::request& request, const el::scope& scope, zh::reply& reply)
 {
 	el::scope sub(scope);
 
-	sub.put("page", "opname");
+	sub.put("page", "grafiek");
 
 	auto v = m_rest_controller->get_all_opnames();
 	json opnames;

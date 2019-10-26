@@ -17,10 +17,13 @@
 	
 		<div class="collapse navbar-collapse" id="navbarSupportedContent">
 			<ul class="navbar-nav mr-auto">
-				<li class="nav-item ${page == 'opname' ? 'active' : ''}">
+				<li class="nav-item" z2:classappend="${page == 'opname' ? 'active' : ''}">
 					<a class="nav-link" href="/opnames">Opnames</a>
 				</li>
-				<li class="nav-item ${page == 'grafiek' ? 'active' : ''}">
+				<li class="nav-item" z2:classappend="${page == 'invoer' ? 'active' : ''}">
+					<a class="nav-link" href="/invoer">Invoer</a>
+				</li>
+				<li class="nav-item" z2:classappend="${page == 'grafiek' ? 'active' : ''}">
 					<a class="nav-link" href="/grafiek">Grafieken</a>
 				</li>
 			</ul>
