@@ -42,13 +42,17 @@ ZEEP_DIR			?= ../libzeep/
 ZEEP_INC_DIR		= $(ZEEP_DIR:%=%/include)
 ZEEP_LIB_DIR		= $(ZEEP_DIR:%=%/lib)
 
+ZEEP_LIBS			= webapp rest http el xml generic
+ZEEP_LIBS			:= $(ZEEP_LIBS:%=zeep-%)
+
 BOOST_INC_DIR       = $(BOOST:%=%/include)
 BOOST_LIB_DIR       = $(BOOST:%=%/lib)
 
 BOOST_LIBS          = system thread filesystem regex random program_options date_time locale
 BOOST_LIBS          := $(BOOST_LIBS:%=boost_%$(BOOST_LIB_SUFFIX))
-LIBS                := zeep $(BOOST_LIBS) stdc++ m pthread $(LIBS)
-LDFLAGS             += $(BOOST_LIB_DIR:%=-L%) -L../lib $(LIBS:%=-l%) -g
+
+LIBS                := $(ZEEP_LIBS) $(BOOST_LIBS) stdc++ m pthread $(LIBS)
+LDFLAGS             += $(ZEEP_LIB_DIR:%=-L%) $(BOOST_LIB_DIR:%=-L%) $(LIBS:%=-l%) -g
 
 ifneq "$(DEBUG)" "1"
 CXXFLAGS			+= -O2
@@ -59,7 +63,7 @@ endif
 VPATH += src
 
 CXXFLAGS			+= $(ZEEP_INC_DIR:%=-I%) $(BOOST_INC_DIR:%=-I%)
-LDFLAGS				+= $(ZEEP_LIB_DIR:%=-L%)
+LDFLAGS				+= 
 
 OBJDIR = obj
 ifeq "$(DEBUG)" "1"
@@ -115,11 +119,6 @@ $(subst .js,%js,$(SCRIPT_FILES)): $(subst .js,%js,$(WEBAPP_FILES))
 
 $(OBJDIR)/energyd_rsrc.o: $(RSRC) $(SCRIPT_FILES)
 	$(MRC) -o $@ $(RSRC) --verbose
-
-$(ZEEP_LIB_DIR)/libzeep.a: FORCE
-	+$(MAKE) -C $(ZEEP_LIB_DIR) static-lib
-
-energyd: $(ZEEP_LIB_DIR)/libzeep.a
 
 energyd: %: $(OBJECTS)
 	@ echo '->' $@

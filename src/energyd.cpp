@@ -18,7 +18,7 @@
 
 #include <boost/filesystem.hpp>
 #include <zeep/el/parser.hpp>
-#include <zeep/http/rest-controller.hpp>
+#include <zeep/rest/controller.hpp>
 
 #include <pqxx/pqxx>
 
@@ -524,18 +524,18 @@ class my_server : public zh::webapp
 		mount("fonts", &my_server::handle_file);
 	}
 
-	void opname(const zh::request& request, const el::scope& scope, zh::reply& reply);
-	void invoer(const zh::request& request, const el::scope& scope, zh::reply& reply);
-	void grafiek(const zh::request& request, const el::scope& scope, zh::reply& reply);
-	void handle_file(const zh::request& request, const el::scope& scope, zh::reply& reply);
+	void opname(const zh::request& request, const zh::scope& scope, zh::reply& reply);
+	void invoer(const zh::request& request, const zh::scope& scope, zh::reply& reply);
+	void grafiek(const zh::request& request, const zh::scope& scope, zh::reply& reply);
+	void handle_file(const zh::request& request, const zh::scope& scope, zh::reply& reply);
 
   private:
 	my_rest_controller*	m_rest_controller;
 };
 
-void my_server::opname(const zh::request& request, const el::scope& scope, zh::reply& reply)
+void my_server::opname(const zh::request& request, const zh::scope& scope, zh::reply& reply)
 {
-	el::scope sub(scope);
+	zh::scope sub(scope);
 
 	sub.put("page", "opname");
 
@@ -552,9 +552,9 @@ void my_server::opname(const zh::request& request, const el::scope& scope, zh::r
 	create_reply_from_template("opnames.html", sub, reply);
 }
 
-void my_server::invoer(const zh::request& request, const el::scope& scope, zh::reply& reply)
+void my_server::invoer(const zh::request& request, const zh::scope& scope, zh::reply& reply)
 {
-	el::scope sub(scope);
+	zh::scope sub(scope);
 
 	sub.put("page", "invoer");
 
@@ -582,9 +582,9 @@ void my_server::invoer(const zh::request& request, const el::scope& scope, zh::r
 	create_reply_from_template("invoer.html", sub, reply);
 }
 
-void my_server::grafiek(const zh::request& request, const el::scope& scope, zh::reply& reply)
+void my_server::grafiek(const zh::request& request, const zh::scope& scope, zh::reply& reply)
 {
-	el::scope sub(scope);
+	zh::scope sub(scope);
 
 	sub.put("page", "grafiek");
 
@@ -601,7 +601,7 @@ void my_server::grafiek(const zh::request& request, const el::scope& scope, zh::
 	create_reply_from_template("grafiek.html", sub, reply);
 }
 
-void my_server::handle_file(const zh::request& request, const el::scope& scope, zh::reply& reply)
+void my_server::handle_file(const zh::request& request, const zh::scope& scope, zh::reply& reply)
 {
 	fs::path file = get_docroot() / scope["baseuri"].as<string>();
 	

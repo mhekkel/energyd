@@ -160,7 +160,7 @@ class grafiek {
 			.key(d => d.date.getFullYear())
 			.entries(dataPunten);
 		
-		const colors = d3.scaleOrdinal([...years], d3.schemeCategory10);
+		const colors = d3.scaleOrdinal([...years].reverse(), d3.schemeCategory10);
 
 		const domX = [1, 366];
 
