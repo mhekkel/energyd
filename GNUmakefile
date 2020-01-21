@@ -54,7 +54,10 @@ BOOST_LIBS          := $(BOOST_LIBS:%=boost_%$(BOOST_LIB_SUFFIX))
 LIBS                := $(ZEEP_LIBS) $(BOOST_LIBS) stdc++ m pthread $(LIBS)
 LDFLAGS             += $(ZEEP_LIB_DIR:%=-L%) $(BOOST_LIB_DIR:%=-L%) $(LIBS:%=-l%) -g
 
-ifneq "$(DEBUG)" "1"
+ifeq "$(DEBUG)" "1"
+DEFINES				+= DEBUG
+else
+DEFINES				+= NDEBUG
 CXXFLAGS			+= -O2
 endif
 
@@ -62,7 +65,7 @@ endif
 
 VPATH += src
 
-CXXFLAGS			+= $(ZEEP_INC_DIR:%=-I%) $(BOOST_INC_DIR:%=-I%)
+CXXFLAGS			+= $(ZEEP_INC_DIR:%=-I%) $(BOOST_INC_DIR:%=-I%) $(DEFINES:%=-D%)
 LDFLAGS				+= 
 
 OBJDIR = obj
@@ -84,6 +87,9 @@ $(OBJECTS:.o=.d):
 $(OBJDIR)/%.o: %.cpp | $(OBJDIR)
 	@ echo ">>" $<
 	@ $(CXX) -MD -c -o $@ $< $(CFLAGS) $(CXXFLAGS)
+
+src/mrsrc.h:
+	$(MRC) --header > $@
 
 all: energyd
 .PHONY: all
@@ -117,7 +123,7 @@ endif
 $(subst .js,%js,$(SCRIPT_FILES)): $(subst .js,%js,$(WEBAPP_FILES))
 	yarn webpack $(WEBPACK_OPTIONS)
 
-$(OBJDIR)/energyd_rsrc.o: $(RSRC) $(SCRIPT_FILES)
+$(OBJDIR)/energyd_rsrc.o: $(RSRC) $(SCRIPT_FILES) src/mrsrc.h
 	$(MRC) -o $@ $(RSRC) --verbose
 
 energyd: %: $(OBJECTS)

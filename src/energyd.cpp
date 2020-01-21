@@ -10,8 +10,10 @@
 
 #include <boost/algorithm/string.hpp>
 #include <boost/program_options.hpp>
+
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/date_time/gregorian/gregorian.hpp>
+#include <boost/date_time/local_time/local_time.hpp>
 
 #include <zeep/http/webapp.hpp>
 #include <zeep/http/md5.hpp>
@@ -19,8 +21,11 @@
 #include <boost/filesystem.hpp>
 #include <zeep/el/parser.hpp>
 #include <zeep/rest/controller.hpp>
+#include <zeep/http/daemon.hpp>
 
 #include <pqxx/pqxx>
+
+#include "mrsrc.h"
 
 using namespace std;
 namespace zh = zeep::http;
@@ -30,6 +35,12 @@ namespace ba = boost::algorithm;
 namespace po = boost::program_options;
 
 using json = el::element;
+
+// --------------------------------------------------------------------
+
+fs::path gExePath;
+
+// --------------------------------------------------------------------
 
 struct Opname
 {
@@ -528,6 +539,7 @@ class my_server : public zh::webapp
 	void invoer(const zh::request& request, const zh::scope& scope, zh::reply& reply);
 	void grafiek(const zh::request& request, const zh::scope& scope, zh::reply& reply);
 	void handle_file(const zh::request& request, const zh::scope& scope, zh::reply& reply);
+	void load_template(const std::string& file, zeep::xml::document& doc);
 
   private:
 	my_rest_controller*	m_rest_controller;
@@ -601,28 +613,127 @@ void my_server::grafiek(const zh::request& request, const zh::scope& scope, zh::
 	create_reply_from_template("grafiek.html", sub, reply);
 }
 
+// void my_server::handle_file(const zh::request& request, const zh::scope& scope, zh::reply& reply)
+// {
+// 	fs::path file = get_docroot() / scope["baseuri"].as<string>();
+	
+// 	webapp::handle_file(request, scope, reply);
+	
+// 	// if (file.extension() == ".html" or file.extension() == ".xhtml")
+// 	// 	reply.set_content_type("application/xhtml+xml");
+// }
+
+void my_server::load_template(const std::string& file, zeep::xml::document& doc)
+{
+cerr << "load template '" << file << "'" << endl;
+
+#if defined(DEBUG)
+	webapp::load_template(file, doc);
+#else
+	mrsrc::rsrc rsrc(file);
+	if (not rsrc)
+		throw runtime_error("missing template");
+
+	struct membuf : public streambuf
+	{
+		membuf(char* data, size_t length)		{ this->setg(data, data, data + length); }
+	} buffer(const_cast<char*>(rsrc.data()), rsrc.size());
+
+	istream data(&buffer);
+	data >> doc;
+#endif
+}
+
 void my_server::handle_file(const zh::request& request, const zh::scope& scope, zh::reply& reply)
 {
-	fs::path file = get_docroot() / scope["baseuri"].as<string>();
-	
+#if defined(DEBUG)
 	webapp::handle_file(request, scope, reply);
+#else
+	using namespace boost::local_time;
+	using namespace boost::posix_time;
+
+	fs::path file = scope["baseuri"].as<string>();
+
+	mrsrc::rsrc rsrc(file.string());
+
+	if (not rsrc)
+		create_error_reply(request, zh::not_found, "The requested file was not found on this 'server'", reply);
+	else
+	{
+		// compare with the date/time of our executable, since we're reading resources :-)
+		string ifModifiedSince;
+		for (const zeep::http::header& h : request.headers)
+		{
+			if (ba::iequals(h.name, "If-Modified-Since"))
+			{
+				local_date_time modifiedSince(local_sec_clock::local_time(time_zone_ptr()));
+
+				local_time_input_facet* lif1(new local_time_input_facet("%a, %d %b %Y %H:%M:%S GMT"));
+
+				stringstream ss;
+				ss.imbue(std::locale(std::locale::classic(), lif1));
+				ss.str(h.value);
+				ss >> modifiedSince;
+
+				local_date_time fileDate(from_time_t(fs::last_write_time(gExePath)), time_zone_ptr());
+
+				if (fileDate <= modifiedSince)
+				{
+					reply = zeep::http::reply::stock_reply(zeep::http::not_modified);
+					return;
+				}
+
+				break;
+			}
+		}
+
+		string mimetype = "text/plain";
 	
-	// if (file.extension() == ".html" or file.extension() == ".xhtml")
-	// 	reply.set_content_type("application/xhtml+xml");
+		if (file.extension() == ".css")
+			mimetype = "text/css";
+		else if (file.extension() == ".js")
+			mimetype = "text/javascript";
+		else if (file.extension() == ".png")
+			mimetype = "image/png";
+		else if (file.extension() == ".svg")
+			mimetype = "image/svg+xml";
+		else if (file.extension() == ".html" or file.extension() == ".htm")
+			mimetype = "text/html";
+		else if (file.extension() == ".xml" or file.extension() == ".xsl" or file.extension() == ".xslt")
+			mimetype = "text/xml";
+		else if (file.extension() == ".xhtml")
+			mimetype = "application/xhtml+xml";
+	
+		reply.set_content(string(rsrc.data(), rsrc.size()), mimetype);
+	
+		local_date_time t(local_sec_clock::local_time(time_zone_ptr()));
+		local_time_facet* lf(new local_time_facet("%a, %d %b %Y %H:%M:%S GMT"));
+		
+		stringstream s;
+		s.imbue(std::locale(std::cout.getloc(), lf));
+		
+		ptime pt = from_time_t(boost::filesystem::last_write_time(gExePath));
+		local_date_time t2(pt, time_zone_ptr());
+		s << t2;
+	
+		reply.set_header("Last-Modified", s.str());
+	}
+#endif
 }
 
 int main(int argc, const char* argv[])
 {
-	po::options_description visible_options(argv[0] + " options"s);
+	int result = 0;
+
+	po::options_description visible_options(argv[0] + " [options] command"s);
 	visible_options.add_options()
 		("help,h",										"Display help message")
 		("verbose,v",									"Verbose output")
 		
 		("address",				po::value<string>(),	"External address, default is 0.0.0.0")
 		("port",				po::value<uint16_t>(),	"Port to listen to, default is 10336")
-		// ("no-daemon,F",									"Do not fork into background")
-		// ("user,u",				po::value<string>(),	"User to run the daemon")
-		// ("logfile",				po::value<string>(),	"Logfile to write to, default /var/log/rama-angles.log")
+		("no-daemon,F",									"Do not fork into background")
+		("user,u",				po::value<string>(),	"User to run the daemon")
 
 		("db-host",				po::value<string>(),	"Database host")
 		("db-port",				po::value<string>(),	"Database port")
@@ -631,23 +742,50 @@ int main(int argc, const char* argv[])
 		("db-password",			po::value<string>(),	"Database password")
 		;
 	
+	po::options_description hidden_options("hidden options");
+	hidden_options.add_options()
+		("command",		po::value<string>(),	"Command, one of start, stop, status or reload")
+		("debug,d",		po::value<int>(),		"Debug level (for even more verbose output)");
+
 	po::options_description cmdline_options;
-	cmdline_options.add(visible_options);
+	cmdline_options.add(visible_options).add(hidden_options);
+
+	po::positional_options_description p;
+	p.add("command", 1);
 
 	po::variables_map vm;
-	po::store(po::command_line_parser(argc, argv).options(cmdline_options).run(), vm);
+	po::store(po::command_line_parser(argc, argv).options(cmdline_options).positional(p).run(), vm);
 	po::notify(vm);
 
 	// --------------------------------------------------------------------
 
-	if (vm.count("help"))
+	if (vm.count("help") or vm.count("command") == 0)
 	{
-		cerr << visible_options << endl;
-		exit(0);
+		cerr << visible_options << endl
+			 << R"(
+Command should be either:
+
+  start     start a new server
+  stop      start a running server
+  status    get the status of a running server
+  reload    restart a running server with new options
+			 )" << endl;
+		exit(vm.count("help") ? 0 : 1);
 	}
 	
 	try
 	{
+		char exePath[PATH_MAX + 1];
+		int r = readlink("/proc/self/exe", exePath, PATH_MAX);
+		if (r > 0)
+		{
+			exePath[r] = 0;
+			gExePath = fs::system_complete(exePath);
+		}
+		
+		if (not fs::exists(gExePath))
+			gExePath = fs::system_complete(argv[0]);
+
 		vector<string> vConn;
 		for (string opt: { "db-host", "db-port", "db-dbname", "db-user", "db-password" })
 		{
@@ -657,25 +795,48 @@ int main(int argc, const char* argv[])
 			vConn.push_back(opt.substr(3) + "=" + vm[opt].as<string>());
 		}
 
-		my_server app(ba::join(vConn, " "));
+		zh::daemon server([cs=ba::join(vConn, " ")]()
+		{
+			return new my_server(cs);
+		}, "energyd");
 
+		string user = "www-data";
+		if (vm.count("user") != 0)
+			user = vm["user"].as<string>();
+		
 		string address = "0.0.0.0";
-		uint16_t port = 10336;
 		if (vm.count("address"))
 			address = vm["address"].as<string>();
+
+		uint16_t port = 10336;
 		if (vm.count("port"))
 			port = vm["port"].as<uint16_t>();
 
-		app.bind(address, port);
-		thread t(bind(&my_server::run, &app, 2));
-		t.join();
+		string command = vm["command"].as<string>();
 
+		if (command == "start")
+		{
+			server.start(vm.count("no-daemon"), address, port, 2, user);
+			// result = daemon::start(vm.count("no-daemon"), port, user);
+		}
+		else if (command == "stop")
+			result = server.stop();
+		else if (command == "status")
+			result = server.status();
+		else if (command == "reload")
+			result = server.reload();
+		else
+		{
+			cerr << "Invalid command" << endl;
+			result = 1;
+		}
 	}
-	catch (const exception& ex)
+	catch (const exception &ex)
 	{
-		cerr << ex.what() << endl;
-		exit(1);
+		cerr << "exception:" << endl
+			 << ex.what() << endl;
+		result = 1;
 	}
 
-	return 0;
+	return result;
 }
