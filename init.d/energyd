@@ -1,0 +1,50 @@
+#!/bin/sh
+
+### BEGIN INIT INFO
+# Provides:        enerygd
+# Required-Start:  $network
+# Required-Stop:   $network
+# Default-Start:   2 3 4 5
+# Default-Stop:
+# Short-Description: Start enerygd daemon
+### END INIT INFO
+
+PATH=/bin:/usr/local/sbin
+
+. /lib/lsb/init-functions
+
+DAEMON=/usr/local/sbin/energyd
+PIDFILE=/var/run/energyd
+
+test -x $DAEMON || exit 5
+
+ENERGYD_OPTS="--port 10333"
+
+if [ -r /etc/default/energyd ]; then
+	. /etc/default/energyd
+fi
+
+RUNASUSER=www-data
+
+case $1 in
+	start)
+		log_daemon_msg "Starting energyd server" "energyd"
+		$DAEMON start $ENERGYD_OPTS
+		log_end_msg $?
+		;;
+	stop)
+		log_daemon_msg "Stopping energyd server" "energyd"
+		$DAEMON stop
+		log_end_msg $?
+		;;
+	restart|force-reload)
+		$0 stop && sleep 2 && $0 start
+		;;
+	status)
+		$DAEMON status
+		;;
+	*)
+		echo "Usage: $0 {start|stop|restart|force-reload|status}"
+		exit 2
+		;;
+esac
