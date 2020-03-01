@@ -48,10 +48,10 @@ ZEEP_LIBS			:= $(ZEEP_LIBS:%=zeep-%)
 BOOST_INC_DIR       = $(BOOST:%=%/include)
 BOOST_LIB_DIR       = $(BOOST:%=%/lib)
 
-BOOST_LIBS          = system thread filesystem regex random program_options date_time locale
+BOOST_LIBS          = system thread regex random program_options date_time locale
 BOOST_LIBS          := $(BOOST_LIBS:%=boost_%$(BOOST_LIB_SUFFIX))
 
-LIBS                := $(ZEEP_LIBS) $(BOOST_LIBS) stdc++ m pthread $(LIBS)
+LIBS                := $(ZEEP_LIBS) $(BOOST_LIBS) stdc++ stdc++fs m pthread $(LIBS)
 LDFLAGS             += $(ZEEP_LIB_DIR:%=-L%) $(BOOST_LIB_DIR:%=-L%) $(LIBS:%=-l%) -g
 
 ifeq "$(DEBUG)" "1"
@@ -84,7 +84,7 @@ OBJECTS = $(APPS:%=$(OBJDIR)/%.o) $(APPS:%=$(OBJDIR)/%_rsrc.o)
 
 $(OBJECTS:.o=.d):
 
-$(OBJDIR)/%.o: %.cpp | $(OBJDIR)
+$(OBJDIR)/%.o: %.cpp | src/mrsrc.h $(OBJDIR)
 	@ echo ">>" $<
 	@ $(CXX) -MD -c -o $@ $< $(CFLAGS) $(CXXFLAGS)
 

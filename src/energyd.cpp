@@ -18,7 +18,7 @@
 #include <zeep/http/webapp.hpp>
 #include <zeep/http/md5.hpp>
 
-#include <boost/filesystem.hpp>
+// #include <boost/filesystem.hpp>
 #include <zeep/el/parser.hpp>
 #include <zeep/rest/controller.hpp>
 #include <zeep/http/daemon.hpp>
@@ -30,7 +30,7 @@
 using namespace std;
 namespace zh = zeep::http;
 namespace el = zeep::el;
-namespace fs = boost::filesystem;
+namespace fs = std::filesystem;
 namespace ba = boost::algorithm;
 namespace po = boost::program_options;
 
@@ -501,10 +501,16 @@ GrafiekData my_rest_controller::get_grafiek(grafiek_type type, aggregatie_type a
 		if (tijdTot < vorigjaar)
 			continue;
 		
-		auto jaarVoorDag = ptime(date(tijdTot.date().year() - 1, tijdTot.date().month(), tijdTot.date().day()));
-		verbruik = standTot - interpolateStand(sm, jaarVoorDag);
-		duur = (tijdTot - jaarVoorDag).total_seconds();
-		result.vsGem.emplace(to_iso_extended_string(dag), (24 * 60 * 60) * verbruik / duur);
+		try
+		{
+			auto jaarVoorDag = ptime(date(tijdTot.date().year() - 1, tijdTot.date().month(), tijdTot.date().day()));
+			verbruik = standTot - interpolateStand(sm, jaarVoorDag);
+			duur = (tijdTot - jaarVoorDag).total_seconds();
+			result.vsGem.emplace(to_iso_extended_string(dag), (24 * 60 * 60) * verbruik / duur);
+		}
+		catch (boost::gregorian::bad_day_of_month& ex)
+		{
+		}
 
 		if (dag >= eind)
 			break;
@@ -519,7 +525,7 @@ class my_server : public zh::webapp
 {
   public:
 	my_server(const string& dbConnectString)
-		: zh::webapp(fs::current_path() / "docroot")
+		: zh::webapp((fs::current_path() / "docroot").string())
 		, m_rest_controller(new my_rest_controller(dbConnectString))
 	{
 		register_tag_processor<zh::tag_processor_v2>("http://www.hekkelman.com/libzeep/m2");
@@ -780,11 +786,11 @@ Command should be either:
 		if (r > 0)
 		{
 			exePath[r] = 0;
-			gExePath = fs::system_complete(exePath);
+			gExePath = fs::weakly_canonical(exePath);
 		}
 		
 		if (not fs::exists(gExePath))
-			gExePath = fs::system_complete(argv[0]);
+			gExePath = fs::weakly_canonical(argv[0]);
 
 		vector<string> vConn;
 		for (string opt: { "db-host", "db-port", "db-dbname", "db-user", "db-password" })
@@ -816,8 +822,12 @@ Command should be either:
 
 		if (command == "start")
 		{
-			server.start(vm.count("no-daemon"), address, port, 2, user);
-			// result = daemon::start(vm.count("no-daemon"), port, user);
+			if (vm.count("no-daemon"))
+				result = server.run_foreground(address, port);
+			else
+				result = server.start(address, port, 2, user);
+			// server.start(vm.count("no-daemon"), address, port, 2, user);
+			// // result = daemon::start(vm.count("no-daemon"), port, user);
 		}
 		else if (command == "stop")
 			result = server.stop();
