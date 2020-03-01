@@ -666,6 +666,9 @@ void my_server::handle_file(const zh::request& request, const zh::scope& scope, 
 		create_error_reply(request, zh::not_found, "The requested file was not found on this 'server'", reply);
 	else
 	{
+		auto ft = fs::last_write_time(gExePath);
+		auto lastWriteTime = decltype(ft)::clock::to_time_t(ft);
+
 		// compare with the date/time of our executable, since we're reading resources :-)
 		string ifModifiedSince;
 		for (const zeep::http::header& h : request.headers)
@@ -681,7 +684,8 @@ void my_server::handle_file(const zh::request& request, const zh::scope& scope, 
 				ss.str(h.value);
 				ss >> modifiedSince;
 
-				local_date_time fileDate(from_time_t(fs::last_write_time(gExePath)), time_zone_ptr());
+				// local_date_time fileDate(from_time_t(fs::last_write_time(gExePath)), time_zone_ptr());
+				local_date_time fileDate(from_time_t(lastWriteTime), time_zone_ptr());
 
 				if (fileDate <= modifiedSince)
 				{
@@ -718,7 +722,7 @@ void my_server::handle_file(const zh::request& request, const zh::scope& scope, 
 		stringstream s;
 		s.imbue(std::locale(std::cout.getloc(), lf));
 		
-		ptime pt = from_time_t(boost::filesystem::last_write_time(gExePath));
+		ptime pt = from_time_t(lastWriteTime);
 		local_date_time t2(pt, time_zone_ptr());
 		s << t2;
 	
