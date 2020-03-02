@@ -3,6 +3,8 @@
 //      (See accompanying file LICENSE_1_0.txt or copy at
 //            http://www.boost.org/LICENSE_1_0.txt)
 
+#define WEBAPP_USES_RESOURCES 1
+
 #include <zeep/config.hpp>
 
 #include <functional>
@@ -18,7 +20,6 @@
 #include <zeep/http/webapp.hpp>
 #include <zeep/http/md5.hpp>
 
-// #include <boost/filesystem.hpp>
 #include <zeep/el/parser.hpp>
 #include <zeep/rest/controller.hpp>
 #include <zeep/http/daemon.hpp>
@@ -521,12 +522,12 @@ GrafiekData my_rest_controller::get_grafiek(grafiek_type type, aggregatie_type a
 
 // --------------------------------------------------------------------
 
-class my_server : public zh::webapp
+class my_server : public zh::rsrc_based_webapp
 {
   public:
 	my_server(const string& dbConnectString)
-		: zh::webapp((fs::current_path() / "docroot").string())
-		, m_rest_controller(new my_rest_controller(dbConnectString))
+		// : zh::webapp((fs::current_path() / "docroot").string())
+		: m_rest_controller(new my_rest_controller(dbConnectString))
 	{
 		register_tag_processor<zh::tag_processor_v2>("http://www.hekkelman.com/libzeep/m2");
 
@@ -544,8 +545,6 @@ class my_server : public zh::webapp
 	void opname(const zh::request& request, const zh::scope& scope, zh::reply& reply);
 	void invoer(const zh::request& request, const zh::scope& scope, zh::reply& reply);
 	void grafiek(const zh::request& request, const zh::scope& scope, zh::reply& reply);
-	void handle_file(const zh::request& request, const zh::scope& scope, zh::reply& reply);
-	void load_template(const std::string& file, zeep::xml::document& doc);
 
   private:
 	my_rest_controller*	m_rest_controller;
@@ -617,118 +616,6 @@ void my_server::grafiek(const zh::request& request, const zh::scope& scope, zh::
 	sub.put("tellers", tellers);
 
 	create_reply_from_template("grafiek.html", sub, reply);
-}
-
-// void my_server::handle_file(const zh::request& request, const zh::scope& scope, zh::reply& reply)
-// {
-// 	fs::path file = get_docroot() / scope["baseuri"].as<string>();
-	
-// 	webapp::handle_file(request, scope, reply);
-	
-// 	// if (file.extension() == ".html" or file.extension() == ".xhtml")
-// 	// 	reply.set_content_type("application/xhtml+xml");
-// }
-
-void my_server::load_template(const std::string& file, zeep::xml::document& doc)
-{
-cerr << "load template '" << file << "'" << endl;
-
-#if defined(DEBUG)
-	webapp::load_template(file, doc);
-#else
-	mrsrc::rsrc rsrc(file);
-	if (not rsrc)
-		throw runtime_error("missing template");
-
-	struct membuf : public streambuf
-	{
-		membuf(char* data, size_t length)		{ this->setg(data, data, data + length); }
-	} buffer(const_cast<char*>(rsrc.data()), rsrc.size());
-
-	istream data(&buffer);
-	data >> doc;
-#endif
-}
-
-void my_server::handle_file(const zh::request& request, const zh::scope& scope, zh::reply& reply)
-{
-#if defined(DEBUG)
-	webapp::handle_file(request, scope, reply);
-#else
-	using namespace boost::local_time;
-	using namespace boost::posix_time;
-
-	fs::path file = scope["baseuri"].as<string>();
-
-	mrsrc::rsrc rsrc(file.string());
-
-	if (not rsrc)
-		create_error_reply(request, zh::not_found, "The requested file was not found on this 'server'", reply);
-	else
-	{
-		auto ft = fs::last_write_time(gExePath);
-		auto lastWriteTime = decltype(ft)::clock::to_time_t(ft);
-
-		// compare with the date/time of our executable, since we're reading resources :-)
-		string ifModifiedSince;
-		for (const zeep::http::header& h : request.headers)
-		{
-			if (ba::iequals(h.name, "If-Modified-Since"))
-			{
-				local_date_time modifiedSince(local_sec_clock::local_time(time_zone_ptr()));
-
-				local_time_input_facet* lif1(new local_time_input_facet("%a, %d %b %Y %H:%M:%S GMT"));
-
-				stringstream ss;
-				ss.imbue(std::locale(std::locale::classic(), lif1));
-				ss.str(h.value);
-				ss >> modifiedSince;
-
-				// local_date_time fileDate(from_time_t(fs::last_write_time(gExePath)), time_zone_ptr());
-				local_date_time fileDate(from_time_t(lastWriteTime), time_zone_ptr());
-
-				if (fileDate <= modifiedSince)
-				{
-					reply = zeep::http::reply::stock_reply(zeep::http::not_modified);
-					return;
-				}
-
-				break;
-			}
-		}
-
-		string mimetype = "text/plain";
-	
-		if (file.extension() == ".css")
-			mimetype = "text/css";
-		else if (file.extension() == ".js")
-			mimetype = "text/javascript";
-		else if (file.extension() == ".png")
-			mimetype = "image/png";
-		else if (file.extension() == ".svg")
-			mimetype = "image/svg+xml";
-		else if (file.extension() == ".html" or file.extension() == ".htm")
-			mimetype = "text/html";
-		else if (file.extension() == ".xml" or file.extension() == ".xsl" or file.extension() == ".xslt")
-			mimetype = "text/xml";
-		else if (file.extension() == ".xhtml")
-			mimetype = "application/xhtml+xml";
-	
-		reply.set_content(string(rsrc.data(), rsrc.size()), mimetype);
-	
-		local_date_time t(local_sec_clock::local_time(time_zone_ptr()));
-		local_time_facet* lf(new local_time_facet("%a, %d %b %Y %H:%M:%S GMT"));
-		
-		stringstream s;
-		s.imbue(std::locale(std::cout.getloc(), lf));
-		
-		ptime pt = from_time_t(lastWriteTime);
-		local_date_time t2(pt, time_zone_ptr());
-		s << t2;
-	
-		reply.set_header("Last-Modified", s.str());
-	}
-#endif
 }
 
 int main(int argc, const char* argv[])

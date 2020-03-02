@@ -16,11 +16,12 @@ PREFIX              ?= /usr/local
 
 PACKAGES			+= libpqxx
 
+DEFINES				+= WEBAPP_USES_RESOURCES
+
 # main build variables
 # CXX                 ?= clangc++
 CXXFLAGS            += $(BOOST_INC_DIR:%=-I%) -I. -pthread -std=c++17
-CXXFLAGS            += -Wall
-CXXFLAGS            += -g
+CXXFLAGS            += -Wall -g
 LD                  ?= ld
 LDFLAGS				= -g
 
@@ -106,10 +107,7 @@ rsrc/version.txt: $(REVISION_FILE) | rsrc
 rsrc:
 	mkdir -p $@
 
-RSRC = rsrc/version.txt
-ifneq ($(DEBUG),1)
-RSRC += docroot/ 
-endif
+RSRC = rsrc/version.txt docroot/ 
 
 # yarn rules
 SCRIPTS = $(shell find webapp -name '*.js')
