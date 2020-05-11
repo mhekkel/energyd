@@ -18,7 +18,6 @@
 #include <boost/date_time/local_time/local_time.hpp>
 
 #include <zeep/http/webapp.hpp>
-#include <zeep/http/md5.hpp>
 
 #include <zeep/el/parser.hpp>
 #include <zeep/rest/controller.hpp>
@@ -537,9 +536,8 @@ class my_server : public zh::rsrc_based_webapp
 		mount("opnames", &my_server::opname);
 		mount("invoer", &my_server::invoer);
 		mount("grafiek", &my_server::grafiek);
-		mount("css", &my_server::handle_file);
-		mount("scripts", &my_server::handle_file);
-		mount("fonts", &my_server::handle_file);
+
+		mount("{css,scripts,fonts}/", &my_server::handle_file);
 	}
 
 	void opname(const zh::request& request, const zh::scope& scope, zh::reply& reply);
@@ -558,12 +556,12 @@ void my_server::opname(const zh::request& request, const zh::scope& scope, zh::r
 
 	auto v = m_rest_controller->get_all_opnames();
 	json opnames;
-	zeep::to_element(opnames, v);
+	zeep::el::to_element(opnames, v);
 	sub.put("opnames", opnames);
 
 	auto u = m_rest_controller->get_tellers();
 	json tellers;
-	zeep::to_element(tellers, u);
+	zeep::el::to_element(tellers, u);
 	sub.put("tellers", tellers);
 
 	create_reply_from_template("opnames.html", sub, reply);
@@ -588,12 +586,12 @@ void my_server::invoer(const zh::request& request, const zh::scope& scope, zh::r
 		o = m_rest_controller->get_opname(id);
 
 	json opname;
-	zeep::to_element(opname, o);
+	zeep::el::to_element(opname, o);
 	sub.put("opname", opname);
 
 	auto u = m_rest_controller->get_tellers();
 	json tellers;
-	zeep::to_element(tellers, u);
+	zeep::el::to_element(tellers, u);
 	sub.put("tellers", tellers);
 
 	create_reply_from_template("invoer.html", sub, reply);
@@ -607,12 +605,12 @@ void my_server::grafiek(const zh::request& request, const zh::scope& scope, zh::
 
 	auto v = m_rest_controller->get_all_opnames();
 	json opnames;
-	zeep::to_element(opnames, v);
+	zeep::el::to_element(opnames, v);
 	sub.put("opnames", opnames);
 
 	auto u = m_rest_controller->get_tellers();
 	json tellers;
-	zeep::to_element(tellers, u);
+	zeep::el::to_element(tellers, u);
 	sub.put("tellers", tellers);
 
 	create_reply_from_template("grafiek.html", sub, reply);

@@ -1,16 +1,16 @@
 {
-    "name": "energieverbruik",
-    "version": "1.0.0",
-    "description": "A tool to monitor erergy usage",
-    "repository": "svn+ssh://mail.hekkelman.net//home/maarten/svnroot/energyd/trunk",
-    "author": "M.L. Hekkelman",
-    "license": "Boost",
-    "private": true,
-    "scripts": {
-      "start": "webpack-dev-server --config webpack.config.js --env.debug",
-      "build": "webpack --config webpack.config.js"
-    },
-    "dependencies": {
+  "name": "energieverbruik",
+  "version": "1.0.0",
+  "description": "A tool to monitor erergy usage",
+  "repository": "svn+ssh://mail.hekkelman.net//home/maarten/svnroot/energyd/trunk",
+  "author": "M.L. Hekkelman",
+  "license": "Boost",
+  "private": true,
+  "scripts": {
+    "start": "webpack-dev-server --config webpack.config.js --env.debug",
+    "build": "webpack --config webpack.config.js"
+  },
+  "dependencies": {
     "@babel/cli": "^7.4.3",
     "@babel/polyfill": "^7.4.4",
     "@babel/preset-env": "^7.4.3",
