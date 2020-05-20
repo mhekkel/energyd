@@ -17,24 +17,21 @@
 #include <boost/date_time/gregorian/gregorian.hpp>
 #include <boost/date_time/local_time/local_time.hpp>
 
-#include <zeep/http/webapp.hpp>
-
-#include <zeep/el/parser.hpp>
-#include <zeep/rest/controller.hpp>
+#include <zeep/http/server.hpp>
 #include <zeep/http/daemon.hpp>
+#include <zeep/html/controller.hpp>
+
+#include <zeep/json/parser.hpp>
+#include <zeep/rest/controller.hpp>
 
 #include <pqxx/pqxx>
 
 #include "mrsrc.h"
 
 using namespace std;
-namespace zh = zeep::http;
-namespace el = zeep::el;
 namespace fs = std::filesystem;
 namespace ba = boost::algorithm;
 namespace po = boost::program_options;
-
-using json = el::element;
 
 // --------------------------------------------------------------------
 
@@ -79,7 +76,7 @@ enum class aggregatie_type
 	dag, week, maand, jaar
 };
 
-void to_element(json& e, aggregatie_type aggregatie)
+void to_element(zeep::json::element& e, aggregatie_type aggregatie)
 {
 	switch (aggregatie)
 	{
@@ -90,7 +87,7 @@ void to_element(json& e, aggregatie_type aggregatie)
 	}
 }
 
-void from_element(const json& e, aggregatie_type& aggregatie)
+void from_element(const zeep::json::element& e, aggregatie_type& aggregatie)
 {
 	if (e == "dag")				aggregatie = aggregatie_type::dag;
 	else if (e == "week")		aggregatie = aggregatie_type::week;
@@ -113,7 +110,7 @@ enum class grafiek_type
 	electriciteit_levering_laag
 };
 
-void to_element(json& e, grafiek_type type)
+void to_element(zeep::json::element& e, grafiek_type type)
 {
 	switch (type)
 	{
@@ -130,7 +127,7 @@ void to_element(json& e, grafiek_type type)
 	}
 }
 
-void from_element(const json& e, grafiek_type& type)
+void from_element(const zeep::json::element& e, grafiek_type& type)
 {
 		 if (e == "warmte")						 type = grafiek_type::warmte;						
 	else if (e == "electriciteit")				 type = grafiek_type::electriciteit;				
@@ -209,49 +206,17 @@ struct GrafiekData
 	}
 };
 
-class my_rest_controller : public zh::rest_controller
+// --------------------------------------------------------------------
+
+typedef std::map<boost::posix_time::ptime,float> StandMap;
+
+class DataService
 {
   public:
-	my_rest_controller(const string& connectionString)
-		: zh::rest_controller("ajax")
-		, m_connection(connectionString)
-	{
-		map_post_request("opname", &my_rest_controller::post_opname, "opname");
-		map_put_request("opname/{id}", &my_rest_controller::put_opname, "id", "opname");
-		map_get_request("opname/{id}", &my_rest_controller::get_opname, "id");
-		map_get_request("opname", &my_rest_controller::get_all_opnames);
-		map_delete_request("opname/{id}", &my_rest_controller::delete_opname, "id");
 
-		map_get_request("data/{type}/{aggr}", &my_rest_controller::get_grafiek, "type", "aggr");
+	static void init(const std::string& dbConnectString);
+	static DataService& instance();
 
-		m_connection.prepare("get-opname-all",
-			"SELECT a.id AS id, a.tijd AS tijd, b.teller_id AS teller_id, b.stand AS stand"
-			" FROM opname a, tellerstand b"
-			" WHERE a.id = b.opname_id"
-			" ORDER BY a.tijd DESC");
-
-		m_connection.prepare("get-opname",
-			"SELECT a.id AS id, a.tijd AS tijd, b.teller_id AS teller_id, b.stand AS stand"
-			" FROM opname a, tellerstand b"
-			" WHERE a.id = b.opname_id AND a.id = $1");
-
-		m_connection.prepare("get-last-opname",
-			"SELECT a.id AS id, a.tijd AS tijd, b.teller_id AS teller_id, b.stand AS stand"
-			" FROM opname a, tellerstand b"
-			" WHERE a.id = b.opname_id AND a.id = (SELECT MAX(id) FROM opname)");
-
-		m_connection.prepare("insert-opname", "INSERT INTO opname DEFAULT VALUES RETURNING id");
-		m_connection.prepare("insert-stand", "INSERT INTO tellerstand (opname_id, teller_id, stand) VALUES($1, $2, $3);");
-
-		m_connection.prepare("update-stand", "UPDATE tellerstand SET stand = $1 WHERE opname_Id = $2 AND teller_id = $3;");
-
-		m_connection.prepare("del-opname", "DELETE FROM opname WHERE id=$1");
-
-		m_connection.prepare("get-tellers-all",
-			"SELECT id, naam, naam_kort, schaal FROM teller ORDER BY id");
-	}
-
-	// CRUD routines
 	string post_opname(Opname opname)
 	{
 		pqxx::transaction tx(m_connection);
@@ -358,16 +323,128 @@ class my_rest_controller : public zh::rest_controller
 		return result;
 	}
 
-	// GrafiekData get_grafiek(const string& type, aggregatie_type aggregatie);
-	GrafiekData get_grafiek(grafiek_type type, aggregatie_type aggregatie);
+	StandMap get_stand_map(grafiek_type type)
+	{
+		using namespace boost::posix_time;
+		using namespace boost::gregorian;
+
+		pqxx::transaction tx(m_connection);
+
+		StandMap sm;
+
+		for (auto r: tx.exec(selector(type)))
+			sm[time_from_string(r[0].as<string>())] = r[1].as<float>();
+
+		return sm;
+	}
 
   private:
+	DataService(const std::string& dbConnectString);
+
+	static DataService* sInstance;
 	pqxx::connection m_connection;
 };
 
+DataService* DataService::sInstance;
+
+void DataService::init(const std::string& dbConnectString)
+{
+	sInstance = new DataService(dbConnectString);
+}
+
+DataService& DataService::instance()
+{
+	return *sInstance;
+}
+
+DataService::DataService(const std::string& dbConnectString)
+	: m_connection(dbConnectString)
+{
+	m_connection.prepare("get-opname-all",
+		"SELECT a.id AS id, a.tijd AS tijd, b.teller_id AS teller_id, b.stand AS stand"
+		" FROM opname a, tellerstand b"
+		" WHERE a.id = b.opname_id"
+		" ORDER BY a.tijd DESC");
+
+	m_connection.prepare("get-opname",
+		"SELECT a.id AS id, a.tijd AS tijd, b.teller_id AS teller_id, b.stand AS stand"
+		" FROM opname a, tellerstand b"
+		" WHERE a.id = b.opname_id AND a.id = $1");
+
+	m_connection.prepare("get-last-opname",
+		"SELECT a.id AS id, a.tijd AS tijd, b.teller_id AS teller_id, b.stand AS stand"
+		" FROM opname a, tellerstand b"
+		" WHERE a.id = b.opname_id AND a.id = (SELECT MAX(id) FROM opname)");
+
+	m_connection.prepare("insert-opname", "INSERT INTO opname DEFAULT VALUES RETURNING id");
+	m_connection.prepare("insert-stand", "INSERT INTO tellerstand (opname_id, teller_id, stand) VALUES($1, $2, $3);");
+
+	m_connection.prepare("update-stand", "UPDATE tellerstand SET stand = $1 WHERE opname_Id = $2 AND teller_id = $3;");
+
+	m_connection.prepare("del-opname", "DELETE FROM opname WHERE id=$1");
+
+	m_connection.prepare("get-tellers-all",
+		"SELECT id, naam, naam_kort, schaal FROM teller ORDER BY id");	
+}
+
 // --------------------------------------------------------------------
 
-typedef std::map<boost::posix_time::ptime,float> StandMap;
+class e_rest_controller : public zeep::rest::controller
+{
+  public:
+	e_rest_controller()
+		: zeep::rest::controller("ajax")
+	{
+		map_post_request("opname", &e_rest_controller::post_opname, "opname");
+		map_put_request("opname/{id}", &e_rest_controller::put_opname, "id", "opname");
+		map_get_request("opname/{id}", &e_rest_controller::get_opname, "id");
+		map_get_request("opname", &e_rest_controller::get_all_opnames);
+		map_delete_request("opname/{id}", &e_rest_controller::delete_opname, "id");
+
+		map_get_request("data/{type}/{aggr}", &e_rest_controller::get_grafiek, "type", "aggr");
+	}
+
+	// CRUD routines
+	string post_opname(Opname opname)
+	{
+		return DataService::instance().post_opname(opname);
+	}
+
+	void put_opname(string opnameId, Opname opname)
+	{
+		DataService::instance().put_opname(opnameId, opname);
+	}
+
+	Opname get_opname(string id)
+	{
+		return DataService::instance().get_opname(id);
+	}
+
+	Opname get_last_opname()
+	{
+		return DataService::instance().get_last_opname();
+	}
+
+	vector<Opname> get_all_opnames()
+	{
+		return DataService::instance().get_all_opnames();
+	}
+
+	void delete_opname(string id)
+	{
+		DataService::instance().delete_opname(id);
+	}
+
+	vector<Teller> get_tellers()
+	{
+		return DataService::instance().get_tellers();
+	}
+
+	// GrafiekData get_grafiek(const string& type, aggregatie_type aggregatie);
+	GrafiekData get_grafiek(grafiek_type type, aggregatie_type aggregatie);
+};
+
+// --------------------------------------------------------------------
 
 float interpolateStand(const StandMap& data, boost::posix_time::ptime t)
 {
@@ -410,18 +487,12 @@ float interpolateStand(const StandMap& data, boost::posix_time::ptime t)
 	return result;
 }
 
-GrafiekData my_rest_controller::get_grafiek(grafiek_type type, aggregatie_type aggr)
+GrafiekData e_rest_controller::get_grafiek(grafiek_type type, aggregatie_type aggr)
 {
 	using namespace boost::posix_time;
 	using namespace boost::gregorian;
 
-	pqxx::transaction tx(m_connection);
-
-	StandMap sm;
-
-	for (auto r: tx.exec(selector(type)))
-		sm[time_from_string(r[0].as<string>())] = r[1].as<float>();
-
+	StandMap sm = DataService::instance().get_stand_map(type);
 
 	struct verbruik_per_periode
 	{
@@ -521,55 +592,46 @@ GrafiekData my_rest_controller::get_grafiek(grafiek_type type, aggregatie_type a
 
 // --------------------------------------------------------------------
 
-class my_server : public zh::rsrc_based_webapp
+class e_web_controller : public zeep::html::controller
 {
   public:
-	my_server(const string& dbConnectString)
-		// : zh::webapp((fs::current_path() / "docroot").string())
-		: m_rest_controller(new my_rest_controller(dbConnectString))
+	e_web_controller()
 	{
-		register_tag_processor<zh::tag_processor_v2>("http://www.hekkelman.com/libzeep/m2");
+		mount("", &e_web_controller::opname);
+		mount("opnames", &e_web_controller::opname);
+		mount("invoer", &e_web_controller::invoer);
+		mount("grafiek", &e_web_controller::grafiek);
 
-		add_controller(m_rest_controller);
-	
-		mount("", &my_server::opname);
-		mount("opnames", &my_server::opname);
-		mount("invoer", &my_server::invoer);
-		mount("grafiek", &my_server::grafiek);
-
-		mount("{css,scripts,fonts}/", &my_server::handle_file);
+		mount("{css,scripts,fonts}/", &e_web_controller::handle_file);
 	}
 
-	void opname(const zh::request& request, const zh::scope& scope, zh::reply& reply);
-	void invoer(const zh::request& request, const zh::scope& scope, zh::reply& reply);
-	void grafiek(const zh::request& request, const zh::scope& scope, zh::reply& reply);
-
-  private:
-	my_rest_controller*	m_rest_controller;
+	void opname(const zeep::http::request& request, const zeep::html::scope& scope, zeep::http::reply& reply);
+	void invoer(const zeep::http::request& request, const zeep::html::scope& scope, zeep::http::reply& reply);
+	void grafiek(const zeep::http::request& request, const zeep::html::scope& scope, zeep::http::reply& reply);
 };
 
-void my_server::opname(const zh::request& request, const zh::scope& scope, zh::reply& reply)
+void e_web_controller::opname(const zeep::http::request& request, const zeep::html::scope& scope, zeep::http::reply& reply)
 {
-	zh::scope sub(scope);
+	zeep::html::scope sub(scope);
 
 	sub.put("page", "opname");
 
-	auto v = m_rest_controller->get_all_opnames();
-	json opnames;
-	zeep::el::to_element(opnames, v);
+	auto v = DataService::instance().get_all_opnames();
+	zeep::json::element opnames;
+	to_element(opnames, v);
 	sub.put("opnames", opnames);
 
-	auto u = m_rest_controller->get_tellers();
-	json tellers;
-	zeep::el::to_element(tellers, u);
+	auto u = DataService::instance().get_tellers();
+	zeep::json::element tellers;
+	to_element(tellers, u);
 	sub.put("tellers", tellers);
 
 	create_reply_from_template("opnames.html", sub, reply);
 }
 
-void my_server::invoer(const zh::request& request, const zh::scope& scope, zh::reply& reply)
+void e_web_controller::invoer(const zeep::http::request& request, const zeep::html::scope& scope, zeep::http::reply& reply)
 {
-	zh::scope sub(scope);
+	zeep::html::scope sub(scope);
 
 	sub.put("page", "invoer");
 
@@ -578,39 +640,39 @@ void my_server::invoer(const zh::request& request, const zh::scope& scope, zh::r
 	string id = request.get_parameter("id", "");
 	if (id.empty())
 	{
-		o = m_rest_controller->get_last_opname();
+		o = DataService::instance().get_last_opname();
 		o.id.clear();
 		o.datum.clear();
 	}
 	else
-		o = m_rest_controller->get_opname(id);
+		o = DataService::instance().get_opname(id);
 
-	json opname;
-	zeep::el::to_element(opname, o);
+	zeep::json::element opname;
+	to_element(opname, o);
 	sub.put("opname", opname);
 
-	auto u = m_rest_controller->get_tellers();
-	json tellers;
-	zeep::el::to_element(tellers, u);
+	auto u = DataService::instance().get_tellers();
+	zeep::json::element tellers;
+	to_element(tellers, u);
 	sub.put("tellers", tellers);
 
 	create_reply_from_template("invoer.html", sub, reply);
 }
 
-void my_server::grafiek(const zh::request& request, const zh::scope& scope, zh::reply& reply)
+void e_web_controller::grafiek(const zeep::http::request& request, const zeep::html::scope& scope, zeep::http::reply& reply)
 {
-	zh::scope sub(scope);
+	zeep::html::scope sub(scope);
 
 	sub.put("page", "grafiek");
 
-	auto v = m_rest_controller->get_all_opnames();
-	json opnames;
-	zeep::el::to_element(opnames, v);
+	auto v = DataService::instance().get_all_opnames();
+	zeep::json::element opnames;
+	to_element(opnames, v);
 	sub.put("opnames", opnames);
 
-	auto u = m_rest_controller->get_tellers();
-	json tellers;
-	zeep::el::to_element(tellers, u);
+	auto u = DataService::instance().get_tellers();
+	zeep::json::element tellers;
+	to_element(tellers, u);
 	sub.put("tellers", tellers);
 
 	create_reply_from_template("grafiek.html", sub, reply);
@@ -690,9 +752,14 @@ Command should be either:
 			vConn.push_back(opt.substr(3) + "=" + vm[opt].as<string>());
 		}
 
-		zh::daemon server([cs=ba::join(vConn, " ")]()
+		DataService::init(ba::join(vConn, " "));
+
+		zeep::http::daemon server([]()
 		{
-			return new my_server(cs);
+			auto s = new zeep::http::server;
+			s->add_controller(new e_rest_controller());
+			s->add_controller(new e_web_controller());
+			return s;
 		}, "energyd");
 
 		string user = "www-data";

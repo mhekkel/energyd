@@ -16,8 +16,6 @@ PREFIX              ?= /usr/local
 
 PACKAGES			+= libpqxx
 
-DEFINES				+= WEBAPP_USES_RESOURCES
-
 # main build variables
 # CXX                 ?= clangc++
 CXXFLAGS            += $(BOOST_INC_DIR:%=-I%) -I. -pthread -std=c++17
@@ -25,7 +23,7 @@ CXXFLAGS            += -Wall -g
 LD                  ?= ld
 LDFLAGS				= -g
 
-SVN					= $(shell which svn)
+GIT					= $(shell which git)
 MRC					= $(shell which mrc)
 
 # Use the DEBUG flag to build debug versions of the code
@@ -43,7 +41,7 @@ ZEEP_DIR			?= ../libzeep/
 ZEEP_INC_DIR		= $(ZEEP_DIR:%=%/include)
 ZEEP_LIB_DIR		= $(ZEEP_DIR:%=%/lib)
 
-ZEEP_LIBS			= webapp rest http el xml generic
+ZEEP_LIBS			= html rest http json xml generic
 ZEEP_LIBS			:= $(ZEEP_LIBS:%=zeep-%)
 
 BOOST_INC_DIR       = $(BOOST:%=%/include)
@@ -95,11 +93,14 @@ src/mrsrc.h:
 all: energyd
 .PHONY: all
 
-REVISION = $(shell LANG=C $(SVN) info | tr -d '\n' | sed -e's/.*Revision: \([[:digit:]]*\).*/\1/' )
+# REVISION = $(shell LANG=C $(SVN) info | tr -d '\n' | sed -e's/.*Revision: \([[:digit:]]*\).*/\1/' )
+REVISION = $(git log --pretty=format:%h --max-count=1)
 REVISION_FILE = version-info-$(REVISION).txt
 
 $(REVISION_FILE):
-	LANG=C $(SVN) info > $@
+	git log --pretty=fuller -1 > $@
+
+	# LANG=C $(SVN) info > $@
 
 rsrc/version.txt: $(REVISION_FILE) | rsrc
 	cp $? $@
@@ -134,7 +135,6 @@ clean:
 dist-clean: clean
 
 FORCE:
-
 
 help:
 	echo $(REVISION)

@@ -1,0 +1,10 @@
+node_modules
+docroot/scripts
+docroot/fonts
+src/mrsrc.h
+version.txt
+obj
+obj.dbg
+version-info-*.txt
+energyd
+.vscode
