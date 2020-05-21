@@ -41,7 +41,7 @@ ZEEP_DIR			?= ../libzeep/
 ZEEP_INC_DIR		= $(ZEEP_DIR:%=%/include)
 ZEEP_LIB_DIR		= $(ZEEP_DIR:%=%/lib)
 
-ZEEP_LIBS			= html rest http json xml generic
+ZEEP_LIBS			= http json xml
 ZEEP_LIBS			:= $(ZEEP_LIBS:%=zeep-%)
 
 BOOST_INC_DIR       = $(BOOST:%=%/include)

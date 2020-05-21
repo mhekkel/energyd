@@ -19,10 +19,10 @@
 
 #include <zeep/http/server.hpp>
 #include <zeep/http/daemon.hpp>
-#include <zeep/html/controller.hpp>
+#include <zeep/http/html-controller.hpp>
 
 #include <zeep/json/parser.hpp>
-#include <zeep/rest/controller.hpp>
+#include <zeep/http/rest-controller.hpp>
 
 #include <pqxx/pqxx>
 
@@ -389,11 +389,11 @@ DataService::DataService(const std::string& dbConnectString)
 
 // --------------------------------------------------------------------
 
-class e_rest_controller : public zeep::rest::controller
+class e_rest_controller : public zeep::http::rest_controller
 {
   public:
 	e_rest_controller()
-		: zeep::rest::controller("ajax")
+		: zeep::http::rest_controller("ajax")
 	{
 		map_post_request("opname", &e_rest_controller::post_opname, "opname");
 		map_put_request("opname/{id}", &e_rest_controller::put_opname, "id", "opname");
@@ -592,7 +592,7 @@ GrafiekData e_rest_controller::get_grafiek(grafiek_type type, aggregatie_type ag
 
 // --------------------------------------------------------------------
 
-class e_web_controller : public zeep::html::controller
+class e_web_controller : public zeep::http::html_controller
 {
   public:
 	e_web_controller()
@@ -605,14 +605,14 @@ class e_web_controller : public zeep::html::controller
 		mount("{css,scripts,fonts}/", &e_web_controller::handle_file);
 	}
 
-	void opname(const zeep::http::request& request, const zeep::html::scope& scope, zeep::http::reply& reply);
-	void invoer(const zeep::http::request& request, const zeep::html::scope& scope, zeep::http::reply& reply);
-	void grafiek(const zeep::http::request& request, const zeep::html::scope& scope, zeep::http::reply& reply);
+	void opname(const zeep::http::request& request, const zeep::http::scope& scope, zeep::http::reply& reply);
+	void invoer(const zeep::http::request& request, const zeep::http::scope& scope, zeep::http::reply& reply);
+	void grafiek(const zeep::http::request& request, const zeep::http::scope& scope, zeep::http::reply& reply);
 };
 
-void e_web_controller::opname(const zeep::http::request& request, const zeep::html::scope& scope, zeep::http::reply& reply)
+void e_web_controller::opname(const zeep::http::request& request, const zeep::http::scope& scope, zeep::http::reply& reply)
 {
-	zeep::html::scope sub(scope);
+	zeep::http::scope sub(scope);
 
 	sub.put("page", "opname");
 
@@ -629,9 +629,9 @@ void e_web_controller::opname(const zeep::http::request& request, const zeep::ht
 	create_reply_from_template("opnames.html", sub, reply);
 }
 
-void e_web_controller::invoer(const zeep::http::request& request, const zeep::html::scope& scope, zeep::http::reply& reply)
+void e_web_controller::invoer(const zeep::http::request& request, const zeep::http::scope& scope, zeep::http::reply& reply)
 {
-	zeep::html::scope sub(scope);
+	zeep::http::scope sub(scope);
 
 	sub.put("page", "invoer");
 
@@ -659,9 +659,9 @@ void e_web_controller::invoer(const zeep::http::request& request, const zeep::ht
 	create_reply_from_template("invoer.html", sub, reply);
 }
 
-void e_web_controller::grafiek(const zeep::http::request& request, const zeep::html::scope& scope, zeep::http::reply& reply)
+void e_web_controller::grafiek(const zeep::http::request& request, const zeep::http::scope& scope, zeep::http::reply& reply)
 {
-	zeep::html::scope sub(scope);
+	zeep::http::scope sub(scope);
 
 	sub.put("page", "grafiek");
 
