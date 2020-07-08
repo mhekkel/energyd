@@ -9,63 +9,52 @@
 # Use the make.config file in the uplevel directory to
 # change the settings for this build
 
+SHELL := /bin/bash
+
 firstTarget: all
 
-# installation prefix
-PREFIX              ?= /usr/local
+CXX					= @CXX@
+CXXFLAGS			= @CXXFLAGS@ @CPPFLAGS@ @BOOST_CPPFLAGS@ @PTHREAD_CFLAGS@ @PQXX_CFLAGS@ @ZEEP_CFLAGS@
+LDFLAGS				= @LDFLAGS@ @BOOST_LDFLAGS@ @PTHREAD_CFLAGS@ @PQXX_LIBS@
+LIBS				= @BOOST_PROGRAM_OPTIONS_LIB@ @ZEEP_LIBS@ @LIBS@
 
-PACKAGES			+= libpqxx
+prefix				= @prefix@
+exec_prefix			= @exec_prefix@
+libdir				= @libdir@
+includedir			= @includedir@
+
+GNUmakefile: config.status GNUmakefile.in
+	$(SHELL) ./config.status
+
+config.status: configure
+	$(SHELL) ./config.status --recheck
+
+configure: configure.ac
+	autoconf
 
 # main build variables
-# CXX                 ?= clangc++
-CXXFLAGS            += $(BOOST_INC_DIR:%=-I%) -I. -pthread -std=c++17
-CXXFLAGS            += -Wall -g
-LD                  ?= ld
-LDFLAGS				= -g
-
-GIT					= $(shell which git)
-MRC					= $(shell which mrc)
+CXXFLAGS            += -Wall -Wno-multichar
 
 # Use the DEBUG flag to build debug versions of the code
-DEBUG               = 0
+DEBUG               = @DEBUG@
 
--include make.config
-
-ifneq ($(PACKAGES),)
-CXXFLAGS			+= $(shell PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) pkg-config --cflags $(PACKAGES))
-LDFLAGS				+= $(shell PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) pkg-config --libs $(PACKAGES) --static )
-endif
-
-ZEEP_DIR			?= ../libzeep/
-
-ZEEP_INC_DIR		= $(ZEEP_DIR:%=%/include)
-ZEEP_LIB_DIR		= $(ZEEP_DIR:%=%/lib)
-
-ZEEP_LIBS			= http json xml
-ZEEP_LIBS			:= $(ZEEP_LIBS:%=zeep-%)
-
-BOOST_INC_DIR       = $(BOOST:%=%/include)
-BOOST_LIB_DIR       = $(BOOST:%=%/lib)
-
-BOOST_LIBS          = system thread regex random program_options date_time locale
-BOOST_LIBS          := $(BOOST_LIBS:%=boost_%$(BOOST_LIB_SUFFIX))
-
-LIBS                := $(ZEEP_LIBS) $(BOOST_LIBS) stdc++ stdc++fs m pthread $(LIBS)
-LDFLAGS             += $(ZEEP_LIB_DIR:%=-L%) $(BOOST_LIB_DIR:%=-L%) $(LIBS:%=-l%) -g
+DEFINES				+= APP_NAME='"@PACKAGE_NAME@"'
+DEFINES				+= WEBAPP_USES_RESOURCES
 
 ifeq "$(DEBUG)" "1"
 DEFINES				+= DEBUG
+CXXFLAGS            += -g -O0
+LDFLAGS				+= -g
 else
-DEFINES				+= NDEBUG
 CXXFLAGS			+= -O2
+DEFINES				+= NDEBUG
 endif
 
 # targets
 
-VPATH += src
+VPATH += src:test
 
-CXXFLAGS			+= $(ZEEP_INC_DIR:%=-I%) $(BOOST_INC_DIR:%=-I%) $(DEFINES:%=-D%)
-LDFLAGS				+= 
+CXXFLAGS			+= $(DEFINES:%=-D%)
 
 OBJDIR = obj
 ifeq "$(DEBUG)" "1"
@@ -75,9 +64,12 @@ endif
 $(OBJDIR):
 	mkdir -p $(OBJDIR)
 
-APPS = energyd
+MRC					= @MRC@
 
-OBJECTS = $(APPS:%=$(OBJDIR)/%.o) $(APPS:%=$(OBJDIR)/%_rsrc.o) 
+APPLICATION = @PACKAGE_NAME@
+
+OBJECTS = $(APPLICATION:%=$(OBJDIR)/%.o) \
+	$(APPLICATION:%=$(OBJDIR)/%_rsrc.o)
 	
 -include $(OBJECTS:%.o=%.d)
 
@@ -87,20 +79,15 @@ $(OBJDIR)/%.o: %.cpp | src/mrsrc.h $(OBJDIR)
 	@ echo ">>" $<
 	@ $(CXX) -MD -c -o $@ $< $(CFLAGS) $(CXXFLAGS)
 
-src/mrsrc.h:
-	$(MRC) --header > $@
-
-all: energyd
+all: $(APPLICATION)
 .PHONY: all
 
-# REVISION = $(shell LANG=C $(SVN) info | tr -d '\n' | sed -e's/.*Revision: \([[:digit:]]*\).*/\1/' )
-REVISION = $(git log --pretty=format:%h --max-count=1)
+REVISION = $(shell git log --pretty=format:%h --max-count=1)
 REVISION_FILE = version-info-$(REVISION).txt
 
 $(REVISION_FILE):
+	rm -f version-info-*.txt
 	git log --pretty=fuller -1 > $@
-
-	# LANG=C $(SVN) info > $@
 
 rsrc/version.txt: $(REVISION_FILE) | rsrc
 	cp $? $@
@@ -122,19 +109,25 @@ endif
 $(subst .js,%js,$(SCRIPT_FILES)): $(subst .js,%js,$(WEBAPP_FILES))
 	yarn webpack $(WEBPACK_OPTIONS)
 
-$(OBJDIR)/energyd_rsrc.o: $(RSRC) $(SCRIPT_FILES) src/mrsrc.h
+$(OBJDIR)/$(APPLICATION)_rsrc.o: $(RSRC) $(SCRIPT_FILES)
 	$(MRC) -o $@ $(RSRC) --verbose
 
-energyd: %: $(OBJECTS)
+$(APPLICATION): %: $(OBJECTS)
 	@ echo '->' $@
-	@ $(CXX) -o $@ $^ $(LDFLAGS)
+	@ $(CXX) -o $@ $^ $(LDFLAGS) $(LIBS)
 
+.PHONY: clean
 clean:
-	rm -rf $(OBJDIR)/* energyd
+	rm -rf $(OBJDIR)/* $(APPLICATION)
 
-dist-clean: clean
+.PHONY: distclean
+distclean: clean
+	rm -f config.status config.cache config.log configure.lineno config.status.lineno
+	rm -f GNUmakefile
 
+.PHONY: FORCE
 FORCE:
 
+.PHONY: help
 help:
 	echo $(REVISION)

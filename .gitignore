@@ -8,3 +8,7 @@ obj.dbg
 version-info-*.txt
 energyd
 .vscode
+autom4te.cache/
+GNUmakefile
+config.status
+config.log

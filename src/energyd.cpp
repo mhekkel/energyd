@@ -220,14 +220,12 @@ class DataService
 	string post_opname(Opname opname)
 	{
 		pqxx::transaction tx(m_connection);
-		auto r = tx.prepared("insert-opname").exec();
-		if (r.empty() or r.size() != 1)
-			throw runtime_error("Kon geen opname aanmaken");
+		auto r = tx.exec_prepared1("insert-opname");
 
-		int opnameId = r.front()[0].as<int>();
+		int opnameId = r[0].as<int>();
 
 		for (auto stand: opname.standen)
-			tx.prepared("insert-stand")(opnameId)(stol(stand.first))(stand.second).exec();
+			tx.exec_prepared("insert-stand", opnameId, stol(stand.first), stand.second);
 
 		tx.commit();
 
@@ -239,7 +237,7 @@ class DataService
 		pqxx::transaction tx(m_connection);
 
 		for (auto stand: opname.standen)
-			tx.prepared("update-stand")(stand.second)(opnameId)(stol(stand.first)).exec();
+			tx.exec_prepared("update-stand", stand.second, opnameId, stol(stand.first));
 
 		tx.commit();
 	}
@@ -247,7 +245,7 @@ class DataService
 	Opname get_opname(string id)
 	{
 		pqxx::transaction tx(m_connection);
-		auto rows = tx.prepared("get-opname")(id).exec();
+		auto rows = tx.exec_prepared("get-opname", id);
 
 		if (rows.empty())
 			throw runtime_error("opname niet gevonden");
@@ -263,7 +261,7 @@ class DataService
 	Opname get_last_opname()
 	{
 		pqxx::transaction tx(m_connection);
-		auto rows = tx.prepared("get-last-opname").exec();
+		auto rows = tx.exec_prepared("get-last-opname");
 
 		if (rows.empty())
 			throw runtime_error("opname niet gevonden");
@@ -282,7 +280,7 @@ class DataService
 
 		pqxx::transaction tx(m_connection);
 
-		auto rows = tx.prepared("get-opname-all").exec();
+		auto rows = tx.exec_prepared("get-opname-all");
 		for (auto row: rows)
 		{
 			auto id = row[0].as<string>();
@@ -299,7 +297,7 @@ class DataService
 	void delete_opname(string id)
 	{
 		pqxx::transaction tx(m_connection);
-		tx.prepared("del-opname")(id).exec();
+		tx.exec_prepared("del-opname", id);
 		tx.commit();
 	}
 
@@ -309,7 +307,7 @@ class DataService
 
 		pqxx::transaction tx(m_connection);
 
-		auto rows = tx.prepared("get-tellers-all").exec();
+		auto rows = tx.exec_prepared("get-tellers-all");
 		for (auto row: rows)
 		{
 			auto c1 = row.column_number("id");
@@ -626,7 +624,8 @@ void e_web_controller::opname(const zeep::http::request& request, const zeep::ht
 	to_element(tellers, u);
 	sub.put("tellers", tellers);
 
-	create_reply_from_template("opnames.html", sub, reply);
+	get_template_processor().
+		create_reply_from_template("opnames.html", sub, reply);
 }
 
 void e_web_controller::invoer(const zeep::http::request& request, const zeep::http::scope& scope, zeep::http::reply& reply)
@@ -656,7 +655,8 @@ void e_web_controller::invoer(const zeep::http::request& request, const zeep::ht
 	to_element(tellers, u);
 	sub.put("tellers", tellers);
 
-	create_reply_from_template("invoer.html", sub, reply);
+	get_template_processor().
+		create_reply_from_template("invoer.html", sub, reply);
 }
 
 void e_web_controller::grafiek(const zeep::http::request& request, const zeep::http::scope& scope, zeep::http::reply& reply)
@@ -675,7 +675,8 @@ void e_web_controller::grafiek(const zeep::http::request& request, const zeep::h
 	to_element(tellers, u);
 	sub.put("tellers", tellers);
 
-	create_reply_from_template("grafiek.html", sub, reply);
+	get_template_processor().
+		create_reply_from_template("grafiek.html", sub, reply);
 }
 
 int main(int argc, const char* argv[])
@@ -756,7 +757,7 @@ Command should be either:
 
 		zeep::http::daemon server([]()
 		{
-			auto s = new zeep::http::server;
+			auto s = new zeep::http::server("docroot");
 			s->add_controller(new e_rest_controller());
 			s->add_controller(new e_web_controller());
 			return s;
@@ -781,7 +782,7 @@ Command should be either:
 			if (vm.count("no-daemon"))
 				result = server.run_foreground(address, port);
 			else
-				result = server.start(address, port, 2, user);
+				result = server.start(address, port, 1, 2, user);
 			// server.start(vm.count("no-daemon"), address, port, 2, user);
 			// // result = daemon::start(vm.count("no-daemon"), port, user);
 		}
