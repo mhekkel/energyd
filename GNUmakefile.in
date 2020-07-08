@@ -95,6 +95,9 @@ rsrc/version.txt: $(REVISION_FILE) | rsrc
 rsrc:
 	mkdir -p $@
 
+src/mrsrc.h:
+	$(MRC) --header > $@
+
 RSRC = rsrc/version.txt docroot/ 
 
 # yarn rules
