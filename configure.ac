@@ -31,9 +31,6 @@ AC_CHECK_PROG([HAVE_YARN], [yarn], [yes],
 AC_PATH_PROG([PKG_CONFIG], [pkg-config])
 
 AX_PKG_CHECK_MODULES([PQXX], [libpq libpqxx], [], [], [AC_MSG_ERROR([the required package libpqxx-dev is not installed])])
-AX_PKG_CHECK_MODULES([JPEG], [libjpeg], [], [], [AC_MSG_ERROR([the required package libjpeg-dev is not installed])])
-AX_PKG_CHECK_MODULES([PNG], [libpng], [], [], [AC_MSG_ERROR([the required package libpng-dev is not installed])])
-AX_PKG_CHECK_MODULES([TIDY], [tidy], [], [], [AC_MSG_ERROR([the required package libtidy-dev is not installed])])
 AX_PKG_CHECK_MODULES([ZEEP], [libzeep-http], [], [], [AC_MSG_ERROR([the required package libzeep-dev is not installed])])
 
 AX_PTHREAD(

@@ -683,56 +683,56 @@ int main(int argc, const char* argv[])
 {
 	int result = 0;
 
-	po::options_description visible_options(argv[0] + " [options] command"s);
-	visible_options.add_options()
-		("help,h",										"Display help message")
-		("verbose,v",									"Verbose output")
-		
-		("address",				po::value<string>(),	"External address, default is 0.0.0.0")
-		("port",				po::value<uint16_t>(),	"Port to listen to, default is 10336")
-		("no-daemon,F",									"Do not fork into background")
-		("user,u",				po::value<string>(),	"User to run the daemon")
-
-		("db-host",				po::value<string>(),	"Database host")
-		("db-port",				po::value<string>(),	"Database port")
-		("db-dbname",			po::value<string>(),	"Database name")
-		("db-user",				po::value<string>(),	"Database user name")
-		("db-password",			po::value<string>(),	"Database password")
-		;
-	
-	po::options_description hidden_options("hidden options");
-	hidden_options.add_options()
-		("command",		po::value<string>(),	"Command, one of start, stop, status or reload")
-		("debug,d",		po::value<int>(),		"Debug level (for even more verbose output)");
-
-	po::options_description cmdline_options;
-	cmdline_options.add(visible_options).add(hidden_options);
-
-	po::positional_options_description p;
-	p.add("command", 1);
-
-	po::variables_map vm;
-	po::store(po::command_line_parser(argc, argv).options(cmdline_options).positional(p).run(), vm);
-	po::notify(vm);
-
-	// --------------------------------------------------------------------
-
-	if (vm.count("help") or vm.count("command") == 0)
-	{
-		cerr << visible_options << endl
-			 << R"(
-Command should be either:
-
-  start     start a new server
-  stop      start a running server
-  status    get the status of a running server
-  reload    restart a running server with new options
-			 )" << endl;
-		exit(vm.count("help") ? 0 : 1);
-	}
-	
 	try
 	{
+		po::options_description visible_options(argv[0] + " [options] command"s);
+		visible_options.add_options()
+			("help,h",										"Display help message")
+			("verbose,v",									"Verbose output")
+			
+			("address",				po::value<string>(),	"External address, default is 0.0.0.0")
+			("port",				po::value<uint16_t>(),	"Port to listen to, default is 10336")
+			("no-daemon,F",									"Do not fork into background")
+			("user,u",				po::value<string>(),	"User to run the daemon")
+
+			("db-host",				po::value<string>(),	"Database host")
+			("db-port",				po::value<string>(),	"Database port")
+			("db-dbname",			po::value<string>(),	"Database name")
+			("db-user",				po::value<string>(),	"Database user name")
+			("db-password",			po::value<string>(),	"Database password")
+			;
+		
+		po::options_description hidden_options("hidden options");
+		hidden_options.add_options()
+			("command",		po::value<string>(),	"Command, one of start, stop, status or reload")
+			("debug,d",		po::value<int>(),		"Debug level (for even more verbose output)");
+
+		po::options_description cmdline_options;
+		cmdline_options.add(visible_options).add(hidden_options);
+
+		po::positional_options_description p;
+		p.add("command", 1);
+
+		po::variables_map vm;
+		po::store(po::command_line_parser(argc, argv).options(cmdline_options).positional(p).run(), vm);
+		po::notify(vm);
+
+		// --------------------------------------------------------------------
+
+		if (vm.count("help") or vm.count("command") == 0)
+		{
+			cerr << visible_options << endl
+				<< R"(
+Command should be either:
+
+    start     start a new server
+    stop      start a running server
+    status    get the status of a running server
+    reload    restart a running server with new options
+				)" << endl;
+			exit(vm.count("help") ? 0 : 1);
+		}
+		
 		char exePath[PATH_MAX + 1];
 		int r = readlink("/proc/self/exe", exePath, PATH_MAX);
 		if (r > 0)
