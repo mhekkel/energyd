@@ -23,6 +23,7 @@
 
 #include <zeep/json/parser.hpp>
 #include <zeep/http/rest-controller.hpp>
+#include <zeep/http/error-handler.hpp>
 
 #include <pqxx/pqxx>
 
@@ -219,7 +220,7 @@ class DataService
 
 	string post_opname(Opname opname)
 	{
-		pqxx::transaction tx(m_connection);
+		pqxx::work tx(get_connection());
 		auto r = tx.exec_prepared1("insert-opname");
 
 		int opnameId = r[0].as<int>();
@@ -234,7 +235,7 @@ class DataService
 
 	void put_opname(string opnameId, Opname opname)
 	{
-		pqxx::transaction tx(m_connection);
+		pqxx::work tx(get_connection());
 
 		for (auto stand: opname.standen)
 			tx.exec_prepared("update-stand", stand.second, opnameId, stol(stand.first));
@@ -244,7 +245,7 @@ class DataService
 
 	Opname get_opname(string id)
 	{
-		pqxx::transaction tx(m_connection);
+		pqxx::work tx(get_connection());
 		auto rows = tx.exec_prepared("get-opname", id);
 
 		if (rows.empty())
@@ -260,7 +261,7 @@ class DataService
 
 	Opname get_last_opname()
 	{
-		pqxx::transaction tx(m_connection);
+		pqxx::work tx(get_connection());
 		auto rows = tx.exec_prepared("get-last-opname");
 
 		if (rows.empty())
@@ -278,7 +279,7 @@ class DataService
 	{
 		vector<Opname> result;
 
-		pqxx::transaction tx(m_connection);
+		pqxx::work tx(get_connection());
 
 		auto rows = tx.exec_prepared("get-opname-all");
 		for (auto row: rows)
@@ -296,7 +297,7 @@ class DataService
 
 	void delete_opname(string id)
 	{
-		pqxx::transaction tx(m_connection);
+		pqxx::work tx(get_connection());
 		tx.exec_prepared("del-opname", id);
 		tx.commit();
 	}
@@ -305,7 +306,7 @@ class DataService
 	{
 		vector<Teller> result;
 
-		pqxx::transaction tx(m_connection);
+		pqxx::work tx(get_connection());
 
 		auto rows = tx.exec_prepared("get-tellers-all");
 		for (auto row: rows)
@@ -326,7 +327,7 @@ class DataService
 		using namespace boost::posix_time;
 		using namespace boost::gregorian;
 
-		pqxx::transaction tx(m_connection);
+		pqxx::work tx(get_connection());
 
 		StandMap sm;
 
@@ -336,18 +337,28 @@ class DataService
 		return sm;
 	}
 
+	void reset()
+	{
+		sConnection.reset();
+	}
+
   private:
 	DataService(const std::string& dbConnectString);
 
-	static DataService* sInstance;
-	pqxx::connection m_connection;
+	pqxx::connection& get_connection();
+
+	std::string mConnectString;
+
+	static std::unique_ptr<DataService> sInstance;
+	static thread_local std::unique_ptr<pqxx::connection> sConnection;
 };
 
-DataService* DataService::sInstance;
+std::unique_ptr<DataService> DataService::sInstance;
+thread_local std::unique_ptr<pqxx::connection> DataService::sConnection;
 
 void DataService::init(const std::string& dbConnectString)
 {
-	sInstance = new DataService(dbConnectString);
+	sInstance.reset(new DataService(dbConnectString));
 }
 
 DataService& DataService::instance()
@@ -355,34 +366,45 @@ DataService& DataService::instance()
 	return *sInstance;
 }
 
-DataService::DataService(const std::string& dbConnectString)
-	: m_connection(dbConnectString)
+pqxx::connection& DataService::get_connection()
 {
-	m_connection.prepare("get-opname-all",
-		"SELECT a.id AS id, a.tijd AS tijd, b.teller_id AS teller_id, b.stand AS stand"
-		" FROM opname a, tellerstand b"
-		" WHERE a.id = b.opname_id"
-		" ORDER BY a.tijd DESC");
+	if (not sConnection)
+	{
+		sConnection.reset(new pqxx::connection(mConnectString));
 
-	m_connection.prepare("get-opname",
-		"SELECT a.id AS id, a.tijd AS tijd, b.teller_id AS teller_id, b.stand AS stand"
-		" FROM opname a, tellerstand b"
-		" WHERE a.id = b.opname_id AND a.id = $1");
+		sConnection->prepare("get-opname-all",
+			"SELECT a.id AS id, a.tijd AS tijd, b.teller_id AS teller_id, b.stand AS stand"
+			" FROM opname a, tellerstand b"
+			" WHERE a.id = b.opname_id"
+			" ORDER BY a.tijd DESC");
 
-	m_connection.prepare("get-last-opname",
-		"SELECT a.id AS id, a.tijd AS tijd, b.teller_id AS teller_id, b.stand AS stand"
-		" FROM opname a, tellerstand b"
-		" WHERE a.id = b.opname_id AND a.id = (SELECT MAX(id) FROM opname)");
+		sConnection->prepare("get-opname",
+			"SELECT a.id AS id, a.tijd AS tijd, b.teller_id AS teller_id, b.stand AS stand"
+			" FROM opname a, tellerstand b"
+			" WHERE a.id = b.opname_id AND a.id = $1");
 
-	m_connection.prepare("insert-opname", "INSERT INTO opname DEFAULT VALUES RETURNING id");
-	m_connection.prepare("insert-stand", "INSERT INTO tellerstand (opname_id, teller_id, stand) VALUES($1, $2, $3);");
+		sConnection->prepare("get-last-opname",
+			"SELECT a.id AS id, a.tijd AS tijd, b.teller_id AS teller_id, b.stand AS stand"
+			" FROM opname a, tellerstand b"
+			" WHERE a.id = b.opname_id AND a.id = (SELECT MAX(id) FROM opname)");
 
-	m_connection.prepare("update-stand", "UPDATE tellerstand SET stand = $1 WHERE opname_Id = $2 AND teller_id = $3;");
+		sConnection->prepare("insert-opname", "INSERT INTO opname DEFAULT VALUES RETURNING id");
+		sConnection->prepare("insert-stand", "INSERT INTO tellerstand (opname_id, teller_id, stand) VALUES($1, $2, $3);");
 
-	m_connection.prepare("del-opname", "DELETE FROM opname WHERE id=$1");
+		sConnection->prepare("update-stand", "UPDATE tellerstand SET stand = $1 WHERE opname_Id = $2 AND teller_id = $3;");
 
-	m_connection.prepare("get-tellers-all",
-		"SELECT id, naam, naam_kort, schaal FROM teller ORDER BY id");	
+		sConnection->prepare("del-opname", "DELETE FROM opname WHERE id=$1");
+
+		sConnection->prepare("get-tellers-all",
+			"SELECT id, naam, naam_kort, schaal FROM teller ORDER BY id");	
+
+	}
+	return *sConnection;
+}
+
+DataService::DataService(const std::string& dbConnectString)
+	: mConnectString(dbConnectString)
+{
 }
 
 // --------------------------------------------------------------------
@@ -679,6 +701,35 @@ void e_web_controller::grafiek(const zeep::http::request& request, const zeep::h
 		create_reply_from_template("grafiek.html", sub, reply);
 }
 
+// --------------------------------------------------------------------
+
+class e_error_handler : public zeep::http::error_handler
+{
+  public:
+
+	virtual bool create_error_reply(const zeep::http::request& req, std::exception_ptr eptr, zeep::http::reply& reply)
+	{
+		try
+		{
+			std::rethrow_exception(eptr);
+		}
+		catch (pqxx::broken_connection& ex)
+		{
+			std::cerr << ex.what() << std::endl;
+			DataService::instance().reset();
+		}
+		catch (...)
+		{
+		}
+		
+		return false;
+	}
+};
+
+
+// --------------------------------------------------------------------
+
+
 int main(int argc, const char* argv[])
 {
 	int result = 0;
@@ -760,6 +811,7 @@ Command should be either:
 			auto s = new zeep::http::server("docroot");
 			s->add_controller(new e_rest_controller());
 			s->add_controller(new e_web_controller());
+			s->add_error_handler(new e_error_handler());
 			return s;
 		}, "energyd");
 
