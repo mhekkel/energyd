@@ -28,7 +28,7 @@ fi
 AC_CHECK_PROG([HAVE_YARN], [yarn], [yes],
 	[AC_MSG_ERROR([yarn was not found, it is required to package the javascripts.])])
 
-AC_PATH_PROG([PKG_CONFIG], [pkg-config])
+PKG_PROG_PKG_CONFIG
 
 AX_PKG_CHECK_MODULES([PQXX], [libpq libpqxx], [], [], [AC_MSG_ERROR([the required package libpqxx-dev is not installed])])
 AX_PKG_CHECK_MODULES([ZEEP], [libzeep-http], [], [], [AC_MSG_ERROR([the required package libzeep-dev is not installed])])

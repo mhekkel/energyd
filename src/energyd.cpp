@@ -726,7 +726,6 @@ class e_error_handler : public zeep::http::error_handler
 	}
 };
 
-
 // --------------------------------------------------------------------
 
 
