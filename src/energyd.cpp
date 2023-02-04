@@ -748,6 +748,14 @@ int main(int argc, const char *argv[])
 		mcfp::make_option<std::string>("db-user", "Database user name"),
 		mcfp::make_option<std::string>("db-password", "Database password"));
 
+	std::error_code ec;
+	config.parse(argc, argv, ec);
+	if (ec)
+	{
+		std::cerr << "Error parsing arguments: " << ec.message() << std::endl;
+		return 1;
+	}
+
 	if (config.has("version"))
 	{
 		write_version_string(std::cout, config.has("verbose"));
@@ -764,17 +772,9 @@ Command should be either:
     stop      start a running server
     status    get the status of a running server
     reload    restart a running server with new options
-				)";
+				)" << std::endl;
 
 		return config.has("help") ? 0 : 1;
-	}
-
-	std::error_code ec;
-	config.parse(argc, argv, ec);
-	if (ec)
-	{
-		std::cerr << "Error parsing arguments: " << ec.message() << std::endl;
-		return 1;
 	}
 
 	config.parse_config_file("config", "energyd.conf", { ".", "/etc" }, ec);
