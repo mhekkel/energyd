@@ -5,34 +5,28 @@
 
 #define WEBAPP_USES_RESOURCES 1
 
-#include <zeep/config.hpp>
+#include "mrsrc.hpp"
+#include "revision.hpp"
 
-#include <functional>
-#include <tuple>
+#include <utility>
 
-#include <boost/algorithm/string.hpp>
-#include <boost/program_options.hpp>
-
-#include <boost/date_time/posix_time/posix_time.hpp>
-#include <boost/date_time/gregorian/gregorian.hpp>
-#include <boost/date_time/local_time/local_time.hpp>
-
-#include <zeep/http/server.hpp>
 #include <zeep/http/daemon.hpp>
 #include <zeep/http/html-controller.hpp>
+#include <zeep/http/server.hpp>
 
-#include <zeep/json/parser.hpp>
-#include <zeep/http/rest-controller.hpp>
 #include <zeep/http/error-handler.hpp>
+#include <zeep/http/rest-controller.hpp>
+#include <zeep/json/parser.hpp>
+
+#include <mcfp.hpp>
 
 #include <pqxx/pqxx>
 
-#include "mrsrc.h"
+#include <functional>
+#include <iostream>
+#include <tuple>
 
-using namespace std;
 namespace fs = std::filesystem;
-namespace ba = boost::algorithm;
-namespace po = boost::program_options;
 
 // --------------------------------------------------------------------
 
@@ -42,12 +36,12 @@ fs::path gExePath;
 
 struct Opname
 {
-	string				id;
-	string				datum;
-	map<string,float>	standen;
+	std::string id;
+	std::string datum;
+	std::map<std::string, float> standen;
 
-	template<typename Archive>
-	void serialize(Archive& ar, unsigned long version)
+	template <typename Archive>
+	void serialize(Archive &ar, unsigned long version)
 	{
 		ar & zeep::make_nvp("id", id)
 		   & zeep::make_nvp("datum", datum)
@@ -57,13 +51,13 @@ struct Opname
 
 struct Teller
 {
-	string id;
-	string naam;
-	string naam_kort;
+	std::string id;
+	std::string naam;
+	std::string naam_kort;
 	int schaal;
 
-	template<typename Archive>
-	void serialize(Archive& ar, unsigned long)
+	template <typename Archive>
+	void serialize(Archive &ar, unsigned long)
 	{
 		ar & zeep::make_nvp("id", id)
 		   & zeep::make_nvp("naam", naam)
@@ -74,27 +68,35 @@ struct Teller
 
 enum class aggregatie_type
 {
-	dag, week, maand, jaar
+	dag,
+	week,
+	maand,
+	jaar
 };
 
-void to_element(zeep::json::element& e, aggregatie_type aggregatie)
+void to_element(zeep::json::element &e, aggregatie_type aggregatie)
 {
 	switch (aggregatie)
 	{
-		case aggregatie_type::dag:		e = "dag"; break;
-		case aggregatie_type::week:		e = "week"; break;
-		case aggregatie_type::maand:	e = "maand"; break;
-		case aggregatie_type::jaar:		e = "jaar"; break;
+		case aggregatie_type::dag: e = "dag"; break;
+		case aggregatie_type::week: e = "week"; break;
+		case aggregatie_type::maand: e = "maand"; break;
+		case aggregatie_type::jaar: e = "jaar"; break;
 	}
 }
 
-void from_element(const zeep::json::element& e, aggregatie_type& aggregatie)
+void from_element(const zeep::json::element &e, aggregatie_type &aggregatie)
 {
-	if (e == "dag")				aggregatie = aggregatie_type::dag;
-	else if (e == "week")		aggregatie = aggregatie_type::week;
-	else if (e == "maand")		aggregatie = aggregatie_type::maand;
-	else if (e == "jaar")		aggregatie = aggregatie_type::jaar;
-	else throw runtime_error("Ongeldige aggregatie");
+	if (e == "dag")
+		aggregatie = aggregatie_type::dag;
+	else if (e == "week")
+		aggregatie = aggregatie_type::week;
+	else if (e == "maand")
+		aggregatie = aggregatie_type::maand;
+	else if (e == "jaar")
+		aggregatie = aggregatie_type::jaar;
+	else
+		throw std::runtime_error("Ongeldige aggregatie");
 }
 
 enum class grafiek_type
@@ -111,39 +113,50 @@ enum class grafiek_type
 	electriciteit_levering_laag
 };
 
-void to_element(zeep::json::element& e, grafiek_type type)
+void to_element(zeep::json::element &e, grafiek_type type)
 {
 	switch (type)
 	{
-		case grafiek_type::warmte:						e = "warmte"; break;
-		case grafiek_type::electriciteit:				e = "electriciteit"; break;
-		case grafiek_type::electriciteit_hoog:			e = "electriciteit-hoog"; break;
-		case grafiek_type::electriciteit_laag:			e = "electriciteit-laag"; break;
-		case grafiek_type::electriciteit_verbruik:		e = "electriciteit-verbruik"; break;
-		case grafiek_type::electriciteit_levering:		e = "electriciteit-levering"; break;
-		case grafiek_type::electriciteit_verbruik_hoog:	e = "electriciteit-verbruik-hoog"; break;
-		case grafiek_type::electriciteit_verbruik_laag:	e = "electriciteit-verbruik-laag"; break;
-		case grafiek_type::electriciteit_levering_hoog:	e = "electriciteit-levering-hoog"; break;
-		case grafiek_type::electriciteit_levering_laag:	e = "electriciteit-levering-laag"; break;
+		case grafiek_type::warmte: e = "warmte"; break;
+		case grafiek_type::electriciteit: e = "electriciteit"; break;
+		case grafiek_type::electriciteit_hoog: e = "electriciteit-hoog"; break;
+		case grafiek_type::electriciteit_laag: e = "electriciteit-laag"; break;
+		case grafiek_type::electriciteit_verbruik: e = "electriciteit-verbruik"; break;
+		case grafiek_type::electriciteit_levering: e = "electriciteit-levering"; break;
+		case grafiek_type::electriciteit_verbruik_hoog: e = "electriciteit-verbruik-hoog"; break;
+		case grafiek_type::electriciteit_verbruik_laag: e = "electriciteit-verbruik-laag"; break;
+		case grafiek_type::electriciteit_levering_hoog: e = "electriciteit-levering-hoog"; break;
+		case grafiek_type::electriciteit_levering_laag: e = "electriciteit-levering-laag"; break;
 	}
 }
 
-void from_element(const zeep::json::element& e, grafiek_type& type)
+void from_element(const zeep::json::element &e, grafiek_type &type)
 {
-		 if (e == "warmte")						 type = grafiek_type::warmte;						
-	else if (e == "electriciteit")				 type = grafiek_type::electriciteit;				
-	else if (e == "electriciteit-hoog")			 type = grafiek_type::electriciteit_hoog;			
-	else if (e == "electriciteit-laag")			 type = grafiek_type::electriciteit_laag;			
-	else if (e == "electriciteit-verbruik")		 type = grafiek_type::electriciteit_verbruik;		
-	else if (e == "electriciteit-levering")		 type = grafiek_type::electriciteit_levering;		
-	else if (e == "electriciteit-verbruik-hoog") type = grafiek_type::electriciteit_verbruik_hoog;	
-	else if (e == "electriciteit-verbruik-laag") type = grafiek_type::electriciteit_verbruik_laag;	
-	else if (e == "electriciteit-levering-hoog") type = grafiek_type::electriciteit_levering_hoog;	
-	else if (e == "electriciteit-levering-laag") type = grafiek_type::electriciteit_levering_laag;	
-	else throw runtime_error("Ongeldige grafiek type");
+	if (e == "warmte")
+		type = grafiek_type::warmte;
+	else if (e == "electriciteit")
+		type = grafiek_type::electriciteit;
+	else if (e == "electriciteit-hoog")
+		type = grafiek_type::electriciteit_hoog;
+	else if (e == "electriciteit-laag")
+		type = grafiek_type::electriciteit_laag;
+	else if (e == "electriciteit-verbruik")
+		type = grafiek_type::electriciteit_verbruik;
+	else if (e == "electriciteit-levering")
+		type = grafiek_type::electriciteit_levering;
+	else if (e == "electriciteit-verbruik-hoog")
+		type = grafiek_type::electriciteit_verbruik_hoog;
+	else if (e == "electriciteit-verbruik-laag")
+		type = grafiek_type::electriciteit_verbruik_laag;
+	else if (e == "electriciteit-levering-hoog")
+		type = grafiek_type::electriciteit_levering_hoog;
+	else if (e == "electriciteit-levering-laag")
+		type = grafiek_type::electriciteit_levering_laag;
+	else
+		throw std::runtime_error("Ongeldige grafiek type");
 }
 
-string selector(grafiek_type g)
+std::string selector(grafiek_type g)
 {
 	switch (g)
 	{
@@ -194,12 +207,12 @@ string selector(grafiek_type g)
 
 struct GrafiekData
 {
-	string 				type;
-	map<string,float>	punten;
-	map<string,float>   vsGem;
+	std::string type;
+	std::map<std::string, float> punten;
+	std::map<std::string, float> vsGem;
 
-	template<typename Archive>
-	void serialize(Archive& ar, unsigned long)
+	template <typename Archive>
+	void serialize(Archive &ar, unsigned long)
 	{
 		ar & zeep::make_nvp("type", type)
 		   & zeep::make_nvp("punten", punten)
@@ -209,53 +222,52 @@ struct GrafiekData
 
 // --------------------------------------------------------------------
 
-typedef std::map<boost::posix_time::ptime,float> StandMap;
+typedef std::map<boost::posix_time::ptime, float> StandMap;
 
 class DataService
 {
   public:
+	static void init(const std::string &dbConnectString);
+	static DataService &instance();
 
-	static void init(const std::string& dbConnectString);
-	static DataService& instance();
-
-	string post_opname(Opname opname)
+	std::string post_opname(Opname opname)
 	{
 		pqxx::work tx(get_connection());
 		auto r = tx.exec_prepared1("insert-opname");
 
 		int opnameId = r[0].as<int>();
 
-		for (auto stand: opname.standen)
+		for (auto stand : opname.standen)
 			tx.exec_prepared("insert-stand", opnameId, stol(stand.first), stand.second);
 
 		tx.commit();
 
-		return to_string(opnameId);
+		return std::to_string(opnameId);
 	}
 
-	void put_opname(string opnameId, Opname opname)
+	void put_opname(std::string opnameId, Opname opname)
 	{
 		pqxx::work tx(get_connection());
 
-		for (auto stand: opname.standen)
+		for (auto stand : opname.standen)
 			tx.exec_prepared("update-stand", stand.second, opnameId, stol(stand.first));
 
 		tx.commit();
 	}
 
-	Opname get_opname(string id)
+	Opname get_opname(std::string id)
 	{
 		pqxx::work tx(get_connection());
 		auto rows = tx.exec_prepared("get-opname", id);
 
 		if (rows.empty())
-			throw runtime_error("opname niet gevonden");
+			throw std::runtime_error("opname niet gevonden");
 
-		Opname result{ rows.front()[0].as<string>(), rows.front()[1].as<string>() };
+		Opname result{ rows.front()[0].as<std::string>(), rows.front()[1].as<std::string>() };
 
-		for (auto row: rows)
-			result.standen[row[2].as<string>()] = row[3].as<float>();
-		
+		for (auto row : rows)
+			result.standen[row[2].as<std::string>()] = row[3].as<float>();
+
 		return result;
 	}
 
@@ -265,58 +277,58 @@ class DataService
 		auto rows = tx.exec_prepared("get-last-opname");
 
 		if (rows.empty())
-			throw runtime_error("opname niet gevonden");
+			throw std::runtime_error("opname niet gevonden");
 
-		Opname result{ rows.front()[0].as<string>(), rows.front()[1].as<string>() };
+		Opname result{ rows.front()[0].as<std::string>(), rows.front()[1].as<std::string>() };
 
-		for (auto row: rows)
-			result.standen[row[2].as<string>()] = row[3].as<float>();
-		
+		for (auto row : rows)
+			result.standen[row[2].as<std::string>()] = row[3].as<float>();
+
 		return result;
 	}
 
-	vector<Opname> get_all_opnames()
+	std::vector<Opname> get_all_opnames()
 	{
-		vector<Opname> result;
+		std::vector<Opname> result;
 
 		pqxx::work tx(get_connection());
 
 		auto rows = tx.exec_prepared("get-opname-all");
-		for (auto row: rows)
+		for (auto row : rows)
 		{
-			auto id = row[0].as<string>();
+			auto id = row[0].as<std::string>();
 
 			if (result.empty() or result.back().id != id)
-				result.push_back({id, row[1].as<string>()});
+				result.push_back({ id, row[1].as<std::string>() });
 
-			result.back().standen[row[2].as<string>()] = row[3].as<float>();
+			result.back().standen[row[2].as<std::string>()] = row[3].as<float>();
 		}
 
 		return result;
 	}
 
-	void delete_opname(string id)
+	void delete_opname(std::string id)
 	{
 		pqxx::work tx(get_connection());
 		tx.exec_prepared("del-opname", id);
 		tx.commit();
 	}
 
-	vector<Teller> get_tellers()
+	std::vector<Teller> get_tellers()
 	{
-		vector<Teller> result;
+		std::vector<Teller> result;
 
 		pqxx::work tx(get_connection());
 
 		auto rows = tx.exec_prepared("get-tellers-all");
-		for (auto row: rows)
+		for (auto row : rows)
 		{
 			auto c1 = row.column_number("id");
 			auto c2 = row.column_number("naam");
 			auto c3 = row.column_number("naam_kort");
 			auto c4 = row.column_number("schaal");
 
-			result.push_back({row[c1].as<string>(), row[c2].as<string>(), row[c3].as<string>(), row[c4].as<int>()});
+			result.push_back({ row[c1].as<std::string>(), row[c2].as<std::string>(), row[c3].as<std::string>(), row[c4].as<int>() });
 		}
 
 		return result;
@@ -324,15 +336,12 @@ class DataService
 
 	StandMap get_stand_map(grafiek_type type)
 	{
-		using namespace boost::posix_time;
-		using namespace boost::gregorian;
-
 		pqxx::work tx(get_connection());
 
 		StandMap sm;
 
-		for (auto r: tx.exec(selector(type)))
-			sm[time_from_string(r[0].as<string>())] = r[1].as<float>();
+		// for (auto r : tx.exec(selector(type)))
+		// 	sm[time_from_string(r[0].as<std::string>())] = r[1].as<float>();
 
 		return sm;
 	}
@@ -343,9 +352,9 @@ class DataService
 	}
 
   private:
-	DataService(const std::string& dbConnectString);
+	DataService(const std::string &dbConnectString);
 
-	pqxx::connection& get_connection();
+	pqxx::connection &get_connection();
 
 	std::string mConnectString;
 
@@ -356,17 +365,17 @@ class DataService
 std::unique_ptr<DataService> DataService::sInstance;
 thread_local std::unique_ptr<pqxx::connection> DataService::sConnection;
 
-void DataService::init(const std::string& dbConnectString)
+void DataService::init(const std::string &dbConnectString)
 {
 	sInstance.reset(new DataService(dbConnectString));
 }
 
-DataService& DataService::instance()
+DataService &DataService::instance()
 {
 	return *sInstance;
 }
 
-pqxx::connection& DataService::get_connection()
+pqxx::connection &DataService::get_connection()
 {
 	if (not sConnection)
 	{
@@ -396,13 +405,12 @@ pqxx::connection& DataService::get_connection()
 		sConnection->prepare("del-opname", "DELETE FROM opname WHERE id=$1");
 
 		sConnection->prepare("get-tellers-all",
-			"SELECT id, naam, naam_kort, schaal FROM teller ORDER BY id");	
-
+			"SELECT id, naam, naam_kort, schaal FROM teller ORDER BY id");
 	}
 	return *sConnection;
 }
 
-DataService::DataService(const std::string& dbConnectString)
+DataService::DataService(const std::string &dbConnectString)
 	: mConnectString(dbConnectString)
 {
 }
@@ -425,17 +433,17 @@ class e_rest_controller : public zeep::http::rest_controller
 	}
 
 	// CRUD routines
-	string post_opname(Opname opname)
+	std::string post_opname(Opname opname)
 	{
 		return DataService::instance().post_opname(opname);
 	}
 
-	void put_opname(string opnameId, Opname opname)
+	void put_opname(std::string opnameId, Opname opname)
 	{
 		DataService::instance().put_opname(opnameId, opname);
 	}
 
-	Opname get_opname(string id)
+	Opname get_opname(std::string id)
 	{
 		return DataService::instance().get_opname(id);
 	}
@@ -445,17 +453,17 @@ class e_rest_controller : public zeep::http::rest_controller
 		return DataService::instance().get_last_opname();
 	}
 
-	vector<Opname> get_all_opnames()
+	std::vector<Opname> get_all_opnames()
 	{
 		return DataService::instance().get_all_opnames();
 	}
 
-	void delete_opname(string id)
+	void delete_opname(std::string id)
 	{
 		DataService::instance().delete_opname(id);
 	}
 
-	vector<Teller> get_tellers()
+	std::vector<Teller> get_tellers()
 	{
 		return DataService::instance().get_tellers();
 	}
@@ -466,11 +474,8 @@ class e_rest_controller : public zeep::http::rest_controller
 
 // --------------------------------------------------------------------
 
-float interpolateStand(const StandMap& data, boost::posix_time::ptime t)
+float interpolateStand(const StandMap &data, boost::posix_time::ptime t)
 {
-	using namespace boost::posix_time;
-	using namespace boost::gregorian;
-
 	float result = 0;
 
 	for (;;)
@@ -509,103 +514,100 @@ float interpolateStand(const StandMap& data, boost::posix_time::ptime t)
 
 GrafiekData e_rest_controller::get_grafiek(grafiek_type type, aggregatie_type aggr)
 {
-	using namespace boost::posix_time;
-	using namespace boost::gregorian;
+	// StandMap sm = DataService::instance().get_stand_map(type);
 
-	StandMap sm = DataService::instance().get_stand_map(type);
+	// struct verbruik_per_periode
+	// {
+	// 	float verbruik = 0;
+	// 	long duur = 0;
+	// };
 
-	struct verbruik_per_periode
-	{
-		float verbruik = 0;
-		long duur = 0;
-	};
+	// std::map<date, verbruik_per_periode> data;
 
-	map<date,verbruik_per_periode> data;
+	// std::unique_ptr<date_iterator> iter;
+	// auto start_w = first_day_of_the_week_before(Sunday);
 
-	unique_ptr<date_iterator> iter;
-	auto start_w = first_day_of_the_week_before(Sunday);
+	// ptime van = sm.begin()->first,
+	// 	  tot = prev(sm.end())->first;
 
-	ptime van = sm.begin()->first,
-		  tot = prev(sm.end())->first;
+	// switch (aggr)
+	// {
+	// 	case aggregatie_type::dag:
+	// 		iter.reset(new day_iterator(van.date()));
+	// 		break;
 
-	switch (aggr)
-	{
-		case aggregatie_type::dag:
-			iter.reset(new day_iterator(van.date()));
-			break;
+	// 	case aggregatie_type::week:
+	// 		iter.reset(new week_iterator(start_w.get_date(van.date())));
+	// 		break;
 
-		case aggregatie_type::week:
-			iter.reset(new week_iterator(start_w.get_date(van.date())));
-			break;
+	// 	case aggregatie_type::maand:
+	// 		iter.reset(new month_iterator(date(van.date().year(), van.date().month(), 1)));
+	// 		break;
 
-		case aggregatie_type::maand:
-			iter.reset(new month_iterator(date(van.date().year(), van.date().month(), 1)));
-			break;
+	// 	case aggregatie_type::jaar:
+	// 		iter.reset(new year_iterator(date(van.date().year(), Jan, 1)));
+	// 		break;
+	// }
 
-		case aggregatie_type::jaar:
-			iter.reset(new year_iterator(date(van.date().year(), Jan, 1)));
-			break;
-	}
+	// auto eind = ((tot + days(1)).date());
 
-	auto eind = ((tot + days(1)).date());
-
-	auto vorigjaar = ptime(date(tot.date().year() - 1, tot.date().month(), tot.date().day()));
+	// auto vorigjaar = ptime(date(tot.date().year() - 1, tot.date().month(), tot.date().day()));
 
 	GrafiekData result;
 
-	auto dag = **iter;
+	// auto dag = **iter;
 
-	ptime tijdVan(dag);
-	if (tijdVan < van)
-		tijdVan = van;
+	// ptime tijdVan(dag);
+	// if (tijdVan < van)
+	// 	tijdVan = van;
 
-	float standVan = interpolateStand(sm, tijdVan);
+	// float standVan = interpolateStand(sm, tijdVan);
 
-	for (;;)
-	{
-		++*iter;
+	// for (;;)
+	// {
+	// 	++*iter;
 
-		dag = **iter;
+	// 	dag = **iter;
 
-		ptime tijdTot(**iter);
-		if (tijdTot > tot)
-			tijdTot = tot;
+	// 	ptime tijdTot(**iter);
+	// 	if (tijdTot > tot)
+	// 		tijdTot = tot;
 
-		float standTot = interpolateStand(sm, tijdTot);
+	// 	float standTot = interpolateStand(sm, tijdTot);
 
-		auto duur = (tijdTot - tijdVan).total_seconds();
-		if (duur <= 0)
-		{
-			tijdVan = tijdTot;
-			standVan = standTot;
-			continue;
-		}
+	// 	auto duur = (tijdTot - tijdVan).total_seconds();
+	// 	if (duur <= 0)
+	// 	{
+	// 		tijdVan = tijdTot;
+	// 		standVan = standTot;
+	// 		continue;
+	// 	}
 
-		float verbruik = (standTot - standVan);
+	// 	float verbruik = (standTot - standVan);
 
-		result.punten.emplace(to_iso_extended_string(dag), (24 * 60 * 60) * verbruik / duur);
+	// 	result.punten.emplace(to_iso_extended_string(dag), (24 * 60 * 60) * verbruik / duur);
 
-		tijdVan = tijdTot;
-		standVan = standTot;
+	// 	tijdVan = tijdTot;
+	// 	standVan = standTot;
 
-		// voortschrijdend gemiddelde over een jaar
-		if (tijdTot < vorigjaar)
-			continue;
-		
-		try
-		{
-			auto jaarVoorDag = ptime(date(tijdTot.date().year() - 1, tijdTot.date().month(), tijdTot.date().day()));
-			verbruik = standTot - interpolateStand(sm, jaarVoorDag);
-			duur = (tijdTot - jaarVoorDag).total_seconds();
-			result.vsGem.emplace(to_iso_extended_string(dag), (24 * 60 * 60) * verbruik / duur);
-		}
-		catch (boost::gregorian::bad_day_of_month& ex)
-		{
-		}
+	// 	// voortschrijdend gemiddelde over een jaar
+	// 	if (tijdTot < vorigjaar)
+	// 		continue;
 
-		if (dag >= eind)
-			break;
-	}
+	// 	try
+	// 	{
+	// 		auto jaarVoorDag = ptime(date(tijdTot.date().year() - 1, tijdTot.date().month(), tijdTot.date().day()));
+	// 		verbruik = standTot - interpolateStand(sm, jaarVoorDag);
+	// 		duur = (tijdTot - jaarVoorDag).total_seconds();
+	// 		result.vsGem.emplace(to_iso_extended_string(dag), (24 * 60 * 60) * verbruik / duur);
+	// 	}
+	// 	catch (boost::gregorian::bad_day_of_month &ex)
+	// 	{
+	// 	}
+
+	// 	if (dag >= eind)
+	// 		break;
+	// }
 
 	return result;
 }
@@ -625,12 +627,12 @@ class e_web_controller : public zeep::http::html_controller
 		mount("{css,scripts,fonts}/", &e_web_controller::handle_file);
 	}
 
-	void opname(const zeep::http::request& request, const zeep::http::scope& scope, zeep::http::reply& reply);
-	void invoer(const zeep::http::request& request, const zeep::http::scope& scope, zeep::http::reply& reply);
-	void grafiek(const zeep::http::request& request, const zeep::http::scope& scope, zeep::http::reply& reply);
+	void opname(const zeep::http::request &request, const zeep::http::scope &scope, zeep::http::reply &reply);
+	void invoer(const zeep::http::request &request, const zeep::http::scope &scope, zeep::http::reply &reply);
+	void grafiek(const zeep::http::request &request, const zeep::http::scope &scope, zeep::http::reply &reply);
 };
 
-void e_web_controller::opname(const zeep::http::request& request, const zeep::http::scope& scope, zeep::http::reply& reply)
+void e_web_controller::opname(const zeep::http::request &request, const zeep::http::scope &scope, zeep::http::reply &reply)
 {
 	zeep::http::scope sub(scope);
 
@@ -646,11 +648,10 @@ void e_web_controller::opname(const zeep::http::request& request, const zeep::ht
 	to_element(tellers, u);
 	sub.put("tellers", tellers);
 
-	get_template_processor().
-		create_reply_from_template("opnames.html", sub, reply);
+	get_template_processor().create_reply_from_template("opnames.html", sub, reply);
 }
 
-void e_web_controller::invoer(const zeep::http::request& request, const zeep::http::scope& scope, zeep::http::reply& reply)
+void e_web_controller::invoer(const zeep::http::request &request, const zeep::http::scope &scope, zeep::http::reply &reply)
 {
 	zeep::http::scope sub(scope);
 
@@ -658,7 +659,7 @@ void e_web_controller::invoer(const zeep::http::request& request, const zeep::ht
 
 	Opname o;
 
-	string id = request.get_parameter("id", "");
+	std::string id = request.get_parameter("id", "");
 	if (id.empty())
 	{
 		o = DataService::instance().get_last_opname();
@@ -677,11 +678,10 @@ void e_web_controller::invoer(const zeep::http::request& request, const zeep::ht
 	to_element(tellers, u);
 	sub.put("tellers", tellers);
 
-	get_template_processor().
-		create_reply_from_template("invoer.html", sub, reply);
+	get_template_processor().create_reply_from_template("invoer.html", sub, reply);
 }
 
-void e_web_controller::grafiek(const zeep::http::request& request, const zeep::http::scope& scope, zeep::http::reply& reply)
+void e_web_controller::grafiek(const zeep::http::request &request, const zeep::http::scope &scope, zeep::http::reply &reply)
 {
 	zeep::http::scope sub(scope);
 
@@ -697,8 +697,7 @@ void e_web_controller::grafiek(const zeep::http::request& request, const zeep::h
 	to_element(tellers, u);
 	sub.put("tellers", tellers);
 
-	get_template_processor().
-		create_reply_from_template("grafiek.html", sub, reply);
+	get_template_processor().create_reply_from_template("grafiek.html", sub, reply);
 }
 
 // --------------------------------------------------------------------
@@ -706,14 +705,13 @@ void e_web_controller::grafiek(const zeep::http::request& request, const zeep::h
 class e_error_handler : public zeep::http::error_handler
 {
   public:
-
-	virtual bool create_error_reply(const zeep::http::request& req, std::exception_ptr eptr, zeep::http::reply& reply)
+	virtual bool create_error_reply(const zeep::http::request &req, std::exception_ptr eptr, zeep::http::reply &reply)
 	{
 		try
 		{
 			std::rethrow_exception(eptr);
 		}
-		catch (pqxx::broken_connection& ex)
+		catch (pqxx::broken_connection &ex)
 		{
 			std::cerr << ex.what() << std::endl;
 			DataService::instance().reset();
@@ -721,138 +719,127 @@ class e_error_handler : public zeep::http::error_handler
 		catch (...)
 		{
 		}
-		
+
 		return false;
 	}
 };
 
 // --------------------------------------------------------------------
 
-
-int main(int argc, const char* argv[])
+int main(int argc, const char *argv[])
 {
 	int result = 0;
 
-	try
+	auto &config = mcfp::config::instance();
+
+	config.init("energyd [options] command",
+		mcfp::make_option("help,h", "Display help message"),
+		mcfp::make_option("verbose,v", "Verbose output"),
+		mcfp::make_option("version", "Show version information"),
+
+		mcfp::make_option<std::string>("address", "0.0.0.0", "External address"),
+		mcfp::make_option<uint16_t>("port", 10336, "Port to listen to"),
+		mcfp::make_option("no-daemon,F", "Do not fork into background"),
+		mcfp::make_option<std::string>("user,u", "www-data" "User to run the daemon"),
+
+		mcfp::make_option<std::string>("db-host", "Database host"),
+		mcfp::make_option<std::string>("db-port", "Database port"),
+		mcfp::make_option<std::string>("db-dbname", "Database name"),
+		mcfp::make_option<std::string>("db-user", "Database user name"),
+		mcfp::make_option<std::string>("db-password", "Database password"));
+
+	if (config.has("version"))
 	{
-		po::options_description visible_options(argv[0] + " [options] command"s);
-		visible_options.add_options()
-			("help,h",										"Display help message")
-			("verbose,v",									"Verbose output")
-			
-			("address",				po::value<string>(),	"External address, default is 0.0.0.0")
-			("port",				po::value<uint16_t>(),	"Port to listen to, default is 10336")
-			("no-daemon,F",									"Do not fork into background")
-			("user,u",				po::value<string>(),	"User to run the daemon")
+		write_version_string(std::cout, config.has("verbose"));
+		return 0;
+	}
 
-			("db-host",				po::value<string>(),	"Database host")
-			("db-port",				po::value<string>(),	"Database port")
-			("db-dbname",			po::value<string>(),	"Database name")
-			("db-user",				po::value<string>(),	"Database user name")
-			("db-password",			po::value<string>(),	"Database password")
-			;
-		
-		po::options_description hidden_options("hidden options");
-		hidden_options.add_options()
-			("command",		po::value<string>(),	"Command, one of start, stop, status or reload")
-			("debug,d",		po::value<int>(),		"Debug level (for even more verbose output)");
-
-		po::options_description cmdline_options;
-		cmdline_options.add(visible_options).add(hidden_options);
-
-		po::positional_options_description p;
-		p.add("command", 1);
-
-		po::variables_map vm;
-		po::store(po::command_line_parser(argc, argv).options(cmdline_options).positional(p).run(), vm);
-		po::notify(vm);
-
-		// --------------------------------------------------------------------
-
-		if (vm.count("help") or vm.count("command") == 0)
-		{
-			cerr << visible_options << endl
-				<< R"(
+	if (config.operands().size() != 1 or config.has("help"))
+	{
+		std::cout << config << std::endl
+				  << R"(
 Command should be either:
 
     start     start a new server
     stop      start a running server
     status    get the status of a running server
     reload    restart a running server with new options
-				)" << endl;
-			exit(vm.count("help") ? 0 : 1);
-		}
-		
-		char exePath[PATH_MAX + 1];
-		int r = readlink("/proc/self/exe", exePath, PATH_MAX);
-		if (r > 0)
-		{
-			exePath[r] = 0;
-			gExePath = fs::weakly_canonical(exePath);
-		}
-		
-		if (not fs::exists(gExePath))
-			gExePath = fs::weakly_canonical(argv[0]);
+				)";
 
-		vector<string> vConn;
-		for (string opt: { "db-host", "db-port", "db-dbname", "db-user", "db-password" })
-		{
-			if (vm.count(opt) == 0)
-				continue;
-			
-			vConn.push_back(opt.substr(3) + "=" + vm[opt].as<string>());
-		}
+		return config.has("help") ? 0 : 1;
+	}
 
-		DataService::init(ba::join(vConn, " "));
+	std::error_code ec;
+	config.parse(argc, argv, ec);
+	if (ec)
+	{
+		std::cerr << "Error parsing arguments: " << ec.message() << std::endl;
+		return 1;
+	}
 
-		zeep::http::daemon server([]()
+	config.parse_config_file("config", "energyd.conf", { ".", "/etc" }, ec);
+	if (ec)
+	{
+		std::cerr << "Error parsing config file: " << ec.message() << std::endl;
+		return 1;
+	}
+
+	// --------------------------------------------------------------------
+
+	char exePath[PATH_MAX + 1];
+	int r = readlink("/proc/self/exe", exePath, PATH_MAX);
+	if (r > 0)
+	{
+		exePath[r] = 0;
+		gExePath = fs::weakly_canonical(exePath);
+	}
+
+	if (not fs::exists(gExePath))
+		gExePath = fs::weakly_canonical(argv[0]);
+
+	std::vector<std::string> vConn;
+	for (std::string opt : { "db-host", "db-port", "db-dbname", "db-user", "db-password" })
+	{
+		if (not config.has(opt))
+			continue;
+
+		vConn.push_back(opt.substr(3) + "=" + config.get<std::string>(opt));
+	}
+
+	DataService::init(zeep::join(vConn, " "));
+
+	zeep::http::daemon server([]()
 		{
 			auto s = new zeep::http::server("docroot");
 			s->add_controller(new e_rest_controller());
 			s->add_controller(new e_web_controller());
 			s->add_error_handler(new e_error_handler());
-			return s;
-		}, "energyd");
+			return s; },
+		"energyd");
 
-		string user = "www-data";
-		if (vm.count("user") != 0)
-			user = vm["user"].as<string>();
-		
-		string address = "0.0.0.0";
-		if (vm.count("address"))
-			address = vm["address"].as<string>();
+	std::string user = config.get("user");
+	std::string address = config.get("address");
+	uint16_t port = config.get<uint16_t>("port");
+	std::string command = config.operands().front();
 
-		uint16_t port = 10336;
-		if (vm.count("port"))
-			port = vm["port"].as<uint16_t>();
-
-		string command = vm["command"].as<string>();
-
-		if (command == "start")
-		{
-			if (vm.count("no-daemon"))
-				result = server.run_foreground(address, port);
-			else
-				result = server.start(address, port, 1, 2, user);
-			// server.start(vm.count("no-daemon"), address, port, 2, user);
-			// // result = daemon::start(vm.count("no-daemon"), port, user);
-		}
-		else if (command == "stop")
-			result = server.stop();
-		else if (command == "status")
-			result = server.status();
-		else if (command == "reload")
-			result = server.reload();
-		else
-		{
-			cerr << "Invalid command" << endl;
-			result = 1;
-		}
-	}
-	catch (const exception &ex)
+	if (command == "start")
 	{
-		cerr << "exception:" << endl
-			 << ex.what() << endl;
+		if (config.has("no-daemon"))
+			result = server.run_foreground(address, port);
+		else
+			result = server.start(address, port, 1, 2, user);
+		// server.start(vm.count("no-daemon"), address, port, 2, user);
+		// // result = daemon::start(vm.count("no-daemon"), port, user);
+	}
+	else if (command == "stop")
+		result = server.stop();
+	else if (command == "status")
+		result = server.status();
+	else if (command == "reload")
+		result = server.reload();
+	else
+	{
+		std::cerr << "Invalid command" << std::endl;
 		result = 1;
 	}
 
