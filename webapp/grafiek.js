@@ -5,54 +5,6 @@ import * as d3 from 'd3';
 
 import './style.scss';
 
-function nest(data) {
-
-	// const t = data.map(d => {
-	// 	return {
-	// 		key: d.date.getFullYear(),
-	// 		value: d
-	// 	};
-	// });
-
-
-
-	// const t = data.reduce((obj, { date, year, xdate, verbruik }) => {
-	// 	if (!("key" in obj)) {
-	// 		obj = {
-	// 			key: date.getFullYear(),
-	// 			values: [
-	// 				{
-	// 					xdate: xdate,
-	// 					verbruik: verbruik
-	// 				}
-	// 			]
-	// 		}
-	// 	}
-	// 	else {
-			
-	// 	}
-	// 	return obj;
-	// }, {});
-
-	// console.log(t);
-
-
-	// // Now transform it into the desired format
-	// const result = Object.entries(nameYearsCount)
-	// 	.map(([name, yearsCount]) => {
-	// 		const values = Object.entries(yearsCount)
-	// 			.map(([year, count]) => ({
-	// 				key: year,
-	// 				value: count
-	// 			}));
-	// 		return {
-	// 			key: name,
-	// 			values
-	// 		};
-	// 	});
-
-}
-
 class grafiek {
 	constructor() {
 
@@ -63,13 +15,15 @@ class grafiek {
 			this.laadGrafiek();
 		});
 
-		for (let btn of document.getElementsByClassName("aggr-btn")) {
+		for (let btn of document.getElementsByClassName("btn-aggr")) {
 			if (btn.checked)
-				this.aggrType = btn.dataset.aggr;
-			btn.onchange = (e) => this.selectAggrType(e.target.dataset.aggr);
+				this.aggrType = btn.getAttribute('data-aggr');
+			btn.onchange = (e) => this.selectAggrType(e.target.getAttribute('data-aggr'));
 		}
 
 		this.svg = d3.select("svg");
+
+		this.svg.on("touchstart", event => event.preventDefault());
 
 		const plotContainer = this.svg.node();
 		let bBoxWidth = plotContainer.clientWidth;
@@ -187,14 +141,14 @@ class grafiek {
 
 		const x = (d) => new Date(d.d);
 		const y = (d) => d.v;
-		const y_a = (d) => d.a;
+
 		const z = () => 1;
 		const zsdp = (d) => d.a + d.sd;
 		const zsdm = (d) => d.a - d.sd;
 
 		const X = d3.map(data, x);
 		const Y = d3.map(data, y);
-		const Y_a = d3.map(data, y_a);
+		const Y_a = d3.map(data, (d) => d.a);
 		const Z = d3.map(data, z); //['v', 'v-sd', 'v+sd', 'ma'];
 
 		const Zsdp = d3.map(data, zsdp); //['v', 'v-sd', 'v+sd', 'ma'];
@@ -207,7 +161,10 @@ class grafiek {
 		const Da = d3.map(data, defined_a);
 
 		const xDomain = d3.extent(X);
-		const yDomain = d3.extent(Y);
+		const yDomain = [
+			d3.min(d3.map(data, (d) => d3.min([d.v, d.a - d.sd]))),
+			d3.max(d3.map(data, (d) => d3.max([d.v, d.a + d.sd])))
+		];
 		const zDomain = new d3.InternSet(Z);
 
 		const I = d3.range(X.length);//.filter(i => zDomain.has(Z[i]));
@@ -227,7 +184,7 @@ class grafiek {
 		const yFormat = "";
 
 		const xAxis = d3.axisBottom(xScale).ticks(this.width / 80, xFormat).tickSizeOuter(0);
-		const yAxis = d3.axisLeft(yScale).ticks(null, yFormat);
+		const yAxis = d3.axisLeft(yScale).tickSizeInner(-this.width);
 	  
 		const formatDate = xScale.tickFormat(null, "%j");
 
@@ -260,9 +217,9 @@ class grafiek {
 			.data(d3.group(I, i => Z[i]))
 			.enter()
 			.append("path")
-			.attr("fill", "#ddd")
+			.attr("class", "sd")
+			.attr("fill", "rgba(200, 236, 255, 0.5)")
 			.attr("d", ([, i]) => area(i));
-
 
 		this.plotData.selectAll(".line-a")
 			.remove();
@@ -271,6 +228,7 @@ class grafiek {
 			.data(d3.group(I, i => Z[i]))
 			.enter()
 			.append("path")
+			.attr("class", "line-a")
 			.attr("fill", "none")
 			.attr("stroke-width", 1.5)
 			.attr("stroke-linejoin", "round")
@@ -285,6 +243,7 @@ class grafiek {
 			.data(d3.group(I, i => Z[i]))
 			.enter()
 			.append("path")
+			.attr("class", "line")
 			.attr("fill", "none")
 			.attr("stroke-width", 1.5)
 			.attr("stroke-linejoin", "round")
