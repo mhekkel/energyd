@@ -224,6 +224,7 @@ std::string selector(grafiek_type g)
 
 struct DataPunt
 {
+	std::string date;
 	float v;
 	float a;
 	float sd;
@@ -232,23 +233,11 @@ struct DataPunt
 	template <typename Archive>
 	void serialize(Archive &ar, unsigned long)
 	{
-		ar & zeep::make_nvp("v", v)
+		ar & zeep::make_nvp("d", date)
+		   & zeep::make_nvp("v", v)
 		   & zeep::make_nvp("a", a)
 		   & zeep::make_nvp("sd", sd)
 		   & zeep::make_nvp("ma", ma);
-	}
-};
-
-struct GrafiekData
-{
-	std::string type;
-	std::map<std::string, DataPunt> punten;
-
-	template <typename Archive>
-	void serialize(Archive &ar, unsigned long)
-	{
-		ar & zeep::make_nvp("type", type)
-		   & zeep::make_nvp("punten", punten);
 	}
 };
 
@@ -501,7 +490,7 @@ class e_rest_controller : public zeep::http::rest_controller
 	}
 
 	// GrafiekData get_grafiek(const string& type, aggregatie_type aggregatie);
-	GrafiekData get_grafiek(grafiek_type type, aggregatie_type aggregatie);
+	std::vector<DataPunt> get_grafiek(grafiek_type type, aggregatie_type aggregatie);
 };
 
 // --------------------------------------------------------------------
@@ -566,7 +555,7 @@ std::vector<float> waarden_op_deze_dag(StandMap &sm, std::chrono::system_clock::
 	return v;
 }
 
-GrafiekData get_grafiek_per_dag(StandMap &sm)
+std::vector<DataPunt> get_grafiek_per_dag(StandMap &sm)
 {
 	using namespace date;
 	// using namespace std::chrono;
@@ -579,7 +568,7 @@ GrafiekData get_grafiek_per_dag(StandMap &sm)
 	auto b = sys_days{year{jaar}/January/1} + 0h;
 	auto e = sys_days{year{jaar}/December/31} + 0h;
 
-	GrafiekData result;
+	std::vector<DataPunt> result;
 	auto v0 = waarden_op_deze_dag(sm, b - 24h);
 
 	for (auto d = b; d <= e; d += 24h)
@@ -600,26 +589,41 @@ GrafiekData get_grafiek_per_dag(StandMap &sm)
 			sum += verbruik;
 		}
 
-		if (v.empty() or v[0] == 0)
+		if (v.empty())
 			break;
-
+		
+		size_t i = 0;
+		if (v[0] == 0)
+		{
+			i = 1;
+			N -= 1;
+		}
+		
 		float avg = sum / N;
-		for (size_t i = 0; i < N; ++i)
+		for (i = 0; i < N; ++i)
 			sum2 += (v[i] - avg) * (v[i] - avg);
 		
 		DataPunt pt;
+		pt.date = date::format("%F", d);
 		pt.v = v.front();
 		pt.a = avg;
 		pt.sd = std::sqrt(sum2) / N;
 
 		auto yd = sys_days{floor<days>(d)};
 		auto ymd = year_month_day{yd};
-		auto lymd = ymd - years{1};
-		auto dagen = (sys_days{ymd} - sys_days{lymd}).count();
 
-		pt.ma = v1.size() > 1 ? (v1[0] - v1[1]) / dagen : v1[0];
+		if (v[0] == 0)
+		{
+			auto dagen = (sys_days{ymd - years{1}} - sys_days{ymd - years{2}}).count();
+			pt.ma = v1.size() > 2 ? (v1[1] - v1[2]) / dagen : v1[1];
+		}
+		else
+		{
+			auto dagen = (sys_days{ymd} - sys_days{ymd - years{1}}).count();
+			pt.ma = v1.size() > 1 ? (v1[0] - v1[1]) / dagen : v1[0];
+		}
 
-		result.punten.emplace(date::format("%F", d),  pt);
+		result.emplace_back(std::move(pt));
 
 		std::swap(v0, v1);
 	}
@@ -627,8 +631,7 @@ GrafiekData get_grafiek_per_dag(StandMap &sm)
 	return result;
 }
 
-
-GrafiekData e_rest_controller::get_grafiek(grafiek_type type, aggregatie_type aggr)
+std::vector<DataPunt> e_rest_controller::get_grafiek(grafiek_type type, aggregatie_type aggr)
 {
 	StandMap sm = DataService::instance().get_stand_map(type);
 
@@ -742,20 +745,20 @@ class e_web_controller : public zeep::http::html_controller
   public:
 	e_web_controller()
 	{
-		mount("", &e_web_controller::opname);
-		mount("opnames", &e_web_controller::opname);
+		map_get("", &e_web_controller::opname);
+		map_get("opnames", &e_web_controller::opname);
 		mount("invoer", &e_web_controller::invoer);
 		mount("grafiek", &e_web_controller::grafiek);
 
 		mount("{css,scripts,fonts}/", &e_web_controller::handle_file);
 	}
 
-	void opname(const zeep::http::request &request, const zeep::http::scope &scope, zeep::http::reply &reply);
+	zeep::http::reply opname(const zeep::http::scope &scope);
 	void invoer(const zeep::http::request &request, const zeep::http::scope &scope, zeep::http::reply &reply);
 	void grafiek(const zeep::http::request &request, const zeep::http::scope &scope, zeep::http::reply &reply);
 };
 
-void e_web_controller::opname(const zeep::http::request &request, const zeep::http::scope &scope, zeep::http::reply &reply)
+zeep::http::reply e_web_controller::opname(const zeep::http::scope &scope)
 {
 	zeep::http::scope sub(scope);
 
@@ -771,7 +774,7 @@ void e_web_controller::opname(const zeep::http::request &request, const zeep::ht
 	to_element(tellers, u);
 	sub.put("tellers", tellers);
 
-	get_template_processor().create_reply_from_template("opnames.html", sub, reply);
+	return get_template_processor().create_reply_from_template("opnames", sub);
 }
 
 void e_web_controller::invoer(const zeep::http::request &request, const zeep::http::scope &scope, zeep::http::reply &reply)
