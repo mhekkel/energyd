@@ -1,3 +1,8 @@
+// @use "sass:math";
+
+@import "bootstrap/scss/bootstrap";
+@import "~bootstrap-icons/font/bootstrap-icons.css";
+
 /* * {
 	font-family: sans-serif;
 } */
@@ -41,17 +46,17 @@ g.tick line {
 	color: white;
 	font-size: normal;
 	font-weight: bold;
-}
 
-.head span {
-	display: inline-block;
-	vertical-align: middle;
-	line-height: normal;
-}
-
-.head .error-nr {
-	font-size: xx-large;
-	padding: 0 0.5em 0 0.5em;
+	span {
+		display: inline-block;
+		vertical-align: middle;
+		line-height: normal;
+	}
+	
+	.error-nr {
+		font-size: xx-large;
+		padding: 0 0.5em 0 0.5em;
+	}
 }
 
 .error-head-text {

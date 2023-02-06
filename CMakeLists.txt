@@ -42,7 +42,9 @@ add_executable(energyd ${PROJECT_SOURCE_DIR}/src/energyd.cpp)
 target_link_libraries(energyd PkgConfig::PKG_PQ libmcfp::libmcfp zeep::zeep)
 
 # yarn rules for javascripts
-	
+
+find_program(YARN yarn REQUIRED)
+
 set(webpack_input
 	${CMAKE_CURRENT_SOURCE_DIR}/webapp/grafiek.js
 	${CMAKE_CURRENT_SOURCE_DIR}/webapp/invoer.js

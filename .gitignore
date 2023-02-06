@@ -4,3 +4,4 @@ docroot/fonts
 build/
 src/revision.hpp
 src/mrsrc.hpp
+.vscode/

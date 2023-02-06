@@ -1,8 +1,7 @@
-import '@babel/polyfill'
-import '@fortawesome/fontawesome-free/css/all.min.css';
+import "core-js/stable";
+import "regenerator-runtime/runtime";
 import 'bootstrap';
-import 'bootstrap/js/dist/modal'
-import 'bootstrap/dist/css/bootstrap.min.css';
+import './style.scss';
 
 class OpnameEditor {
 	constructor() {

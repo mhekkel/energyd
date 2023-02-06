@@ -1,9 +1,57 @@
-import '@babel/polyfill'
-import '@fortawesome/fontawesome-free/css/all.min.css';
+import "core-js/stable";
+import "regenerator-runtime/runtime";
 import 'bootstrap';
-import 'bootstrap/js/dist/modal'
-import 'bootstrap/dist/css/bootstrap.min.css';
 import * as d3 from 'd3';
+
+import './style.scss';
+
+function nest(data) {
+
+	// const t = data.map(d => {
+	// 	return {
+	// 		key: d.date.getFullYear(),
+	// 		value: d
+	// 	};
+	// });
+
+
+
+	// const t = data.reduce((obj, { date, year, xdate, verbruik }) => {
+	// 	if (!("key" in obj)) {
+	// 		obj = {
+	// 			key: date.getFullYear(),
+	// 			values: [
+	// 				{
+	// 					xdate: xdate,
+	// 					verbruik: verbruik
+	// 				}
+	// 			]
+	// 		}
+	// 	}
+	// 	else {
+			
+	// 	}
+	// 	return obj;
+	// }, {});
+
+	// console.log(t);
+
+
+	// // Now transform it into the desired format
+	// const result = Object.entries(nameYearsCount)
+	// 	.map(([name, yearsCount]) => {
+	// 		const values = Object.entries(yearsCount)
+	// 			.map(([year, count]) => ({
+	// 				key: year,
+	// 				value: count
+	// 			}));
+	// 		return {
+	// 			key: name,
+	// 			values
+	// 		};
+	// 	});
+
+}
 
 class grafiek {
 	constructor() {
@@ -23,16 +71,16 @@ class grafiek {
 
 		this.svg = d3.select("svg");
 
-		const plotContainer = $(this.svg.node());
-		let bBoxWidth = plotContainer.width();
-		let bBoxHeight = plotContainer.height();
+		const plotContainer = this.svg.node();
+		let bBoxWidth = plotContainer.clientWidth;
+		let bBoxHeight = plotContainer.clientHeight;
 
 		if ((bBoxWidth * 9 / 16) > bBoxHeight)
 			bBoxWidth = 16 * bBoxHeight / 9;
 		else
 			bBoxHeight = 9 * bBoxWidth / 16;
 
-		this.margin = {top: 30, right: 50, bottom: 30, left: 50};
+		this.margin = { top: 30, right: 50, bottom: 30, left: 50 };
 
 		this.width = bBoxWidth - this.margin.left - this.margin.right;
 		this.height = bBoxHeight - this.margin.top - this.margin.bottom;
@@ -91,23 +139,22 @@ class grafiek {
 
 		this.svg.call(zoom);
 	}
-	
+
 	laadGrafiek() {
 		const selected = this.selector.selectedOptions;
 		if (selected.length !== 1)
-			throw("ongeldige keuze");
+			throw ("ongeldige keuze");
 
 		const keuze = selected.item(0).value;
 		const grafiekNaam = selected.item(0).textContent;
 
-		let grafiekTitel = $(".grafiek-titel");
-		if (grafiekTitel.hasClass("grafiek-status-loading"))  // avoid multiple runs
+		let grafiekTitel = document.querySelector(".grafiek-titel");
+		if (grafiekTitel.classList.contains("grafiek-status-loading"))  // avoid multiple runs
 			return;
 
-		grafiekTitel
-			.addClass("grafiek-status-loading")
-			.removeClass("grafiek-status-loaded")
-			.removeClass("grafiek-status-failed");
+		grafiekTitel.classList.add("grafiek-status-loading");
+		grafiekTitel.classList.remove("grafiek-status-loaded")
+		grafiekTitel.classList.remove("grafiek-status-failed");
 
 		Array.from(document.getElementsByClassName("grafiek-naam"))
 			.forEach(span => span.textContent = grafiekNaam);
@@ -126,9 +173,11 @@ class grafiek {
 			throw error.message;
 		}).then(data => {
 			this.processData(data);
-			grafiekTitel.removeClass("grafiek-status-loading").addClass("grafiek-status-loaded");
+			grafiekTitel.classList.remove("grafiek-status-loading");
+			grafiekTitel.classList.add("grafiek-status-loaded");
 		}).catch(err => {
-			grafiekTitel.removeClass("grafiek-status-loading").addClass("grafiek-status-failed");
+			grafiekTitel.classList.remove("grafiek-status-loading");
+			grafiekTitel.classList.add("grafiek-status-failed");
 			console.log(err);
 		});
 	}
@@ -138,8 +187,7 @@ class grafiek {
 		const years = new Set();
 		let lastYear = 0;
 
-		for (let d in data.punten)
-		{
+		for (let d in data.jaren[0].punten) {
 			const date = new Date(d);
 
 			const year = date.getFullYear();
@@ -155,10 +203,21 @@ class grafiek {
 			});
 		}
 
-		const dataPunten2 = d3.nest()
-			.key(d => d.date.getFullYear())
-			.entries(dataPunten);
-		
+		nest(dataPunten);
+
+		// const dp_c = dataPunten.reduce()
+
+		const dataPunten2 =
+			dataPunten.map(d => {
+				return {
+					key: d.date.getFullYear(),
+					values
+				}
+			})
+
+				.key(d => d.date.getFullYear())
+				.entries(dataPunten);
+
 		const colors = d3.scaleOrdinal([...years].reverse(), d3.schemeCategory10);
 
 		const domX = [1, 366];
@@ -184,31 +243,30 @@ class grafiek {
 
 		this.plotData.selectAll(".line")
 			.remove();
-		
+
 		this.plotData.selectAll(".line")
 			.data(dataPunten2)
 			.enter()
 			.append("path")
-				.attr("class", "line")
-				.attr("fill", "none")
-				.attr("opacity", d => 1 / (lastYear - d.key + 1))
-				// .attr("opacity", d => 1.5 / (lastYear - d.key + 1.5))
-				.attr("stroke", d => colors(d.key))
-				.attr("stroke-width", 1.5)
-				.attr("d", d => 
-					d3.line()
-						.x(d => x(d.xdate))
-						.y(d => y(d.verbruik))(d.values)
-				);
+			.attr("class", "line")
+			.attr("fill", "none")
+			.attr("opacity", d => 1 / (lastYear - d.key + 1))
+			// .attr("opacity", d => 1.5 / (lastYear - d.key + 1.5))
+			.attr("stroke", d => colors(d.key))
+			.attr("stroke-width", 1.5)
+			.attr("d", d =>
+				d3.line()
+					.x(d => x(d.xdate))
+					.y(d => y(d.verbruik))(d.values)
+			);
 
 		// voortschrijdend gemiddelde
 
 		const dataPunten3 = [];
-		for (let d in data.vsgem)
-		{
+		for (let d in data.vsgem) {
 			const date = new Date(d);
 
-			if (! years.has(date.getFullYear()))
+			if (!years.has(date.getFullYear()))
 				console.log("how is this possible, year not known yet");
 
 			dataPunten3.push({
@@ -222,23 +280,23 @@ class grafiek {
 		const dataPunten4 = d3.nest()
 			.key(d => d.date.getFullYear())
 			.entries(dataPunten3);
-		
+
 		this.plotData.selectAll(".ma-line")
 			.remove();
-		
+
 		this.plotData.selectAll(".ma-line")
 			.data(dataPunten4)
 			.enter()
 			.append("path")
-				.attr("class", "ma-line")
-				.attr("fill", "none")
-				.attr("stroke", "gray")
-				.attr("stroke-width", 2)
-				.attr("d", d => 
-					d3.line()
-						.x(d => x(d.xdate))
-						.y(d => y(d.verbruik))(d.values)
-				);
+			.attr("class", "ma-line")
+			.attr("fill", "none")
+			.attr("stroke", "gray")
+			.attr("stroke-width", 2)
+			.attr("d", d =>
+				d3.line()
+					.x(d => x(d.xdate))
+					.y(d => y(d.verbruik))(d.values)
+			);
 
 	}
 

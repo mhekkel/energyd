@@ -1,18 +1,14 @@
 <!DOCTYPE html SYSTEM "about:legacy-compat">
 
-<html xmlns="http://www.w3.org/1999/xhtml"
-	  xmlns:z2="http://www.hekkelman.com/libzeep/m2"
-	  lang="nl" >
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:z2="http://www.hekkelman.com/libzeep/m2" lang="nl">
 
 <head>
 	<meta charset="UTF-8" />
-	<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"/>
+	<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
 
 	<title>Energieverbruik</title>
 
 	<script src="/scripts/opname.js"></script>
-
-	<link rel="stylesheet" type="text/css" href="css/style.css" />
 </head>
 
 <body>
@@ -25,8 +21,10 @@
 				<h1>Meterstanden</h1>
 			</div>
 			<div class="col-2">
-				<button id="add-opname-btn" class="btn btn-primary groot">Voeg toe</button>
-				<button id="add-opname-btn-2" class="btn btn-primary klein">Voeg toe</button>
+
+				<button type="button" class="btn btn-primary groot" data-bs-toggle="modal" data-bs-target="#opname-dialog">
+					Voeg toe
+				</button>
 			</div>
 		</div>
 
@@ -48,10 +46,11 @@
 						</td>
 						<td z2:each="teller: ${tellers}" style="text-align: right">
 							<span z2:if="${opname.standen[teller.id]}"
-								  z2:text="${#numbers.formatDecimal(opname.standen[teller.id], 1, teller.id == '1' ? 3 : 0)}"/>
+								z2:text="${#numbers.formatDecimal(opname.standen[teller.id], 1, teller.id == '1' ? 3 : 0)}" />
 						</td>
-						<td class="edit-opname-btn" z2:attr="data-id=${opname.id}"><i class="fa fa-edit"></i></td>
-						<td class="delete-opname-btn" z2:attr="data-id=${opname.id},data-name=${opname.datum}"><i class="fa fa-trash"></i>
+						<td class="edit-opname-btn" z2:attr="data-id=${opname.id}"><i class="bi bi-pencil-square"></i></td>
+						<td class="delete-opname-btn" z2:attr="data-id=${opname.id},data-name=${opname.datum}"><i
+								class="bi bi-trash"></i>
 						</td>
 					</tr>
 				</tbody>
@@ -59,54 +58,40 @@
 		</div>
 	</div>
 
-<div id="opname-dialog" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="dialog-label">
-	<div class="modal-dialog" role="document">
+	<div id="opname-dialog" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="dialog-label">
+		<div class="modal-dialog" role="document">
 
-		<div class="modal-content">
-			<div class="modal-header">
-				<h5 class="modal-title" id="dialog-label">Tellerstand registratie</h5>
-				<button type="button" class="close" data-dismiss="modal" aria-label="Close">
-					<span aria-hidden="true">&#xD7;</span>
-				</button>
-			</div>
+			<div class="modal-content">
+				<div class="modal-header">
+					<h5 class="modal-title" id="dialog-label">Tellerstand registratie</h5>
 
-			<div class="modal-body">
-				<form id="opname-edit-form" action="/ajax/opname" method="post">
-					<input type="hidden" name="id" value=""/>
+					<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+				</div>
 
-					<div z2:each="teller: ${tellers}" class="form-group row">
-						<label class="col-sm-6 col-form-label col-form-label-sm"
-							   z2:for="|id-${teller.id}|" z2:text="${teller.naam}"></label>
-						<div class="col-sm-6">
-							<input class="form-control form-control-sm" maxlength="254"
-									z2:attr="id=|id-${teller.id}|,data-id=${teller.id}"
-									z2:name="${teller.id}" type="number" z2:step="${teller.schaal == 3 ? 0.001 : 1}"
-									z2:value="${opnames[0].standen[teller.id] ?: ''}"
-									required="true" />
+				<div class="modal-body">
+					<form id="opname-edit-form" action="/ajax/opname" method="post">
+						<input type="hidden" name="id" value="" />
+
+						<div z2:each="teller: ${tellers}" class="form-group row">
+							<label class="col-sm-6 col-form-label col-form-label-sm" z2:for="|id-${teller.id}|"
+								z2:text="${teller.naam}"></label>
+							<div class="col-sm-6">
+								<input class="form-control form-control-sm" maxlength="254"
+									z2:attr="id=|id-${teller.id}|,data-id=${teller.id}" z2:name="${teller.id}"
+									type="number" z2:step="${teller.schaal == 3 ? 0.001 : 1}"
+									z2:value="${opnames[0].standen[teller.id] ?: ''}" required="true" />
+							</div>
 						</div>
-					</div>
-
-					<!-- <div z2:each="teller: ${tellers}" class="input-group">
-						<div class="input-group-prepend">
-							<label class="input-group-text" for="|id-${teller.id}|" z2:text="${teller.naam}"></label>
-						</div>
-						<input class="form-control" maxlength="254"
-								z2:attr="id=|id-${teller.id}|,data-id=${teller.id}"
-								z2:name="${teller.id}" type="number" z2:step="${teller.schaal == 3 ? 0.001 : 1}"
-								z2:value="${opnames[0].standen[teller.id] ?: ''}"
-								required="true" />
-					</div> -->
-
-				</form>
-			</div>
-			<div class="modal-footer">
-				<!--<button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>-->
-				<button type="submit" form="opname-edit-form" class="btn btn-primary">Bewaar</button>
+					</form>
+				</div>
+				<div class="modal-footer">
+					<button type="submit" form="opname-edit-form" class="btn btn-primary">Bewaar</button>
+				</div>
 			</div>
 		</div>
 	</div>
-</div>
 
 
 </body>
+
 </html>

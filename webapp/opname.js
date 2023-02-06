@@ -1,8 +1,9 @@
-import '@babel/polyfill'
-import '@fortawesome/fontawesome-free/css/all.min.css';
+import "core-js/stable";
+import "regenerator-runtime/runtime";
 import 'bootstrap';
-import 'bootstrap/js/dist/modal'
-import 'bootstrap/dist/css/bootstrap.min.css';
+import { Modal } from 'bootstrap';
+
+import './style.scss';
 
 class OpnameEditor {
 
@@ -25,7 +26,7 @@ class OpnameEditor {
 
 		this.id = id;
 
-		$(this.dialog).modal();
+		new Modal(this.dialog);
 
 		fetch(`ajax/opname/${id}`, {credentials: "include", method: "get"})
 			.then(async response => {
@@ -90,7 +91,8 @@ class OpnameEditor {
 		this.id = null;
 		this.opname = {};
 		this.form.reset();
-		$(this.dialog).modal();
+		
+		new Modal(this.dialog);
 	}
 
 	deleteOpname(id, name) {
@@ -131,12 +133,6 @@ window.addEventListener("load", () => {
 		.forEach(btn => btn.addEventListener("click", () => {
 			return editor.deleteOpname(btn.dataset.id, btn.dataset.name);
 		}));
-
-	document.getElementById("add-opname-btn")
-		.addEventListener("click", () => editor.createOpname());
-
-	document.getElementById("add-opname-btn-2")
-		.addEventListener("click", () => window.location = "invoer");
 
 	Array.from(document.getElementById('opname-tabel').tBodies[0].rows)
 		.forEach(tr => {

@@ -34,10 +34,27 @@ fs::path gExePath;
 
 // --------------------------------------------------------------------
 
+std::chrono::system_clock::time_point makeTimePoint(const std::string &s)
+{
+	using namespace std::literals;
+	using namespace date;
+	using namespace std::chrono;
+
+	std::chrono::system_clock::time_point result;
+
+	std::istringstream is(s);
+	is >> parse("%F %T", result);
+
+	if (is.bad() or is.fail())
+		throw std::runtime_error("invalid formatted date");
+
+	return result;
+}
+
 struct Opname
 {
 	std::string id;
-	std::string datum;
+	std::chrono::system_clock::time_point datum;
 	std::map<std::string, float> standen;
 
 	template <typename Archive>
@@ -205,24 +222,39 @@ std::string selector(grafiek_type g)
 	}
 }
 
+struct DataPunt
+{
+	float v;
+	float a;
+	float sd;
+	float ma;
+
+	template <typename Archive>
+	void serialize(Archive &ar, unsigned long)
+	{
+		ar & zeep::make_nvp("v", v)
+		   & zeep::make_nvp("a", a)
+		   & zeep::make_nvp("sd", sd)
+		   & zeep::make_nvp("ma", ma);
+	}
+};
+
 struct GrafiekData
 {
 	std::string type;
-	std::map<std::string, float> punten;
-	std::map<std::string, float> vsGem;
+	std::map<std::string, DataPunt> punten;
 
 	template <typename Archive>
 	void serialize(Archive &ar, unsigned long)
 	{
 		ar & zeep::make_nvp("type", type)
-		   & zeep::make_nvp("punten", punten)
-		   & zeep::make_nvp("vsgem", vsGem);
+		   & zeep::make_nvp("punten", punten);
 	}
 };
 
 // --------------------------------------------------------------------
 
-typedef std::map<boost::posix_time::ptime, float> StandMap;
+using StandMap = std::map<std::chrono::system_clock::time_point, float>;
 
 class DataService
 {
@@ -263,7 +295,7 @@ class DataService
 		if (rows.empty())
 			throw std::runtime_error("opname niet gevonden");
 
-		Opname result{ rows.front()[0].as<std::string>(), rows.front()[1].as<std::string>() };
+		Opname result{ rows.front()[0].as<std::string>(), makeTimePoint(rows.front()[1].as<std::string>()) };
 
 		for (auto row : rows)
 			result.standen[row[2].as<std::string>()] = row[3].as<float>();
@@ -279,7 +311,7 @@ class DataService
 		if (rows.empty())
 			throw std::runtime_error("opname niet gevonden");
 
-		Opname result{ rows.front()[0].as<std::string>(), rows.front()[1].as<std::string>() };
+		Opname result{ rows.front()[0].as<std::string>(), makeTimePoint(rows.front()[1].as<std::string>()) };
 
 		for (auto row : rows)
 			result.standen[row[2].as<std::string>()] = row[3].as<float>();
@@ -299,7 +331,7 @@ class DataService
 			auto id = row[0].as<std::string>();
 
 			if (result.empty() or result.back().id != id)
-				result.push_back({ id, row[1].as<std::string>() });
+				result.push_back({ id, makeTimePoint(row[1].as<std::string>()) });
 
 			result.back().standen[row[2].as<std::string>()] = row[3].as<float>();
 		}
@@ -340,8 +372,8 @@ class DataService
 
 		StandMap sm;
 
-		// for (auto r : tx.exec(selector(type)))
-		// 	sm[time_from_string(r[0].as<std::string>())] = r[1].as<float>();
+		for (auto r : tx.exec(selector(type)))
+			sm[makeTimePoint(r[0].as<std::string>())] = r[1].as<float>();
 
 		return sm;
 	}
@@ -474,7 +506,7 @@ class e_rest_controller : public zeep::http::rest_controller
 
 // --------------------------------------------------------------------
 
-float interpolateStand(const StandMap &data, boost::posix_time::ptime t)
+float interpolateStand(const StandMap &data, std::chrono::system_clock::time_point t)
 {
 	float result = 0;
 
@@ -499,10 +531,10 @@ float interpolateStand(const StandMap &data, boost::posix_time::ptime t)
 		auto b = prev(ub);
 		assert(b->first <= t);
 
-		float d1 = (ub->first - b->first).total_seconds();
-		float d2 = (t - b->first).total_seconds();
+		double d1 = (ub->first - b->first).count();
+		double d2 = (t - b->first).count();
 
-		float df = ub->second - b->second;
+		auto df = ub->second - b->second;
 
 		result = b->second + df * (d2 / d1);
 
@@ -512,9 +544,100 @@ float interpolateStand(const StandMap &data, boost::posix_time::ptime t)
 	return result;
 }
 
+std::vector<float> waarden_op_deze_dag(StandMap &sm, std::chrono::system_clock::time_point t)
+{
+	using namespace date;
+	// using namespace std::chrono;
+	using namespace std::literals;
+
+	auto smb = sm.begin()->first;
+
+	std::vector<float> v;
+
+	while (t >= smb)
+	{
+		v.push_back(interpolateStand(sm, t));
+
+		auto yd = sys_days{floor<days>(t)};
+		auto ymd = year_month_day{yd} - years{1};
+		t = sys_days{ymd} + 0h;
+	}
+
+	return v;
+}
+
+GrafiekData get_grafiek_per_dag(StandMap &sm)
+{
+	using namespace date;
+	// using namespace std::chrono;
+	using namespace std::literals;
+
+	auto nu = std::chrono::system_clock::now();
+
+	auto jaar = year_month_day{floor<days>(nu)}.year();
+
+	auto b = sys_days{year{jaar}/January/1} + 0h;
+	auto e = sys_days{year{jaar}/December/31} + 0h;
+
+	GrafiekData result;
+	auto v0 = waarden_op_deze_dag(sm, b - 24h);
+
+	for (auto d = b; d <= e; d += 24h)
+	{
+		auto v1 = waarden_op_deze_dag(sm, d);
+
+		std::vector<float> v;
+		auto N = v0.size();
+		if (N > v1.size())
+			N = v1.size();
+		
+		float sum = 0, sum2 = 0;
+		for (size_t i = 0; i < N; ++i)
+		{
+			auto verbruik = v1[i] - v0[i];
+			v.push_back(verbruik);
+
+			sum += verbruik;
+		}
+
+		if (v.empty() or v[0] == 0)
+			break;
+
+		float avg = sum / N;
+		for (size_t i = 0; i < N; ++i)
+			sum2 += (v[i] - avg) * (v[i] - avg);
+		
+		DataPunt pt;
+		pt.v = v.front();
+		pt.a = avg;
+		pt.sd = std::sqrt(sum2) / N;
+
+		auto yd = sys_days{floor<days>(d)};
+		auto ymd = year_month_day{yd};
+		auto lymd = ymd - years{1};
+		auto dagen = (sys_days{ymd} - sys_days{lymd}).count();
+
+		pt.ma = v1.size() > 1 ? (v1[0] - v1[1]) / dagen : v1[0];
+
+		result.punten.emplace(date::format("%F", d),  pt);
+
+		std::swap(v0, v1);
+	}
+
+	return result;
+}
+
+
 GrafiekData e_rest_controller::get_grafiek(grafiek_type type, aggregatie_type aggr)
 {
-	// StandMap sm = DataService::instance().get_stand_map(type);
+	StandMap sm = DataService::instance().get_stand_map(type);
+
+	return get_grafiek_per_dag(sm);
+
+	// using namespace std::chrono;
+	// using namespace std::literals;
+	// using namespace date;
+
 
 	// struct verbruik_per_periode
 	// {
@@ -522,13 +645,13 @@ GrafiekData e_rest_controller::get_grafiek(grafiek_type type, aggregatie_type ag
 	// 	long duur = 0;
 	// };
 
-	// std::map<date, verbruik_per_periode> data;
+	// using sys_days = std::chrono::time_point<std::chrono::system_clock, std::chrono::days>;
+	// std::map<sys_days, verbruik_per_periode> data;
 
-	// std::unique_ptr<date_iterator> iter;
 	// auto start_w = first_day_of_the_week_before(Sunday);
 
-	// ptime van = sm.begin()->first,
-	// 	  tot = prev(sm.end())->first;
+	// auto van = sm.begin()->first,
+	// 	 tot = prev(sm.end())->first;
 
 	// switch (aggr)
 	// {
@@ -553,7 +676,7 @@ GrafiekData e_rest_controller::get_grafiek(grafiek_type type, aggregatie_type ag
 
 	// auto vorigjaar = ptime(date(tot.date().year() - 1, tot.date().month(), tot.date().day()));
 
-	GrafiekData result;
+	// GrafiekData result;
 
 	// auto dag = **iter;
 
@@ -609,7 +732,7 @@ GrafiekData e_rest_controller::get_grafiek(grafiek_type type, aggregatie_type ag
 	// 		break;
 	// }
 
-	return result;
+	// return result;
 }
 
 // --------------------------------------------------------------------
@@ -664,7 +787,7 @@ void e_web_controller::invoer(const zeep::http::request &request, const zeep::ht
 	{
 		o = DataService::instance().get_last_opname();
 		o.id.clear();
-		o.datum.clear();
+		o.datum = {};
 	}
 	else
 		o = DataService::instance().get_opname(id);
@@ -740,7 +863,7 @@ int main(int argc, const char *argv[])
 		mcfp::make_option<std::string>("address", "0.0.0.0", "External address"),
 		mcfp::make_option<uint16_t>("port", 10336, "Port to listen to"),
 		mcfp::make_option("no-daemon,F", "Do not fork into background"),
-		mcfp::make_option<std::string>("user,u", "www-data" "User to run the daemon"),
+		mcfp::make_option<std::string>("user,u", "www-data", "User to run the daemon"),
 
 		mcfp::make_option<std::string>("db-host", "Database host"),
 		mcfp::make_option<std::string>("db-port", "Database port"),
@@ -811,25 +934,39 @@ Command should be either:
 	zeep::http::daemon server([]()
 		{
 			auto s = new zeep::http::server("docroot");
+
+#ifndef NDEBUG
+			s->set_template_processor(new zeep::http::file_based_html_template_processor("docroot"));
+#else
+			s->set_template_processor(new zeep::http::rsrc_based_html_template_processor());
+#endif
+
 			s->add_controller(new e_rest_controller());
 			s->add_controller(new e_web_controller());
 			s->add_error_handler(new e_error_handler());
+
 			return s; },
 		"energyd");
 
-	std::string user = config.get("user");
-	std::string address = config.get("address");
-	uint16_t port = config.get<uint16_t>("port");
 	std::string command = config.operands().front();
 
 	if (command == "start")
 	{
+		std::string address = config.get("address");
+		uint16_t port = config.get<uint16_t>("port");
+
+		if (address.find(':') != std::string::npos)
+			std::cout << "starting server at http://[" << address << "]:" << port << '/' << std::endl;
+		else
+			std::cout << "starting server at http://" << address << ':' << port << '/' << std::endl;
+
 		if (config.has("no-daemon"))
 			result = server.run_foreground(address, port);
 		else
+		{
+			std::string user = config.get("user");
 			result = server.start(address, port, 1, 2, user);
-		// server.start(vm.count("no-daemon"), address, port, 2, user);
-		// // result = daemon::start(vm.count("no-daemon"), port, user);
+		}
 	}
 	else if (command == "stop")
 		result = server.stop();
