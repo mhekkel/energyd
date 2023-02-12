@@ -77,12 +77,6 @@ module.exports = (env) => {
 		},
 
 		plugins: [
-			// new CleanWebpackPlugin({
-			// 	cleanOnceBeforeBuildPatterns: [
-			// 		'scripts/**/*',
-			// 		'fonts/**/*'
-			// 	]
-			// }),
 			new MiniCssExtractPlugin({
 				filename: './css/[name].css',
 				chunkFilename: './css/[id].css'

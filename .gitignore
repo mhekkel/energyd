@@ -1,6 +1,7 @@
 node_modules
 docroot/scripts
 docroot/fonts
+docroot/css
 build/
 src/revision.hpp
 src/mrsrc.hpp
