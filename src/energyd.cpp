@@ -635,25 +635,18 @@ std::vector<DataPunt> e_rest_controller::get_grafiek(grafiek_type type, aggregat
 		for (i = 0; i < N; ++i)
 			sum2 += (v[i] - avg) * (v[i] - avg);
 		
-		DataPunt pt;
+		DataPunt pt{};
 		pt.date = date::format("%F", d);
 		pt.v = v.front();
 		pt.a = avg;
 		pt.sd = std::sqrt(sum2) / N;
 
-		auto yd = sys_days{floor<days>(d)};
-		auto ymd = year_month_day{yd};
-
-		if (v[0] == 0)
-		{
-			auto dagen = (sys_days{ymd - years{1}} - sys_days{ymd - years{2}}).count();
-			pt.ma = v.size() > 2 ? v[1] / dagen : v[1];
-		}
+		if (d > nu + days{1})
+			pt.ma = interpoleerVerbruik(sm, d - years{1}, aggregatie_type::jaar);
+		else if (d < nu)
+			pt.ma = interpoleerVerbruik(sm, d, aggregatie_type::jaar);
 		else
-		{
-			auto dagen = (sys_days{ymd} - sys_days{ymd - years{1}}).count();
-			pt.ma = v.size() > 1 ? v[0] / dagen : v[0];
-		}
+			pt.ma = 0;
 
 		result.emplace_back(std::move(pt));
 	}

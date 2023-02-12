@@ -150,15 +150,18 @@ class grafiek {
 		const Y = d3.map(data, y);
 		const Y_a = d3.map(data, (d) => d.a);
 		const Z = d3.map(data, z); //['v', 'v-sd', 'v+sd', 'ma'];
+		const Y_ma = d3.map(data, (d) => d.ma);
 
 		const Zsdp = d3.map(data, zsdp); //['v', 'v-sd', 'v+sd', 'ma'];
 		const Zsdm = d3.map(data, zsdm); //['v', 'v-sd', 'v+sd', 'ma'];
 
 		const defined_v = (d) => d.v != 0;
 		const defined_a = (d) => d.a != 0;
+		const defined_ma = (d) => d.ma !== 0;
 
 		const Dv = d3.map(data, defined_v);
 		const Da = d3.map(data, defined_a);
+		const Dma = d3.map(data, defined_ma);
 
 		const xDomain = d3.extent(X);
 		const yDomain = [
@@ -200,6 +203,12 @@ class grafiek {
 			.x(i => xScale(X[i]))
 			.y(i => yScale(Y_a[i]));
 		
+		const line_ma = d3.line()
+			.defined(i => Dma[i])
+			.curve(curve)
+			.x(i => xScale(X[i]))
+			.y(i => yScale(Y_ma[i]));
+
 		const area = d3.area()
 			.defined(i => Da[i])
 			.curve(curve)
@@ -211,23 +220,15 @@ class grafiek {
 		this.gY.call(yAxis);
 
 		this.plotData.selectAll(".sd")
-			.remove();
-
-		this.plotData.selectAll(".sd")
 			.data(d3.group(I, i => Z[i]))
-			.enter()
-			.append("path")
+			.join("path")
 			.attr("class", "sd")
 			.attr("fill", "rgba(200, 236, 255, 0.5)")
 			.attr("d", ([, i]) => area(i));
 
 		this.plotData.selectAll(".line-a")
-			.remove();
-
-		this.plotData.selectAll(".line-a")
 			.data(d3.group(I, i => Z[i]))
-			.enter()
-			.append("path")
+			.join("path")
 			.attr("class", "line-a")
 			.attr("fill", "none")
 			.attr("stroke-width", 1.5)
@@ -237,12 +238,8 @@ class grafiek {
 			.attr("d", ([, i]) => line_a(i));
 
 		this.plotData.selectAll(".line")
-			.remove();
-
-		this.plotData.selectAll(".line")
 			.data(d3.group(I, i => Z[i]))
-			.enter()
-			.append("path")
+			.join("path")
 			.attr("class", "line")
 			.attr("fill", "none")
 			.attr("stroke-width", 1.5)
@@ -251,7 +248,17 @@ class grafiek {
 			.attr("stroke", colors(0))
 			.attr("d", ([, i]) => line_v(i));
 
-		
+		this.plotData.selectAll(".ma-line")
+			.data(d3.group(I, i => Z[i]))
+			.join("path")
+			.attr("class", "ma-line")
+			.attr("fill", "none")
+			.attr("stroke-width", 2)
+			.attr("stroke-linejoin", "round")
+			.attr("stroke-linecap", "round")
+			.attr("stroke", "gray")
+			.attr("d", ([, i]) => line_ma(i));
+			
 
 		// this.plotData.selectAll(".line")
 		// 	.data(dataPunten2)
