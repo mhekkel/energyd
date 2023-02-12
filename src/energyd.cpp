@@ -536,35 +536,39 @@ float interpolateStand(const StandMap &data, std::chrono::system_clock::time_poi
 float interpoleerVerbruik(const StandMap &data, std::chrono::system_clock::time_point t, aggregatie_type aggr)
 {
 	using namespace date;
-	// using namespace std::chrono;
 	using namespace std::literals;
 
-	float result = 0;
+	auto t1 = t, t2 = t;
 
-	float s1 = interpolateStand(data, t);
-	if (s1 != 0)
+	if (t1 > prev(data.end())->first)
+		t1 = prev(data.end())->first;
+
+	switch (aggr)
 	{
-		auto yd = sys_days{floor<days>(t)};
-		int dagen = 1;
+		case aggregatie_type::dag:
+			t2 -= days{1};
+			break;
+		case aggregatie_type::week:
+			t2 -= weeks{1};
+			break;
+		case aggregatie_type::maand:
+			t2 -= months{1};
+			break;
+		case aggregatie_type::jaar:
+			t2 -= years{1};
+			break;
+	}
 
-		switch (aggr)
-		{
-			case aggregatie_type::dag:
-				dagen = 1;
-				break;
-			case aggregatie_type::week:
-				dagen = 7;
-				break;
-			case aggregatie_type::maand:
-				dagen = 30;
-				break;
-			case aggregatie_type::jaar:
-				dagen = 365;
-				break;
-		}
+	if (t2 > t1)
+		t2 = t1;
 
-		float s2 = interpolateStand(data, sys_days{yd - days{dagen}} + 0h);
+	float result = 0;
+	auto dagen = floor<days>(t1 - t2).count();
 
+	if (dagen > 0)
+	{
+		float s1 = interpolateStand(data, t1);
+		float s2 = interpolateStand(data, t2);
 		result = (s1 - s2) / dagen;
 	}
 

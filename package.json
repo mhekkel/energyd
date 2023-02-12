@@ -7,7 +7,6 @@
   "license": "Boost",
   "private": true,
   "scripts": {
-    "start": "webpack-dev-server --config webpack.config.js --env.debug",
     "build": "webpack --config webpack.config.js",
     "build-production": "webpack --config webpack.config.js --env PRODUCTION"
   },

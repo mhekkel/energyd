@@ -66,6 +66,8 @@ add_custom_target(webpack DEPENDS ${webpack_output})
 
 add_dependencies(energyd webpack)
 
+mrc_target_resources(energyd ${PROJECT_SOURCE_DIR}/docroot/)
+
 # enable_testing()
 
 # add_test(NAME energyd
