@@ -536,6 +536,7 @@ float interpolateStand(const StandMap &data, std::chrono::system_clock::time_poi
 float interpoleerVerbruik(const StandMap &data, std::chrono::system_clock::time_point t, aggregatie_type aggr)
 {
 	using namespace date;
+	using namespace std::chrono;
 	using namespace std::literals;
 
 	auto t1 = t, t2 = t;
@@ -546,16 +547,16 @@ float interpoleerVerbruik(const StandMap &data, std::chrono::system_clock::time_
 	switch (aggr)
 	{
 		case aggregatie_type::dag:
-			t2 -= days{1};
+			t2 -= date::days{1};
 			break;
 		case aggregatie_type::week:
-			t2 -= weeks{1};
+			t2 -= date::weeks{1};
 			break;
 		case aggregatie_type::maand:
-			t2 -= months{1};
+			t2 -= date::months{1};
 			break;
 		case aggregatie_type::jaar:
-			t2 -= years{1};
+			t2 -= date::years{1};
 			break;
 	}
 
@@ -563,13 +564,13 @@ float interpoleerVerbruik(const StandMap &data, std::chrono::system_clock::time_
 		t2 = t1;
 
 	float result = 0;
-	auto dagen = floor<days>(t1 - t2).count();
+	// auto dagen = floor<days>(t1 - t2).count();
 
-	if (dagen > 0)
+	if (t1 > t2)
 	{
 		float s1 = interpolateStand(data, t1);
 		float s2 = interpolateStand(data, t2);
-		result = (s1 - s2) / dagen;
+		result = (24 * 60 * 60) * (s1 - s2) / floor<std::chrono::seconds>(t1 - t2).count();
 	}
 
 	return result;
@@ -588,10 +589,7 @@ std::vector<float> waarden_op_deze_dag(StandMap &sm, std::chrono::system_clock::
 	while (t >= smb)
 	{
 		v.push_back(interpoleerVerbruik(sm, t, aggr));
-
-		auto yd = sys_days{floor<days>(t)};
-		auto ymd = year_month_day{yd} - years{1};
-		t = sys_days{ymd} + 0h;
+		t -= years{1};
 	}
 
 	return v;
@@ -619,34 +617,36 @@ std::vector<DataPunt> e_rest_controller::get_grafiek(grafiek_type type, aggregat
 		auto v = waarden_op_deze_dag(sm, d, aggr);
 
 		auto N = v.size();
-		
-		float sum = 0, sum2 = 0;
-		for (size_t i = 0; i < N; ++i)
-			sum += v[i];
 
-		size_t i = 0;
-		if (v[0] == 0)
-		{
-			i = 1;
-			N -= 1;
-		}
-		
-		float avg = sum / N;
-		for (i = 0; i < N; ++i)
-			sum2 += (v[i] - avg) * (v[i] - avg);
-		
 		DataPunt pt{};
+
 		pt.date = date::format("%F", d);
-		pt.v = v.front();
-		pt.a = avg;
-		pt.sd = std::sqrt(sum2) / N;
 
 		if (d > nu + days{1})
+		{
+			pt.v = v[1];
 			pt.ma = interpoleerVerbruik(sm, d - years{1}, aggregatie_type::jaar);
+		}
 		else if (d < nu)
+		{
+			pt.v = v.front();
 			pt.ma = interpoleerVerbruik(sm, d, aggregatie_type::jaar);
-		else
-			pt.ma = 0;
+		}
+
+		if (N > 1)
+		{
+			float sum = 0, sum2 = 0;
+			for (size_t i = 1; i < N; ++i)
+				sum += v[i];
+			
+			float avg = sum / (N - 1);
+			pt.a = avg;
+
+			for (size_t i = 1; i < N; ++i)
+				sum2 += (v[i] - avg) * (v[i] - avg);
+			
+			pt.sd = std::sqrt(sum2) / N;
+		}
 
 		result.emplace_back(std::move(pt));
 	}
