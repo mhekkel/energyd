@@ -1,9 +1,4 @@
-import "core-js/stable";
-import "regenerator-runtime/runtime";
-import 'bootstrap';
 import * as d3 from 'd3';
-
-import './style.scss';
 
 class grafiek {
 	constructor() {
@@ -86,12 +81,18 @@ class grafiek {
 			.attr("width", this.width)
 			.attr("height", this.height);
 
-		const zoom = d3.zoom()
-			.scaleExtent([1, 40])
-			.translateExtent([[0, 0], [this.width + 90, this.height + 90]])
-			.on("zoom", () => this.zoomed());
+		// const zoom = d3.zoom()
+		// 	.scaleExtent([1, 40])
+		// 	.translateExtent([[0, 0], [this.width + 90, this.height + 90]])
+		// 	.on("zoom", () => this.zoomed());
 
-		this.svg.call(zoom);
+		const zoom = d3.zoom()
+			.scaleExtent([1, 1]);
+
+		this.svg.call(zoom)
+			.on("wheel.zoom", null)
+			.on("touchstart", null)
+			.on("touchmove", null);
 	}
 
 	laadGrafiek() {
@@ -187,19 +188,19 @@ class grafiek {
 
 		const xAxis = d3.axisBottom(xScale).ticks(this.width / 80, xFormat).tickSizeOuter(0);
 		const yAxis = d3.axisLeft(yScale).tickSizeInner(-this.width);
-	  
+
 		const line_v = d3.line()
 			.defined(i => Dv[i])
 			.curve(curve)
 			.x(i => xScale(X[i]))
 			.y(i => yScale(Y[i]));
-		
+
 		const line_a = d3.line()
 			.defined(i => Da[i])
 			.curve(curve)
 			.x(i => xScale(X[i]))
 			.y(i => yScale(Y_a[i]));
-		
+
 		const line_ma = d3.line()
 			.defined(i => Dma[i])
 			.curve(curve)
@@ -212,7 +213,7 @@ class grafiek {
 			.x(i => xScale(X[i]))
 			.y0(i => yScale(Zsdm[i]))
 			.y1(i => yScale(Zsdp[i]));
-  
+
 		this.gX.call(xAxis);
 		this.gY.call(yAxis);
 
@@ -235,7 +236,7 @@ class grafiek {
 			.attr("d", ([, i]) => line_a(i));
 
 		this.plotData.selectAll(".line")
-			.data(d3.group(I.filter(i =>  X[i] <= nu), i => Z[i]))
+			.data(d3.group(I.filter(i => X[i] <= nu), i => Z[i]))
 			.join("path")
 			.attr("class", "line")
 			.attr("fill", "none")
@@ -246,7 +247,7 @@ class grafiek {
 			.attr("d", ([, i]) => line_v(i));
 
 		this.plotData.selectAll(".line-l")
-			.data(d3.group(I.filter(i =>  X[i] > nu), i => Z[i]))
+			.data(d3.group(I.filter(i => X[i] > nu), i => Z[i]))
 			.join("path")
 			.attr("class", "line-l")
 			.attr("fill", "none")

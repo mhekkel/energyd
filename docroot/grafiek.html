@@ -1,13 +1,13 @@
 <!DOCTYPE html SYSTEM "about:legacy-compat">
 <html xmlns="http://www.w3.org/1999/xhtml" xmlns:z2="http://www.hekkelman.com/libzeep/m2" lang="nl">
 
-<head>
+<head z2:replace="~{head::head(~{::title},~{::head/script})}">
 	<meta charset="UTF-8" />
 	<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
 
-	<title>Energieverbruik</title>
+	<title>Energieverbruik - Grafiek</title>
 
-	<script src="/scripts/grafiek.js"></script>
+	<script z2:src="@{/scripts/grafiek.js}"></script>
 </head>
 
 <body>
@@ -63,7 +63,7 @@
 				<span class="failed">Grafiek voor <span class="grafiek-naam"></span> kon niet geladen worden.</span>
 			</div>
 
-			<div class="grafiek-container">
+			<div class="grafiek-container overflow-scroll">
 				<svg width="100%" height="100%" id="plot"></svg>
 			</div>
 		</div>

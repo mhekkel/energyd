@@ -6,7 +6,7 @@ const UglifyJsPlugin = require('uglifyjs-webpack-plugin');
 const path = require('path');
 
 const SCRIPTS = __dirname + "/webapp/";
-const DEST = __dirname + "/docroot/";
+const DEST = __dirname + "/docroot/scripts";
 
 module.exports = (env) => {
 
@@ -14,16 +14,15 @@ module.exports = (env) => {
 
 	const webpackConf = {
 		entry: {
-			invoer: { import: SCRIPTS + "invoer.js", filename: "scripts/[name].js" },
-			opname: { import: SCRIPTS + "opname.js", filename: "scripts/[name].js" },
-			grafiek: { import: SCRIPTS + "grafiek.js", filename: "scripts/[name].js" },
+			index: SCRIPTS + "index.js",
+			invoer: SCRIPTS + "invoer.js",
+			opname: SCRIPTS + "opname.js",
+			grafiek: SCRIPTS + "grafiek.js",
 		},
 
 		output: {
 			path: DEST
 		},
-
-		devtool: "source-map",
 
 		module: {
 			rules: [
@@ -41,26 +40,11 @@ module.exports = (env) => {
 				{
 					test: /\.(sa|sc|c)ss$/i,
 					use: [
-						{
-							loader: PRODUCTION ? MiniCssExtractPlugin.loader : "style-loader",
-							options: PRODUCTION ? {
-								publicPath: "css/",
-							} : {}
-						},
-						{
-							loader: "css-loader",
-							options: {
-								sourceMap: !PRODUCTION
-							}
-						},
+						MiniCssExtractPlugin.loader,
+						"css-loader",
 						"postcss-loader",
-						{
-							loader: "sass-loader",
-							options: {
-								sourceMap: !PRODUCTION
-							}
-						},
-					],
+						"sass-loader"
+					]
 				},
 
 				{
@@ -68,31 +52,21 @@ module.exports = (env) => {
 					include: path.resolve(__dirname, './node_modules/bootstrap-icons/font/fonts'),
 					type: 'asset/resource',
 					generator: {
-						filename: 'fonts/[name][ext][query]',
-						publicPath: '/fonts/'
+						filename: '../fonts/[name][ext]'
 					}
-				},
-
-				{
-					test: /\.(png|jpg|gif)$/,
-					use: [
-						{
-							loader: 'file-loader',
-							options: {
-								outputPath: "css/images",
-								publicPath: "images/"
-							},
-						},
-					]
 				}
 			]
 		},
 
 		resolve: {
-			extensions: ['.tsx', '.ts', '.js', '.scss'],
+			extensions: ['.js', '.scss'],
 		},
 
-		plugins: [],
+		plugins: [
+			new MiniCssExtractPlugin({
+				filename: "../css/[name].css"
+			})
+		],
 
 		optimization: { minimizer: [] }
 	};
@@ -101,15 +75,10 @@ module.exports = (env) => {
 		webpackConf.mode = "production";
 
 		webpackConf.plugins.push(
-			new MiniCssExtractPlugin({
-				filename: "css/[name].css",
-				chunkFilename: "css/[id].css",
-			}),
 			new CleanWebpackPlugin({
 				cleanOnceBeforeBuildPatterns: [
-					'scripts/**/*',
-					'fonts/**/*',
-					'css/**'
+					'scripts',
+					'fonts'
 				]
 			}));
 

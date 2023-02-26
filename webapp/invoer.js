@@ -1,8 +1,3 @@
-import "core-js/stable";
-import "regenerator-runtime/runtime";
-import 'bootstrap';
-import './style.scss';
-
 class OpnameEditor {
 	constructor() {
 		this.form = document.getElementById("opname-form");
