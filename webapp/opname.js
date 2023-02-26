@@ -81,7 +81,7 @@ class OpnameEditor {
 			throw error.message;
 		}).then(r => {
 			console.log(r);
-			$(this.dialog).modal('hide');
+			// $(this.dialog).modal('hide');
 
 			window.location.reload();
 		}).catch(err => alert(err));

@@ -144,8 +144,8 @@ class grafiek {
 		const y = (d) => d.v;
 
 		const z = () => 1;
-		const zsdp = (d) => d.a + d.sd;
-		const zsdm = (d) => d.a - d.sd;
+		const zsdp = (d) => d.a + 2 * d.sd;
+		const zsdm = (d) => d.a - 2 * d.sd;
 
 		const X = d3.map(data, x);
 		const Y = d3.map(data, y);
@@ -169,10 +169,8 @@ class grafiek {
 			d3.min(d3.map(data, (d) => d3.min([d.v, d.a - d.sd]))),
 			d3.max(d3.map(data, (d) => d3.max([d.v, d.a + d.sd])))
 		];
-		const zDomain = new d3.InternSet(Z);
 
 		const I = d3.range(X.length);//.filter(i => zDomain.has(Z[i]));
-		
 
 		const xType = d3.scaleUtc;
 		const yType = d3.scaleLinear;
@@ -183,16 +181,13 @@ class grafiek {
 		const xScale = xType(xDomain, xRange).interpolate(d3.interpolateRound);
 		const yScale = yType(yDomain, yRange);
 
-		const colors = d3.scaleOrdinal([1], d3.schemeCategory10);
+		const colors = d3.scaleOrdinal(d3.schemeTableau10);
 
 		const xFormat = null;
-		const yFormat = "";
 
 		const xAxis = d3.axisBottom(xScale).ticks(this.width / 80, xFormat).tickSizeOuter(0);
 		const yAxis = d3.axisLeft(yScale).tickSizeInner(-this.width);
 	  
-		const formatDate = xScale.tickFormat(null, "%j");
-
 		const line_v = d3.line()
 			.defined(i => Dv[i])
 			.curve(curve)
@@ -258,7 +253,7 @@ class grafiek {
 			.attr("stroke-width", 1.5)
 			.attr("stroke-linejoin", "round")
 			.attr("stroke-linecap", "round")
-			.attr("stroke", colors(3))
+			.attr("stroke", colors(2))
 			.attr('opacity', 0.6)
 			.attr("d", ([, i]) => line_v(i));
 
