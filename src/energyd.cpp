@@ -533,7 +533,50 @@ float interpolateStand(const StandMap &data, std::chrono::system_clock::time_poi
 	return result;
 }
 
-std::vector<float> waarden_op_deze_dag(StandMap &sm, std::chrono::system_clock::time_point t)
+float interpoleerVerbruik(const StandMap &data, std::chrono::system_clock::time_point t, aggregatie_type aggr)
+{
+	using namespace date;
+	using namespace std::chrono;
+	using namespace std::literals;
+
+	auto t1 = t, t2 = t;
+
+	if (t1 > prev(data.end())->first)
+		t1 = prev(data.end())->first;
+
+	switch (aggr)
+	{
+		case aggregatie_type::dag:
+			t2 -= date::days{1};
+			break;
+		case aggregatie_type::week:
+			t2 -= date::weeks{1};
+			break;
+		case aggregatie_type::maand:
+			t2 -= date::months{1};
+			break;
+		case aggregatie_type::jaar:
+			t2 -= date::years{1};
+			break;
+	}
+
+	if (t2 > t1)
+		t2 = t1;
+
+	float result = 0;
+	// auto dagen = floor<days>(t1 - t2).count();
+
+	if (t1 > t2)
+	{
+		float s1 = interpolateStand(data, t1);
+		float s2 = interpolateStand(data, t2);
+		result = (24 * 60 * 60) * (s1 - s2) / floor<std::chrono::seconds>(t1 - t2).count();
+	}
+
+	return result;
+}
+
+std::vector<float> waarden_op_deze_dag(StandMap &sm, std::chrono::system_clock::time_point t, aggregatie_type aggr)
 {
 	using namespace date;
 	// using namespace std::chrono;
@@ -545,21 +588,20 @@ std::vector<float> waarden_op_deze_dag(StandMap &sm, std::chrono::system_clock::
 
 	while (t >= smb)
 	{
-		v.push_back(interpolateStand(sm, t));
-
-		auto yd = sys_days{floor<days>(t)};
-		auto ymd = year_month_day{yd} - years{1};
-		t = sys_days{ymd} + 0h;
+		v.push_back(interpoleerVerbruik(sm, t, aggr));
+		t -= years{1};
 	}
 
 	return v;
 }
 
-std::vector<DataPunt> get_grafiek_per_dag(StandMap &sm)
+std::vector<DataPunt> e_rest_controller::get_grafiek(grafiek_type type, aggregatie_type aggr)
 {
 	using namespace date;
 	// using namespace std::chrono;
 	using namespace std::literals;
+
+	StandMap sm = DataService::instance().get_stand_map(type);
 
 	auto nu = std::chrono::system_clock::now();
 
@@ -569,173 +611,47 @@ std::vector<DataPunt> get_grafiek_per_dag(StandMap &sm)
 	auto e = sys_days{year{jaar}/December/31} + 0h;
 
 	std::vector<DataPunt> result;
-	auto v0 = waarden_op_deze_dag(sm, b - 24h);
 
 	for (auto d = b; d <= e; d += 24h)
 	{
-		auto v1 = waarden_op_deze_dag(sm, d);
+		auto v = waarden_op_deze_dag(sm, d, aggr);
 
-		std::vector<float> v;
-		auto N = v0.size();
-		if (N > v1.size())
-			N = v1.size();
-		
-		float sum = 0, sum2 = 0;
-		for (size_t i = 0; i < N; ++i)
-		{
-			auto verbruik = v1[i] - v0[i];
-			v.push_back(verbruik);
+		auto N = v.size();
 
-			sum += verbruik;
-		}
+		DataPunt pt{};
 
-		if (v.empty())
-			break;
-		
-		size_t i = 0;
-		if (v[0] == 0)
-		{
-			i = 1;
-			N -= 1;
-		}
-		
-		float avg = sum / N;
-		for (i = 0; i < N; ++i)
-			sum2 += (v[i] - avg) * (v[i] - avg);
-		
-		DataPunt pt;
 		pt.date = date::format("%F", d);
-		pt.v = v.front();
-		pt.a = avg;
-		pt.sd = std::sqrt(sum2) / N;
 
-		auto yd = sys_days{floor<days>(d)};
-		auto ymd = year_month_day{yd};
-
-		if (v[0] == 0)
+		if (d > nu + days{1})
 		{
-			auto dagen = (sys_days{ymd - years{1}} - sys_days{ymd - years{2}}).count();
-			pt.ma = v1.size() > 2 ? (v1[1] - v1[2]) / dagen : v1[1];
+			pt.v = v[1];
+			pt.ma = interpoleerVerbruik(sm, d - years{1}, aggregatie_type::jaar);
 		}
-		else
+		else if (d < nu)
 		{
-			auto dagen = (sys_days{ymd} - sys_days{ymd - years{1}}).count();
-			pt.ma = v1.size() > 1 ? (v1[0] - v1[1]) / dagen : v1[0];
+			pt.v = v.front();
+			pt.ma = interpoleerVerbruik(sm, d, aggregatie_type::jaar);
+		}
+
+		if (N > 1)
+		{
+			float sum = 0, sum2 = 0;
+			for (size_t i = 1; i < N; ++i)
+				sum += v[i];
+			
+			float avg = sum / (N - 1);
+			pt.a = avg;
+
+			for (size_t i = 1; i < N; ++i)
+				sum2 += (v[i] - avg) * (v[i] - avg);
+			
+			pt.sd = std::sqrt(sum2) / N;
 		}
 
 		result.emplace_back(std::move(pt));
-
-		std::swap(v0, v1);
 	}
 
 	return result;
-}
-
-std::vector<DataPunt> e_rest_controller::get_grafiek(grafiek_type type, aggregatie_type aggr)
-{
-	StandMap sm = DataService::instance().get_stand_map(type);
-
-	return get_grafiek_per_dag(sm);
-
-	// using namespace std::chrono;
-	// using namespace std::literals;
-	// using namespace date;
-
-
-	// struct verbruik_per_periode
-	// {
-	// 	float verbruik = 0;
-	// 	long duur = 0;
-	// };
-
-	// using sys_days = std::chrono::time_point<std::chrono::system_clock, std::chrono::days>;
-	// std::map<sys_days, verbruik_per_periode> data;
-
-	// auto start_w = first_day_of_the_week_before(Sunday);
-
-	// auto van = sm.begin()->first,
-	// 	 tot = prev(sm.end())->first;
-
-	// switch (aggr)
-	// {
-	// 	case aggregatie_type::dag:
-	// 		iter.reset(new day_iterator(van.date()));
-	// 		break;
-
-	// 	case aggregatie_type::week:
-	// 		iter.reset(new week_iterator(start_w.get_date(van.date())));
-	// 		break;
-
-	// 	case aggregatie_type::maand:
-	// 		iter.reset(new month_iterator(date(van.date().year(), van.date().month(), 1)));
-	// 		break;
-
-	// 	case aggregatie_type::jaar:
-	// 		iter.reset(new year_iterator(date(van.date().year(), Jan, 1)));
-	// 		break;
-	// }
-
-	// auto eind = ((tot + days(1)).date());
-
-	// auto vorigjaar = ptime(date(tot.date().year() - 1, tot.date().month(), tot.date().day()));
-
-	// GrafiekData result;
-
-	// auto dag = **iter;
-
-	// ptime tijdVan(dag);
-	// if (tijdVan < van)
-	// 	tijdVan = van;
-
-	// float standVan = interpolateStand(sm, tijdVan);
-
-	// for (;;)
-	// {
-	// 	++*iter;
-
-	// 	dag = **iter;
-
-	// 	ptime tijdTot(**iter);
-	// 	if (tijdTot > tot)
-	// 		tijdTot = tot;
-
-	// 	float standTot = interpolateStand(sm, tijdTot);
-
-	// 	auto duur = (tijdTot - tijdVan).total_seconds();
-	// 	if (duur <= 0)
-	// 	{
-	// 		tijdVan = tijdTot;
-	// 		standVan = standTot;
-	// 		continue;
-	// 	}
-
-	// 	float verbruik = (standTot - standVan);
-
-	// 	result.punten.emplace(to_iso_extended_string(dag), (24 * 60 * 60) * verbruik / duur);
-
-	// 	tijdVan = tijdTot;
-	// 	standVan = standTot;
-
-	// 	// voortschrijdend gemiddelde over een jaar
-	// 	if (tijdTot < vorigjaar)
-	// 		continue;
-
-	// 	try
-	// 	{
-	// 		auto jaarVoorDag = ptime(date(tijdTot.date().year() - 1, tijdTot.date().month(), tijdTot.date().day()));
-	// 		verbruik = standTot - interpolateStand(sm, jaarVoorDag);
-	// 		duur = (tijdTot - jaarVoorDag).total_seconds();
-	// 		result.vsGem.emplace(to_iso_extended_string(dag), (24 * 60 * 60) * verbruik / duur);
-	// 	}
-	// 	catch (boost::gregorian::bad_day_of_month &ex)
-	// 	{
-	// 	}
-
-	// 	if (dag >= eind)
-	// 		break;
-	// }
-
-	// return result;
 }
 
 // --------------------------------------------------------------------

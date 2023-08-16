@@ -1,9 +1,4 @@
-import "core-js/stable";
-import "regenerator-runtime/runtime";
-import 'bootstrap';
 import { Modal } from 'bootstrap';
-
-import './style.scss';
 
 class OpnameEditor {
 
@@ -81,7 +76,7 @@ class OpnameEditor {
 			throw error.message;
 		}).then(r => {
 			console.log(r);
-			$(this.dialog).modal('hide');
+			// $(this.dialog).modal('hide');
 
 			window.location.reload();
 		}).catch(err => alert(err));

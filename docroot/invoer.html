@@ -1,16 +1,14 @@
 <!DOCTYPE html SYSTEM "about:legacy-compat">
 
-<html xmlns="http://www.w3.org/1999/xhtml"
-	  xmlns:z2="http://www.hekkelman.com/libzeep/m2"
-	  lang="nl" >
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:z2="http://www.hekkelman.com/libzeep/m2" lang="nl">
 
-<head>
+<head z2:replace="~{head::head(~{::title},~{::head/script})}">
 	<meta charset="UTF-8" />
-	<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"/>
+	<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
 
-	<title>Energieverbruik</title>
+	<title>Energieverbruik - Invoer</title>
 
-	<script src="scripts/invoer.js"></script>
+	<script z2:src="@{/scripts/invoer.js}"></script>
 </head>
 
 <body>
@@ -27,23 +25,23 @@
 		</div>
 
 		<form id="opname-form" action="/ajax/opname" method="post">
-			<input type="hidden" name="id" z2:value="${opname.id}"/>
-	
+			<input type="hidden" name="id" z2:value="${opname.id}" />
+
 			<div z2:each="teller: ${tellers}" class="form-group row">
-				<label class="col-sm-6 col-form-label col-form-label-sm"
-						z2:for="|id-${teller.id}|" z2:text="${teller.naam}"></label>
+				<label class="col-sm-6 col-form-label col-form-label-sm" z2:for="|id-${teller.id}|"
+					z2:text="${teller.naam}"></label>
 				<div class="col-sm-6">
 					<input class="form-control form-control-sm" maxlength="254"
-							z2:attr="id=|id-${teller.id}|,data-id=${teller.id}"
-							z2:name="${teller.id}" type="number" z2:step="${teller.schaal == 3 ? 0.001 : 1}"
-							z2:value="${opname.standen[teller.id] ?: ''}"
-							required="true" />
+						z2:attr="id=|id-${teller.id}|,data-id=${teller.id}" z2:name="${teller.id}" type="number"
+						z2:step="${teller.schaal == 3 ? 0.001 : 1}" z2:value="${opname.standen[teller.id] ?: ''}"
+						required="true" />
 				</div>
 			</div>
-	
+
 			<button type="submit" form="opname-form" class="btn btn-primary">Bewaar</button>
 		</form>
 	</div>
 
 </body>
+
 </html>

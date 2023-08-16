@@ -1,15 +1,15 @@
 <!DOCTYPE html SYSTEM "about:legacy-compat">
-<html xmlns="http://www.w3.org/1999/xhtml"
-	  xmlns:z2="http://www.hekkelman.com/libzeep/m2"
-	  lang="nl" >
-<head>
-	<meta charset="UTF-8"/>
-	<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"/>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:z2="http://www.hekkelman.com/libzeep/m2" lang="nl">
 
-	<title>Energieverbruik</title>
+<head z2:replace="~{head::head(~{::title},~{::head/script})}">
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
 
-	<script src="/scripts/grafiek.js"></script>
+	<title>Energieverbruik - Grafiek</title>
+
+	<script z2:src="@{/scripts/grafiek.js}"></script>
 </head>
+
 <body>
 	<nav z2:replace="menu :: navbar" />
 
@@ -19,10 +19,8 @@
 			<div class="col">
 
 				<div class="input-group">
-					<div class="input-group-prepend">
-						<label class="input-group-text" for="grafiek-id">Grafiek</label>
-					</div>
-					<select id="grafiek-id" class="custom-select">
+					<label class="input-group-text" for="grafiek-id">Grafiek</label>
+					<select id="grafiek-id" class="form-select">
 						<option value="warmte">Warmte</option>
 						<option value="electriciteit">Electriciteit Totaal</option>
 						<option value="electriciteit-hoog">Electriciteit Hoog</option>
@@ -36,20 +34,21 @@
 					</select>
 				</div>
 			</div>
+
 			<div class="col">
-				<div class="btn-group btn-group-toggle" data-toggle="buttons">
-					<label class="btn btn-secondary active">
-						<input type="radio" name="aggr" id="btn-dag-aggr" autocomplete="off" data-aggr="dag"
-							class="aggr-btn" checked="true"/> Dag
-					</label>
-					<label class="btn btn-secondary">
-						<input type="radio" name="aggr" id="btn-week-aggr" autocomplete="off" data-aggr="week"
-							class="aggr-btn"/> Week
-					</label>
-					<label class="btn btn-secondary">
-						<input type="radio" name="aggr" id="btn-maand-aggr" autocomplete="off" data-aggr="maand"
-							class="aggr-btn"/> Maand
-					</label>
+
+				<div class="btn-group" role="group" aria-label="Basic radio toggle button group">
+					<input type="radio" class="btn-check btn-aggr" name="btnradio" id="btnradio1" autocomplete="off"
+						data-aggr="dag" checked="checked" />
+					<label class="btn btn-outline-secondary" for="btnradio1">Dag</label>
+
+					<input type="radio" class="btn-check btn-aggr" name="btnradio" id="btnradio2" autocomplete="off"
+						data-aggr="week" />
+					<label class="btn btn-outline-secondary" for="btnradio2">Week</label>
+
+					<input type="radio" class="btn-check btn-aggr" name="btnradio" id="btnradio3" autocomplete="off"
+						data-aggr="maand" />
+					<label class="btn btn-outline-secondary" for="btnradio3">Maand</label>
 				</div>
 			</div>
 		</div>
@@ -64,7 +63,7 @@
 				<span class="failed">Grafiek voor <span class="grafiek-naam"></span> kon niet geladen worden.</span>
 			</div>
 
-			<div class="grafiek-container">
+			<div class="grafiek-container overflow-scroll">
 				<svg width="100%" height="100%" id="plot"></svg>
 			</div>
 		</div>

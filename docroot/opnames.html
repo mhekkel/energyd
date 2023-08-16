@@ -2,13 +2,13 @@
 
 <html xmlns="http://www.w3.org/1999/xhtml" xmlns:z2="http://www.hekkelman.com/libzeep/m2" lang="nl">
 
-<head>
+<head z2:replace="~{head::head(~{::title},~{::head/script})}">
 	<meta charset="UTF-8" />
 	<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
 
-	<title>Energieverbruik</title>
+	<title>Energieverbruik - Opnames</title>
 
-	<script src="/scripts/opname.js"></script>
+	<script z2:src="@{/scripts/opname.js}"></script>
 </head>
 
 <body>

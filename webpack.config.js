@@ -6,8 +6,7 @@ const UglifyJsPlugin = require('uglifyjs-webpack-plugin');
 const path = require('path');
 
 const SCRIPTS = __dirname + "/webapp/";
-const SCSS = __dirname + "/scss/";
-const DEST = __dirname + "/docroot/";
+const DEST = __dirname + "/docroot/scripts";
 
 module.exports = (env) => {
 
@@ -15,17 +14,15 @@ module.exports = (env) => {
 
 	const webpackConf = {
 		entry: {
+			index: SCRIPTS + "index.js",
 			invoer: SCRIPTS + "invoer.js",
 			opname: SCRIPTS + "opname.js",
-			grafiek: SCRIPTS + "grafiek.js"
+			grafiek: SCRIPTS + "grafiek.js",
 		},
 
 		output: {
-			path: DEST + "/scripts/",
-			filename: "./[name].js"
+			path: DEST
 		},
-
-		devtool: "source-map",
 
 		module: {
 			rules: [
@@ -39,62 +36,39 @@ module.exports = (env) => {
 						}
 					}
 				},
+
 				{
-					test: /style\.scss$/,
+					test: /\.(sa|sc|c)ss$/i,
 					use: [
-						// PRODUCTION ? MiniCssExtractPlugin.loader : "style-loader",
-						"style-loader",
-						'css-loader',
-						'sass-loader'
+						MiniCssExtractPlugin.loader,
+						"css-loader",
+						"postcss-loader",
+						"sass-loader"
 					]
 				},
+
 				{
 					test: /\.woff(2)?(\?v=[0-9]\.[0-9]\.[0-9])?$/,
 					include: path.resolve(__dirname, './node_modules/bootstrap-icons/font/fonts'),
 					type: 'asset/resource',
 					generator: {
-						filename: 'fonts/[name][ext][query]'
+						filename: '../fonts/[name][ext]'
 					}
-				},
-
-				{
-					test: /\.(png|jpg|gif)$/,
-					use: [
-						{
-							loader: 'file-loader',
-							options: {
-								outputPath: "css/images",
-								publicPath: "images/"
-							},
-						},
-					]
 				}
 			]
 		},
 
 		resolve: {
-			extensions: ['.tsx', '.ts', '.js'],
+			extensions: ['.js', '.scss'],
 		},
 
 		plugins: [
-			// new CleanWebpackPlugin({
-			// 	cleanOnceBeforeBuildPatterns: [
-			// 		'scripts/**/*',
-			// 		'fonts/**/*'
-			// 	]
-			// }),
 			new MiniCssExtractPlugin({
-				filename: './css/[name].css',
-				chunkFilename: './css/[id].css'
+				filename: "../css/[name].css"
 			})
 		],
 
-		optimization: {
-			minimizer: [
-				new TerserPlugin({ /* additional options here */ }),
-				new UglifyJsPlugin({ parallel: 4 })
-			]
-		}
+		optimization: { minimizer: [] }
 	};
 
 	if (PRODUCTION) {
@@ -103,10 +77,15 @@ module.exports = (env) => {
 		webpackConf.plugins.push(
 			new CleanWebpackPlugin({
 				cleanOnceBeforeBuildPatterns: [
-					'scripts/**/*',
-					'fonts/**/*'
+					'scripts',
+					'fonts'
 				]
 			}));
+
+		webpackConf.optimization.minimizer.push(
+			new TerserPlugin({ /* additional options here */ }),
+			new UglifyJsPlugin({ parallel: 4 })
+		);
 	} else {
 		webpackConf.mode = "development";
 		webpackConf.devtool = 'source-map';
