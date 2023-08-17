@@ -6,3 +6,4 @@ build/
 src/revision.hpp
 src/mrsrc.hpp
 .vscode/
+energyd.conf

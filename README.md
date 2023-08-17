@@ -8,15 +8,15 @@ Installation
 
 To build and install energyd, you first need to install various other packages. Of course first of all you need [libzeep](https://github.com/mhekkel/libzeep). If you successfully installed libzeep, most of the requirements are already met, the remaining requirements are
 
- * Postgresql
- * The development version of [libpqxx](https://pqxx.org/development/libpqxx/)
- * The javascript package manager [yarn](https://yarnpkg.com/)
+* Postgresql
+* The development version of [libpqxx](https://pqxx.org/development/libpqxx/)
+* The javascript package manager [yarn](https://yarnpkg.com/)
 
 Building the software should start with running `yarn` without arguments in the source directory followed by `configure` and `make`.
 
 To summarize:
 
-```
+```bash
 git clone https://github.com/mhekkel/energyd.git
 cd energyd
 yarn
@@ -29,17 +29,19 @@ This should give you an executable called energyd. The next thing to do is creat
 The following commands are executed as a user that has admin rights on your postgres installation. First create a new user for this database,
 this command will ask for a password.
 
-```
+```bash
 createuser -P energie-admin
 ```
+
 Then create the database with the newly created user as owner:
 
-```
+```bash
 createdb -O energie-admin energie
 ```
+
 Finally fill the database with tables and some data:
 
-```
+```bash
 psql -h localhost -f energie.sql energie energie-admin
 ```
 
@@ -48,7 +50,7 @@ Running
 
 Now that the database is ready, we can start the application. There are several options you can give:
 
-```
+```bash
 $ ./energyd --help
 ./energyd [options] command:
   -h [ --help ]         Display help message

@@ -1,14 +1,14 @@
 cmake_minimum_required(VERSION 3.16)
 
 # set the project name
-project(energyd VERSION 2.0.0 LANGUAGES CXX)
+project(energyd VERSION 2.0.1 LANGUAGES CXX)
 
 include(FindPkgConfig)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 set(CXX_EXTENSIONS OFF)
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
@@ -34,12 +34,10 @@ mrc_write_header(${PROJECT_SOURCE_DIR}/src/mrsrc.hpp)
 # Libraries
 find_package(zeep 6 REQUIRED)
 find_package(libmcfp REQUIRED)
-
-set(ENV{PKG_CONFIG_PATH} "$ENV{HOME}/.local/lib/pkgconfig/")
-pkg_check_modules(PKG_PQ libpqxx>=7.2 libpq IMPORTED_TARGET REQUIRED)
+find_package(libpqxx 7.8 REQUIRED)
 
 add_executable(energyd ${PROJECT_SOURCE_DIR}/src/energyd.cpp)
-target_link_libraries(energyd PkgConfig::PKG_PQ libmcfp::libmcfp zeep::zeep)
+target_link_libraries(energyd libpqxx::pqxx libmcfp::libmcfp zeep::zeep)
 
 # yarn rules for javascripts
 
