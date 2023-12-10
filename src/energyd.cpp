@@ -8,6 +8,8 @@
 #include "mrsrc.hpp"
 #include "revision.hpp"
 
+#include "p1-reader.hpp"
+
 #include <utility>
 
 #include <zeep/http/daemon.hpp>
@@ -707,6 +709,15 @@ void e_web_controller::invoer(const zeep::http::request &request, const zeep::ht
 		o = DataService::instance().get_last_opname();
 		o.id.clear();
 		o.datum = {};
+
+		// auto &p1 = P1_Lezer::instance();
+		// auto p1_w = p1();
+		auto p1_w = lees_p1(get_server()->get_io_context());
+
+		o.standen["Verbruik laag"] = p1_w.verbruik_laag;
+		o.standen["Verbruik hoog"] = p1_w.verbruik_hoog;
+		o.standen["Teruglevering laag"] = p1_w.levering_laag;
+		o.standen["Teruglevering laag"] = p1_w.levering_laag;
 	}
 	else
 		o = DataService::instance().get_opname(id);
@@ -811,7 +822,7 @@ int main(int argc, const char *argv[])
 Command should be either:
 
     start     start a new server
-    stop      start a running server
+    stop      stop a running server
     status    get the status of a running server
     reload    restart a running server with new options
 				)" << std::endl;

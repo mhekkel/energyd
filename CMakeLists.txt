@@ -36,7 +36,11 @@ find_package(zeep 6 REQUIRED)
 find_package(libmcfp REQUIRED)
 find_package(libpqxx 7.8 REQUIRED)
 
-add_executable(energyd ${PROJECT_SOURCE_DIR}/src/energyd.cpp)
+add_executable(energyd
+	${PROJECT_SOURCE_DIR}/src/energyd.cpp
+	${PROJECT_SOURCE_DIR}/src/p1-reader.cpp)
+
+
 target_link_libraries(energyd libpqxx::pqxx libmcfp::libmcfp zeep::zeep)
 
 # yarn rules for javascripts
