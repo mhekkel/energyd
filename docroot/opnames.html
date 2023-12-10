@@ -79,7 +79,7 @@
 								<input class="form-control form-control-sm" maxlength="254"
 									z2:attr="id=|id-${teller.id}|,data-id=${teller.id}" z2:name="${teller.id}"
 									type="number" z2:step="${teller.schaal == 3 ? 0.001 : 1}"
-									z2:value="${opnames[0].standen[teller.id] ?: ''}" required="true" />
+									z2:value="${huidig.standen[teller.id] ?: ''}" required="true" />
 							</div>
 						</div>
 					</form>

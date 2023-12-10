@@ -1,17 +1,17 @@
 /*-
  * SPDX-License-Identifier: BSD-2-Clause
- * 
+ *
  * Copyright (c) 2023 Maarten L. Hekkelman
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
- * 
+ *
  * 1. Redistributions of source code must retain the above copyright notice, this
  *    list of conditions and the following disclaimer
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
  *    and/or other materials provided with the distribution.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -26,22 +26,70 @@
 
 #include "p1-reader.hpp"
 
+#include <mcfp/mcfp.hpp>
+
+#include <zeep/value-serializer.hpp>
+
+#include <date/date.h>
+
 #include <iostream>
 #include <regex>
 
-// std::unique_ptr<P1_Lezer> P1_Lezer::s_instance;
+std::unique_ptr<P1Lezer> P1Lezer::s_instance;
 
-// P1_Lezer &P1_Lezer::instance()
-// {
-// 	if (not s_instance)
-// 		s_instance.reset(new P1_Lezer);
-// 	return *s_instance;
-// }
+P1Lezer &P1Lezer::init(boost::asio::io_context &io_context)
+{
+	s_instance.reset(new P1Lezer(io_context));
+	return *s_instance;
+}
 
-// P1_Lezer::P1_Lezer()
-// {
+P1Lezer &P1Lezer::instance()
+{
+	if (not s_instance)
+		throw std::logic_error("No instance yet!");
 
-// }
+	return *s_instance;
+}
+
+P1Lezer::P1Lezer(boost::asio::io_context &io_context)
+	: m_io_context(io_context)
+{
+	auto &config = mcfp::config::instance();
+
+	m_connection_string = config.get("databank");
+	m_device_string = config.get("p1-device");
+
+	m_current = read();
+
+	m_thread = std::thread(std::bind(&P1Lezer::run, this));
+}
+
+void P1Lezer::run()
+{
+	using namespace std::literals;
+
+	using namespace date;
+	using namespace std::chrono;
+
+	using quarters = std::chrono::duration<int64_t, std::ratio<60 * 15>>;
+
+	for (;;)
+	{
+		try
+		{
+			auto now = std::chrono::system_clock::now();
+			std::this_thread::sleep_until(ceil<quarters>(now));
+
+			m_current = read();
+
+			DataService_v2::instance().store(m_current);
+		}
+		catch (const std::exception &e)
+		{
+			std::cerr << e.what() << '\n';
+		}
+	}
+}
 
 const std::regex kReadRX(R"(^1-0:([12])\.8\.([12])\((\d{6})\.(\d{3})\*kWh\))", std::regex::multiline);
 
@@ -63,18 +111,16 @@ inline uint16_t update_crc(uint16_t crc, char ch)
 	return result;
 }
 
-
-
-P1_Waarden lees_p1(boost::asio::io_context &io_context)
+P1Opname P1Lezer::read()
 {
-	P1_Waarden result{};
+	P1Opname result{};
 
-	boost::asio::serial_port p1(io_context.get_executor());
+	boost::asio::serial_port p1(m_io_context.get_executor());
 
 	boost::system::error_code ec;
-	p1.open("/dev/ttyUSB0", ec);
+	p1.open(m_device_string, ec);
 	if (ec)
-		std::cerr << "Opening failed: " << ec.message() << '\n';
+		throw std::system_error(ec, "Error opening serial device");
 
 	p1.set_option(boost::asio::serial_port::baud_rate(115200), ec);
 	if (ec)
@@ -106,7 +152,7 @@ P1_Waarden lees_p1(boost::asio::io_context &io_context)
 
 		if (n == 0 or ec)
 			break;
-		
+
 		data.commit(n);
 
 		while (data.in_avail() > 0)
@@ -114,7 +160,7 @@ P1_Waarden lees_p1(boost::asio::io_context &io_context)
 			int ch_i = data.sbumpc();
 			if (ch_i == std::char_traits<char>::eof())
 				break;
-			
+
 			char ch = std::char_traits<char>::to_char_type(ch_i);
 
 			if (state != CHECKSUM)
@@ -133,7 +179,7 @@ P1_Waarden lees_p1(boost::asio::io_context &io_context)
 						datagram = { ch };
 					}
 					break;
-				
+
 				case HEADER:
 					header += ch;
 
@@ -146,14 +192,14 @@ P1_Waarden lees_p1(boost::asio::io_context &io_context)
 						}
 					}
 					break;
-				
+
 				case IDENT0:
 					if (ch == '\r')
 						state = IDENT1;
 					else
 						ident += ch;
 					break;
-				
+
 				case IDENT1:
 					if (ch == '\n')
 						state = IDENT2;
@@ -187,7 +233,7 @@ P1_Waarden lees_p1(boost::asio::io_context &io_context)
 					else
 						message += ch;
 					break;
-				
+
 				case CHECKSUM:
 					crc_s += ch;
 					if (crc_s.length() == 6)
@@ -207,14 +253,14 @@ P1_Waarden lees_p1(boost::asio::io_context &io_context)
 							state = START;
 							break;
 						}
-						
+
 						auto begin = std::sregex_iterator(message.begin(), message.end(), kReadRX);
 						auto end = std::sregex_iterator();
-						
+
 						for (std::sregex_iterator i = begin; i != end; ++i)
 						{
 							std::smatch m = *i;
-							
+
 							double v = stod(m[3]) + stod(m[4]) / 1000.0;
 
 							if (m[1] == "1")
@@ -228,7 +274,7 @@ P1_Waarden lees_p1(boost::asio::io_context &io_context)
 								else
 									result.levering_laag = v;
 						}
-				
+
 						state = DONE;
 					}
 					break;
@@ -238,3 +284,4 @@ P1_Waarden lees_p1(boost::asio::io_context &io_context)
 
 	return result;
 }
+

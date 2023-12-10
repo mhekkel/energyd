@@ -32,16 +32,18 @@ add_compile_definitions(WEBAPP_USES_RESOURCES)
 mrc_write_header(${PROJECT_SOURCE_DIR}/src/mrsrc.hpp)
 
 # Libraries
+find_package(date REQUIRED)
 find_package(zeep 6 REQUIRED)
 find_package(libmcfp REQUIRED)
 find_package(libpqxx 7.8 REQUIRED)
 
 add_executable(energyd
 	${PROJECT_SOURCE_DIR}/src/energyd.cpp
+	${PROJECT_SOURCE_DIR}/src/data-service.cpp
 	${PROJECT_SOURCE_DIR}/src/p1-reader.cpp)
 
 
-target_link_libraries(energyd libpqxx::pqxx libmcfp::libmcfp zeep::zeep)
+target_link_libraries(energyd date::date libpqxx::pqxx libmcfp::libmcfp zeep::zeep)
 
 # yarn rules for javascripts
 
@@ -49,16 +51,17 @@ find_program(YARN yarn REQUIRED)
 
 set(webpack_input
 	${CMAKE_CURRENT_SOURCE_DIR}/webapp/grafiek.js
+	${CMAKE_CURRENT_SOURCE_DIR}/webapp/index.js
 	${CMAKE_CURRENT_SOURCE_DIR}/webapp/invoer.js
 	${CMAKE_CURRENT_SOURCE_DIR}/webapp/opname.js
+	${CMAKE_CURRENT_SOURCE_DIR}/webapp/style.scss
 	${CMAKE_CURRENT_SOURCE_DIR}/webpack.config.js
 )
 
-set(webpack_output ${CMAKE_CURRENT_SOURCE_DIR}/docroot/scripts/grafiek.js)
+set(webpack_output ${CMAKE_CURRENT_SOURCE_DIR}/docroot/scripts/index.js)
 
 add_custom_command(
-	OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/docroot/scripts/grafiek.js
-	BYPRODUCTS 
+	OUTPUT ${webpack_output}
 	DEPENDS ${webpack_input}
 	COMMAND ${YARN} run $<IF:$<CONFIG:Debug>,build,build-production>
 	WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}

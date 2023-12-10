@@ -8,6 +8,7 @@
 #include "mrsrc.hpp"
 #include "revision.hpp"
 
+#include "data-service.hpp"
 #include "p1-reader.hpp"
 
 #include <utility>
@@ -29,10 +30,6 @@
 #include <tuple>
 
 namespace fs = std::filesystem;
-
-// --------------------------------------------------------------------
-
-fs::path gExePath;
 
 // --------------------------------------------------------------------
 
@@ -549,16 +546,16 @@ float interpoleerVerbruik(const StandMap &data, std::chrono::system_clock::time_
 	switch (aggr)
 	{
 		case aggregatie_type::dag:
-			t2 -= date::days{1};
+			t2 -= date::days{ 1 };
 			break;
 		case aggregatie_type::week:
-			t2 -= date::weeks{1};
+			t2 -= date::weeks{ 1 };
 			break;
 		case aggregatie_type::maand:
-			t2 -= date::months{1};
+			t2 -= date::months{ 1 };
 			break;
 		case aggregatie_type::jaar:
-			t2 -= date::years{1};
+			t2 -= date::years{ 1 };
 			break;
 	}
 
@@ -591,7 +588,7 @@ std::vector<float> waarden_op_deze_dag(StandMap &sm, std::chrono::system_clock::
 	while (t >= smb)
 	{
 		v.push_back(interpoleerVerbruik(sm, t, aggr));
-		t -= years{1};
+		t -= years{ 1 };
 	}
 
 	return v;
@@ -607,10 +604,10 @@ std::vector<DataPunt> e_rest_controller::get_grafiek(grafiek_type type, aggregat
 
 	auto nu = std::chrono::system_clock::now();
 
-	auto jaar = year_month_day{floor<days>(nu)}.year();
+	auto jaar = year_month_day{ floor<days>(nu) }.year();
 
-	auto b = sys_days{year{jaar}/January/1} + 0h;
-	auto e = sys_days{year{jaar}/December/31} + 0h;
+	auto b = sys_days{ year{ jaar } / January / 1 } + 0h;
+	auto e = sys_days{ year{ jaar } / December / 31 } + 0h;
 
 	std::vector<DataPunt> result;
 
@@ -624,10 +621,10 @@ std::vector<DataPunt> e_rest_controller::get_grafiek(grafiek_type type, aggregat
 
 		pt.date = date::format("%F", d);
 
-		if (d > nu + days{1})
+		if (d > nu + days{ 1 })
 		{
 			pt.v = v[1];
-			pt.ma = interpoleerVerbruik(sm, d - years{1}, aggregatie_type::jaar);
+			pt.ma = interpoleerVerbruik(sm, d - years{ 1 }, aggregatie_type::jaar);
 		}
 		else if (d < nu)
 		{
@@ -640,13 +637,13 @@ std::vector<DataPunt> e_rest_controller::get_grafiek(grafiek_type type, aggregat
 			float sum = 0, sum2 = 0;
 			for (size_t i = 1; i < N; ++i)
 				sum += v[i];
-			
+
 			float avg = sum / (N - 1);
 			pt.a = avg;
 
 			for (size_t i = 1; i < N; ++i)
 				sum2 += (v[i] - avg) * (v[i] - avg);
-			
+
 			pt.sd = std::sqrt(sum2) / N;
 		}
 
@@ -692,6 +689,23 @@ zeep::http::reply e_web_controller::opname(const zeep::http::scope &scope)
 	to_element(tellers, u);
 	sub.put("tellers", tellers);
 
+	// huidige stand
+
+	auto huidig = DataService::instance().get_last_opname();
+	huidig.id.clear();
+	huidig.datum = {};
+
+	auto p1_w = P1Lezer::instance().get_current();
+
+	huidig.standen["2"] = p1_w.verbruik_laag;
+	huidig.standen["3"] = p1_w.verbruik_hoog;
+	huidig.standen["4"] = p1_w.levering_laag;
+	huidig.standen["5"] = p1_w.levering_hoog;
+
+	zeep::json::element opname;
+	to_element(opname, huidig);
+	sub.put("huidig", opname);
+
 	return get_template_processor().create_reply_from_template("opnames", sub);
 }
 
@@ -710,14 +724,12 @@ void e_web_controller::invoer(const zeep::http::request &request, const zeep::ht
 		o.id.clear();
 		o.datum = {};
 
-		// auto &p1 = P1_Lezer::instance();
-		// auto p1_w = p1();
-		auto p1_w = lees_p1(get_server()->get_io_context());
+		auto p1_w = P1Lezer::instance().get_current();
 
-		o.standen["Verbruik laag"] = p1_w.verbruik_laag;
-		o.standen["Verbruik hoog"] = p1_w.verbruik_hoog;
-		o.standen["Teruglevering laag"] = p1_w.levering_laag;
-		o.standen["Teruglevering laag"] = p1_w.levering_laag;
+		o.standen["2"] = p1_w.verbruik_laag;
+		o.standen["3"] = p1_w.verbruik_hoog;
+		o.standen["4"] = p1_w.levering_laag;
+		o.standen["5"] = p1_w.levering_hoog;
 	}
 	else
 		o = DataService::instance().get_opname(id);
@@ -795,11 +807,9 @@ int main(int argc, const char *argv[])
 		mcfp::make_option("no-daemon,F", "Do not fork into background"),
 		mcfp::make_option<std::string>("user,u", "www-data", "User to run the daemon"),
 
-		mcfp::make_option<std::string>("db-host", "Database host"),
-		mcfp::make_option<std::string>("db-port", "Database port"),
-		mcfp::make_option<std::string>("db-dbname", "Database name"),
-		mcfp::make_option<std::string>("db-user", "Database user name"),
-		mcfp::make_option<std::string>("db-password", "Database password"));
+		mcfp::make_option<std::string>("databank", "The Postgresql connection string"),
+
+		mcfp::make_option<std::string>("p1-device", "/dev/ttyUSB0", "The name of the device used to communicate with the P1 port"));
 
 	std::error_code ec;
 	config.parse(argc, argv, ec);
@@ -837,33 +847,14 @@ Command should be either:
 		return 1;
 	}
 
-	// --------------------------------------------------------------------
-
-	char exePath[PATH_MAX + 1];
-	int r = readlink("/proc/self/exe", exePath, PATH_MAX);
-	if (r > 0)
-	{
-		exePath[r] = 0;
-		gExePath = fs::weakly_canonical(exePath);
-	}
-
-	if (not fs::exists(gExePath))
-		gExePath = fs::weakly_canonical(argv[0]);
-
-	std::vector<std::string> vConn;
-	for (std::string opt : { "db-host", "db-port", "db-dbname", "db-user", "db-password" })
-	{
-		if (not config.has(opt))
-			continue;
-
-		vConn.push_back(opt.substr(3) + "=" + config.get<std::string>(opt));
-	}
-
-	DataService::init(zeep::join(vConn, " "));
+	DataService::init(config.get("databank"));
+	DataService_v2::instance();
 
 	zeep::http::daemon server([]()
 		{
 			auto s = new zeep::http::server("docroot");
+
+			P1Lezer::init(s->get_io_context());
 
 #ifndef NDEBUG
 			s->set_template_processor(new zeep::http::file_based_html_template_processor("docroot"));
