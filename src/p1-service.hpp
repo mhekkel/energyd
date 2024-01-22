@@ -26,63 +26,37 @@
 
 #pragma once
 
-#include <zeep/nvp.hpp>
+#include "data-service.hpp"
 
-#include <pqxx/pqxx>
+#include <boost/asio.hpp>
 
-#include <chrono>
-#include <memory>
-#include <string>
+#include <thread>
 
-struct P1Opname
-{
-	std::chrono::system_clock::time_point tijd;
-	float verbruik_hoog, verbruik_laag, levering_hoog, levering_laag;
-
-	template <typename Archive>
-	void serialize(Archive &ar, unsigned long version)
-	{
-		ar & zeep::make_nvp("tijd", tijd)
-		   & zeep::make_nvp("verbruik_hoog", verbruik_hoog)
-		   & zeep::make_nvp("verbruik_laag", verbruik_laag)
-		   & zeep::make_nvp("levering_hoog", levering_hoog)
-		   & zeep::make_nvp("levering_laag", levering_laag);
-	}
-};
-
-struct SessySOC
-{
-	int nr = 0;
-	float soc = 0;
-
-	template <typename Archive>
-	void serialize(Archive &ar, unsigned long version)
-	{
-		ar & zeep::make_nvp("nr", nr)
-		   & zeep::make_nvp("soc", soc);
-	}
-};
-
-// --------------------------------------------------------------------
-
-class DataService_v2
+class P1Service
 {
   public:
-	static DataService_v2 &instance();
 
-	void store(const P1Opname &opname);
-	void store(const SessySOC &soc);
+	static P1Service &init(boost::asio::io_context &io_context);
+	static P1Service &instance();
 
-	void reset_connection();
+	P1Opname get_current() const
+	{
+		return m_current;
+	}
 
   private:
+	P1Service(boost::asio::io_context &io_context);
 
-	DataService_v2();
+	void run();
 
-	pqxx::connection &get_connection();
+	P1Opname read();
 
-	std::string m_connection_string;
+	std::string m_device_string;
+	std::thread m_thread;
+	P1Opname m_current;
 
-	static std::unique_ptr<DataService_v2> s_instance;
-	static thread_local std::unique_ptr<pqxx::connection> s_connection;
+	boost::asio::io_context &m_io_context;
+
+	static std::unique_ptr<P1Service> s_instance;
 };
+

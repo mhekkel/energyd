@@ -3,12 +3,12 @@ cmake_minimum_required(VERSION 3.16)
 # set the project name
 project(energyd VERSION 2.0.1 LANGUAGES CXX)
 
-include(FindPkgConfig)
+include(GNUInstallDirs)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 set(CXX_EXTENSIONS OFF)
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
@@ -36,14 +36,17 @@ find_package(date REQUIRED)
 find_package(zeep 6 REQUIRED)
 find_package(libmcfp REQUIRED)
 find_package(libpqxx 7.8 REQUIRED)
+find_package(OpenSSL REQUIRED)
 
 add_executable(energyd
 	${PROJECT_SOURCE_DIR}/src/energyd.cpp
 	${PROJECT_SOURCE_DIR}/src/data-service.cpp
-	${PROJECT_SOURCE_DIR}/src/p1-reader.cpp)
+	${PROJECT_SOURCE_DIR}/src/https-client.cpp
+	${PROJECT_SOURCE_DIR}/src/sessy-service.cpp
+	${PROJECT_SOURCE_DIR}/src/p1-service.cpp)
 
-
-target_link_libraries(energyd date::date libpqxx::pqxx libmcfp::libmcfp zeep::zeep)
+target_link_libraries(energyd date::date libpqxx::pqxx libmcfp::libmcfp zeep::zeep
+	OpenSSL::SSL OpenSSL::Crypto)
 
 # yarn rules for javascripts
 
@@ -72,6 +75,8 @@ add_custom_target(webpack DEPENDS ${webpack_output})
 add_dependencies(energyd webpack)
 
 mrc_target_resources(energyd ${PROJECT_SOURCE_DIR}/docroot/)
+
+install(TARGETS energyd DESTINATION ${CMAKE_INSTALL_SBINDIR})
 
 # enable_testing()
 

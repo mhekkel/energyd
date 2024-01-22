@@ -1,6 +1,8 @@
 import * as d3 from 'd3';
 
-class grafiek {
+let grafiek;
+
+class Grafiek {
 	constructor() {
 
 		this.selector = document.getElementById('grafiek-id');
@@ -20,6 +22,10 @@ class grafiek {
 
 		this.svg.on("touchstart", event => event.preventDefault());
 
+		this.maakGrafiek();
+	}
+
+	maakGrafiek() {
 		const plotContainer = this.svg.node();
 		let bBoxWidth = plotContainer.clientWidth;
 		let bBoxHeight = plotContainer.clientHeight;
@@ -86,13 +92,22 @@ class grafiek {
 		// 	.translateExtent([[0, 0], [this.width + 90, this.height + 90]])
 		// 	.on("zoom", () => this.zoomed());
 
-		const zoom = d3.zoom()
-			.scaleExtent([1, 1]);
+		// const zoom = d3.zoom()
+		// 	.scaleExtent([1, 1]);
 
-		this.svg.call(zoom)
-			.on("wheel.zoom", null)
-			.on("touchstart", null)
-			.on("touchmove", null);
+		// this.svg.call(zoom)
+		// 	.on("wheel.zoom", null)
+		// 	.on("touchstart", null)
+		// 	.on("touchmove", null);
+	}
+
+	herstelGrafiek() {
+		this.svg.selectAll("#clip").remove();
+		this.svg.selectAll("text").remove();
+		this.svg.selectAll("g").remove();
+
+		this.maakGrafiek();
+		this.laadGrafiek();
 	}
 
 	laadGrafiek() {
@@ -282,6 +297,12 @@ class grafiek {
 
 
 window.addEventListener("load", () => {
-	const g = new grafiek();
-	g.laadGrafiek();
+	grafiek = new Grafiek();
+	grafiek.laadGrafiek();
 });
+
+window.addEventListener("resize", () => {
+	if (grafiek) {
+		grafiek.herstelGrafiek();
+	}
+})

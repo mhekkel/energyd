@@ -30,34 +30,28 @@
 
 #include <boost/asio.hpp>
 
+#include <array>
+#include <memory>
 #include <thread>
 
-class P1Lezer
+class SessyService
 {
   public:
+	static SessyService &init(boost::asio::io_context &io_context);
+	static SessyService &instance();
 
-	static P1Lezer &init(boost::asio::io_context &io_context);
-	static P1Lezer &instance();
-
-	P1Opname get_current() const
-	{
-		return m_current;
-	}
+	float get_soc(int nr) const;
 
   private:
-	P1Lezer(boost::asio::io_context &io_context);
+	SessyService(boost::asio::io_context &io_context);
 
 	void run();
 
-	P1Opname read();
-
-	std::string m_connection_string;
-	std::string m_device_string;
-	std::thread m_thread;
-	P1Opname m_current;
+	std::array<SessySOC,6> read();
 
 	boost::asio::io_context &m_io_context;
+	std::thread m_thread;
+	std::array<SessySOC,6> m_current;
 
-	static std::unique_ptr<P1Lezer> s_instance;
+	static std::unique_ptr<SessyService> s_instance;
 };
-

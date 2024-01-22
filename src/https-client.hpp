@@ -1,7 +1,7 @@
 /*-
  * SPDX-License-Identifier: BSD-2-Clause
  * 
- * Copyright (c) 2023 Maarten L. Hekkelman
+ * Copyright (c) 2021 Maarten L. Hekkelman
  * 
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -24,65 +24,14 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+// This code is originally written for mini-ibs, a content management system
+
 #pragma once
 
-#include <zeep/nvp.hpp>
+#include <zeep/http/reply.hpp>
+#include <zeep/json/element.hpp>
 
-#include <pqxx/pqxx>
+zeep::http::reply simple_request(std::string url, std::vector<zeep::http::header> headers = {});
+zeep::http::reply head_request(std::string url, std::vector<zeep::http::header> headers = {});
 
-#include <chrono>
-#include <memory>
-#include <string>
-
-struct P1Opname
-{
-	std::chrono::system_clock::time_point tijd;
-	float verbruik_hoog, verbruik_laag, levering_hoog, levering_laag;
-
-	template <typename Archive>
-	void serialize(Archive &ar, unsigned long version)
-	{
-		ar & zeep::make_nvp("tijd", tijd)
-		   & zeep::make_nvp("verbruik_hoog", verbruik_hoog)
-		   & zeep::make_nvp("verbruik_laag", verbruik_laag)
-		   & zeep::make_nvp("levering_hoog", levering_hoog)
-		   & zeep::make_nvp("levering_laag", levering_laag);
-	}
-};
-
-struct SessySOC
-{
-	int nr = 0;
-	float soc = 0;
-
-	template <typename Archive>
-	void serialize(Archive &ar, unsigned long version)
-	{
-		ar & zeep::make_nvp("nr", nr)
-		   & zeep::make_nvp("soc", soc);
-	}
-};
-
-// --------------------------------------------------------------------
-
-class DataService_v2
-{
-  public:
-	static DataService_v2 &instance();
-
-	void store(const P1Opname &opname);
-	void store(const SessySOC &soc);
-
-	void reset_connection();
-
-  private:
-
-	DataService_v2();
-
-	pqxx::connection &get_connection();
-
-	std::string m_connection_string;
-
-	static std::unique_ptr<DataService_v2> s_instance;
-	static thread_local std::unique_ptr<pqxx::connection> s_connection;
-};
+zeep::http::reply post_request(std::string url, std::vector<zeep::http::header> headers, zeep::json::element&& payload);

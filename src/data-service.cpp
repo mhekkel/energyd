@@ -96,3 +96,30 @@ void DataService_v2::store(const P1Opname &opname)
 		}
 	} while (false);
 }
+
+void DataService_v2::store(const SessySOC &soc)
+{
+	bool first_reset = true;
+	do
+	{
+		try
+		{
+			pqxx::transaction tx(get_connection());
+
+			tx.exec("INSERT INTO sessy_soc (nr, soc) VALUES (" +
+					tx.quote(soc.nr) + ", " +
+					tx.quote(soc.soc) + ")");
+			tx.commit();
+		}
+		catch (const pqxx::broken_connection &e)
+		{
+			if (first_reset)
+			{
+				first_reset = false;
+				reset_connection();
+				continue;
+			}
+			std::cerr << "Failed to write opname: " << e.what() << '\n';
+		}
+	} while (false);
+}

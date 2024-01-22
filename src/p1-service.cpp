@@ -24,7 +24,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "p1-reader.hpp"
+#include "p1-service.hpp"
 
 #include <mcfp/mcfp.hpp>
 
@@ -35,15 +35,15 @@
 #include <iostream>
 #include <regex>
 
-std::unique_ptr<P1Lezer> P1Lezer::s_instance;
+std::unique_ptr<P1Service> P1Service::s_instance;
 
-P1Lezer &P1Lezer::init(boost::asio::io_context &io_context)
+P1Service &P1Service::init(boost::asio::io_context &io_context)
 {
-	s_instance.reset(new P1Lezer(io_context));
+	s_instance.reset(new P1Service(io_context));
 	return *s_instance;
 }
 
-P1Lezer &P1Lezer::instance()
+P1Service &P1Service::instance()
 {
 	if (not s_instance)
 		throw std::logic_error("No instance yet!");
@@ -51,20 +51,19 @@ P1Lezer &P1Lezer::instance()
 	return *s_instance;
 }
 
-P1Lezer::P1Lezer(boost::asio::io_context &io_context)
+P1Service::P1Service(boost::asio::io_context &io_context)
 	: m_io_context(io_context)
 {
 	auto &config = mcfp::config::instance();
 
-	m_connection_string = config.get("databank");
 	m_device_string = config.get("p1-device");
 
 	m_current = read();
 
-	m_thread = std::thread(std::bind(&P1Lezer::run, this));
+	m_thread = std::thread(std::bind(&P1Service::run, this));
 }
 
-void P1Lezer::run()
+void P1Service::run()
 {
 	using namespace std::literals;
 
@@ -111,7 +110,7 @@ inline uint16_t update_crc(uint16_t crc, char ch)
 	return result;
 }
 
-P1Opname P1Lezer::read()
+P1Opname P1Service::read()
 {
 	P1Opname result{};
 
@@ -264,15 +263,19 @@ P1Opname P1Lezer::read()
 							double v = stod(m[3]) + stod(m[4]) / 1000.0;
 
 							if (m[1] == "1")
+							{
 								if (m[2] == "2")
 									result.verbruik_hoog = v;
 								else
 									result.verbruik_laag = v;
+							}
 							else if (m[1] == "2")
+							{
 								if (m[2] == "2")
 									result.levering_hoog = v;
 								else
 									result.levering_laag = v;
+							}
 						}
 
 						state = DONE;
@@ -284,4 +287,3 @@ P1Opname P1Lezer::read()
 
 	return result;
 }
-

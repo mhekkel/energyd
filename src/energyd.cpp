@@ -9,7 +9,8 @@
 #include "revision.hpp"
 
 #include "data-service.hpp"
-#include "p1-reader.hpp"
+#include "p1-service.hpp"
+#include "sessy-service.hpp"
 
 #include <utility>
 
@@ -626,7 +627,7 @@ std::vector<DataPunt> e_rest_controller::get_grafiek(grafiek_type type, aggregat
 			pt.v = v[1];
 			pt.ma = interpoleerVerbruik(sm, d - years{ 1 }, aggregatie_type::jaar);
 		}
-		else if (d < nu)
+		else// if (d <= nu + days{ 1 })
 		{
 			pt.v = v.front();
 			pt.ma = interpoleerVerbruik(sm, d, aggregatie_type::jaar);
@@ -695,7 +696,7 @@ zeep::http::reply e_web_controller::opname(const zeep::http::scope &scope)
 	huidig.id.clear();
 	huidig.datum = {};
 
-	auto p1_w = P1Lezer::instance().get_current();
+	auto p1_w = P1Service::instance().get_current();
 
 	huidig.standen["2"] = p1_w.verbruik_laag;
 	huidig.standen["3"] = p1_w.verbruik_hoog;
@@ -724,7 +725,7 @@ void e_web_controller::invoer(const zeep::http::request &request, const zeep::ht
 		o.id.clear();
 		o.datum = {};
 
-		auto p1_w = P1Lezer::instance().get_current();
+		auto p1_w = P1Service::instance().get_current();
 
 		o.standen["2"] = p1_w.verbruik_laag;
 		o.standen["3"] = p1_w.verbruik_hoog;
@@ -809,7 +810,15 @@ int main(int argc, const char *argv[])
 
 		mcfp::make_option<std::string>("databank", "The Postgresql connection string"),
 
-		mcfp::make_option<std::string>("p1-device", "/dev/ttyUSB0", "The name of the device used to communicate with the P1 port"));
+		mcfp::make_option<std::string>("p1-device", "/dev/ttyUSB0", "The name of the device used to communicate with the P1 port"),
+		
+		mcfp::make_option<std::string>("sessy-1", "URL to fetch the status of sessy number 1"),
+		mcfp::make_option<std::string>("sessy-2", "URL to fetch the status of sessy number 2"),
+		mcfp::make_option<std::string>("sessy-3", "URL to fetch the status of sessy number 3"),
+		mcfp::make_option<std::string>("sessy-4", "URL to fetch the status of sessy number 4"),
+		mcfp::make_option<std::string>("sessy-5", "URL to fetch the status of sessy number 5"),
+		mcfp::make_option<std::string>("sessy-6", "URL to fetch the status of sessy number 6")
+		);
 
 	std::error_code ec;
 	config.parse(argc, argv, ec);
@@ -854,7 +863,8 @@ Command should be either:
 		{
 			auto s = new zeep::http::server("docroot");
 
-			P1Lezer::init(s->get_io_context());
+			P1Service::init(s->get_io_context());
+			SessyService::init(s->get_io_context());
 
 #ifndef NDEBUG
 			s->set_template_processor(new zeep::http::file_based_html_template_processor("docroot"));
