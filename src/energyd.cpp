@@ -564,7 +564,6 @@ float interpoleerVerbruik(const StandMap &data, std::chrono::system_clock::time_
 		t2 = t1;
 
 	float result = 0;
-	// auto dagen = floor<days>(t1 - t2).count();
 
 	if (t1 > t2)
 	{
@@ -614,7 +613,7 @@ std::vector<DataPunt> e_rest_controller::get_grafiek(grafiek_type type, aggregat
 
 	for (auto d = b; d <= e; d += 24h)
 	{
-		auto v = waarden_op_deze_dag(sm, d, aggr);
+		auto v = waarden_op_deze_dag(sm, d + days{1}, aggr);
 
 		auto N = v.size();
 

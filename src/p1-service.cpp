@@ -58,9 +58,11 @@ P1Service::P1Service(boost::asio::io_context &io_context)
 
 	m_device_string = config.get("p1-device");
 
-	m_current = read();
-
-	m_thread = std::thread(std::bind(&P1Service::run, this));
+	if (std::filesystem::exists(m_device_string))
+	{
+		m_current = read();
+		m_thread = std::thread(std::bind(&P1Service::run, this));
+	}
 }
 
 void P1Service::run()
