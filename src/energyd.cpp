@@ -621,12 +621,12 @@ std::vector<DataPunt> e_rest_controller::get_grafiek(grafiek_type type, aggregat
 
 		pt.date = date::format("%F", d);
 
-		if (d > nu + days{ 1 })
+		if (d > nu + days{ 2 })
 		{
 			pt.v = v[1];
 			pt.ma = interpoleerVerbruik(sm, d - years{ 1 }, aggregatie_type::jaar);
 		}
-		else// if (d <= nu + days{ 1 })
+		else if (d <= nu + days{ 1 })
 		{
 			pt.v = v.front();
 			pt.ma = interpoleerVerbruik(sm, d, aggregatie_type::jaar);
