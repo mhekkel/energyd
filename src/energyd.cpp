@@ -16,7 +16,9 @@
 
 #include <zeep/http/error-handler.hpp>
 #include <zeep/http/rest-controller.hpp>
+#include <zeep/http/security.hpp>
 #include <zeep/json/parser.hpp>
+#include <zeep/http/login-controller.hpp>
 
 #include <mcfp.hpp>
 
@@ -30,7 +32,38 @@ namespace fs = std::filesystem;
 
 // --------------------------------------------------------------------
 
-fs::path gExePath;
+#ifdef WIN32
+#include <windows.h>
+#else
+#include <termios.h>
+#include <unistd.h>
+#endif
+
+void SetStdinEcho(bool enable = true)
+{
+#ifdef WIN32
+	HANDLE hStdin = GetStdHandle(STD_INPUT_HANDLE);
+	DWORD mode;
+	GetConsoleMode(hStdin, &mode);
+
+	if (not enable)
+		mode &= ~ENABLE_ECHO_INPUT;
+	else
+		mode |= ENABLE_ECHO_INPUT;
+
+	SetConsoleMode(hStdin, mode);
+
+#else
+	struct termios tty;
+	tcgetattr(STDIN_FILENO, &tty);
+	if (not enable)
+		tty.c_lflag &= ~ECHO;
+	else
+		tty.c_lflag |= ECHO;
+
+	(void)tcsetattr(STDIN_FILENO, TCSANOW, &tty);
+#endif
+}
 
 // --------------------------------------------------------------------
 
@@ -60,9 +93,7 @@ struct Opname
 	template <typename Archive>
 	void serialize(Archive &ar, unsigned long version)
 	{
-		ar & zeep::make_nvp("id", id)
-		   & zeep::make_nvp("datum", datum)
-		   & zeep::make_nvp("standen", standen);
+		ar &zeep::make_nvp("id", id) & zeep::make_nvp("datum", datum) & zeep::make_nvp("standen", standen);
 	}
 };
 
@@ -76,10 +107,7 @@ struct Teller
 	template <typename Archive>
 	void serialize(Archive &ar, unsigned long)
 	{
-		ar & zeep::make_nvp("id", id)
-		   & zeep::make_nvp("naam", naam)
-		   & zeep::make_nvp("korteNaam", naam_kort)
-		   & zeep::make_nvp("schaal", schaal);
+		ar &zeep::make_nvp("id", id) & zeep::make_nvp("naam", naam) & zeep::make_nvp("korteNaam", naam_kort) & zeep::make_nvp("schaal", schaal);
 	}
 };
 
@@ -233,11 +261,7 @@ struct DataPunt
 	template <typename Archive>
 	void serialize(Archive &ar, unsigned long)
 	{
-		ar & zeep::make_nvp("d", date)
-		   & zeep::make_nvp("v", v)
-		   & zeep::make_nvp("a", a)
-		   & zeep::make_nvp("sd", sd)
-		   & zeep::make_nvp("ma", ma);
+		ar &zeep::make_nvp("d", date) & zeep::make_nvp("v", v) & zeep::make_nvp("a", a) & zeep::make_nvp("sd", sd) & zeep::make_nvp("ma", ma);
 	}
 };
 
@@ -547,16 +571,16 @@ float interpoleerVerbruik(const StandMap &data, std::chrono::system_clock::time_
 	switch (aggr)
 	{
 		case aggregatie_type::dag:
-			t2 -= date::days{1};
+			t2 -= date::days{ 1 };
 			break;
 		case aggregatie_type::week:
-			t2 -= date::weeks{1};
+			t2 -= date::weeks{ 1 };
 			break;
 		case aggregatie_type::maand:
-			t2 -= date::months{1};
+			t2 -= date::months{ 1 };
 			break;
 		case aggregatie_type::jaar:
-			t2 -= date::years{1};
+			t2 -= date::years{ 1 };
 			break;
 	}
 
@@ -589,7 +613,7 @@ std::vector<float> waarden_op_deze_dag(StandMap &sm, std::chrono::system_clock::
 	while (t >= smb)
 	{
 		v.push_back(interpoleerVerbruik(sm, t, aggr));
-		t -= years{1};
+		t -= years{ 1 };
 	}
 
 	return v;
@@ -605,10 +629,10 @@ std::vector<DataPunt> e_rest_controller::get_grafiek(grafiek_type type, aggregat
 
 	auto nu = std::chrono::system_clock::now();
 
-	auto jaar = year_month_day{floor<days>(nu)}.year();
+	auto jaar = year_month_day{ floor<days>(nu) }.year();
 
-	auto b = sys_days{year{jaar}/January/1} + 0h;
-	auto e = sys_days{year{jaar}/December/31} + 0h;
+	auto b = sys_days{ year{ jaar } / January / 1 } + 0h;
+	auto e = sys_days{ year{ jaar } / December / 31 } + 0h;
 
 	std::vector<DataPunt> result;
 
@@ -622,10 +646,10 @@ std::vector<DataPunt> e_rest_controller::get_grafiek(grafiek_type type, aggregat
 
 		pt.date = date::format("%F", d);
 
-		if (d > nu + days{1})
+		if (d > nu + days{ 1 })
 		{
 			pt.v = v[1];
-			pt.ma = interpoleerVerbruik(sm, d - years{1}, aggregatie_type::jaar);
+			pt.ma = interpoleerVerbruik(sm, d - years{ 1 }, aggregatie_type::jaar);
 		}
 		else if (d < nu)
 		{
@@ -638,13 +662,13 @@ std::vector<DataPunt> e_rest_controller::get_grafiek(grafiek_type type, aggregat
 			float sum = 0, sum2 = 0;
 			for (size_t i = 1; i < N; ++i)
 				sum += v[i];
-			
+
 			float avg = sum / (N - 1);
 			pt.a = avg;
 
 			for (size_t i = 1; i < N; ++i)
 				sum2 += (v[i] - avg) * (v[i] - avg);
-			
+
 			pt.sd = std::sqrt(sum2) / N;
 		}
 
@@ -788,7 +812,11 @@ int main(int argc, const char *argv[])
 		mcfp::make_option<std::string>("db-port", "Database port"),
 		mcfp::make_option<std::string>("db-dbname", "Database name"),
 		mcfp::make_option<std::string>("db-user", "Database user name"),
-		mcfp::make_option<std::string>("db-password", "Database password"));
+		mcfp::make_option<std::string>("db-password", "Database password"),
+
+		mcfp::make_option<std::string>("web-user-name", "User account"),
+		mcfp::make_option<std::string>("web-user-password", "User password"),
+		mcfp::make_option<std::string>("web-secret", "Secret hash for web tokens"));
 
 	std::error_code ec;
 	config.parse(argc, argv, ec);
@@ -828,16 +856,34 @@ Command should be either:
 
 	// --------------------------------------------------------------------
 
-	char exePath[PATH_MAX + 1];
-	int r = readlink("/proc/self/exe", exePath, PATH_MAX);
-	if (r > 0)
+	if (config.operands().front() == "passwd")
 	{
-		exePath[r] = 0;
-		gExePath = fs::weakly_canonical(exePath);
+		std::string pass;
+		std::cout << "Enter password: ";
+		std::cout.flush();
+		SetStdinEcho(false);
+		std::cin >> pass;
+		SetStdinEcho(true);
+		std::cout << std::endl
+				  << zeep::http::pbkdf2_sha256_password_encoder().encode(pass) << std::endl;
+		exit(0);
 	}
 
-	if (not fs::exists(gExePath))
-		gExePath = fs::weakly_canonical(argv[0]);
+	// --------------------------------------------------------------------
+
+	zeep::http::simple_user_service users({ { config.get("web-user-name"), config.get("web-user-password"),
+		{ "USER" } } });
+
+	std::string secret;
+	if (config.has("web-secret"))
+		secret = config.get("web-secret");
+	else
+	{
+		secret = zeep::encode_base64(zeep::random_hash());
+		std::cerr << "starting with created secret " << secret << std::endl;
+	}
+
+	// --------------------------------------------------------------------
 
 	std::vector<std::string> vConn;
 	for (std::string opt : { "db-host", "db-port", "db-dbname", "db-user", "db-password" })
@@ -850,22 +896,29 @@ Command should be either:
 
 	DataService::init(zeep::join(vConn, " "));
 
-	zeep::http::daemon server([]()
-		{
-			auto s = new zeep::http::server("docroot");
+	zeep::http::daemon server([&]()
+	{
+		auto sc = new zeep::http::security_context(secret, users, false);
+
+		sc->add_rule("/login", {});
+		sc->add_rule("/**", { "USER" });
+
+		auto s = new zeep::http::server(sc, "docroot");
 
 #ifndef NDEBUG
-			s->set_template_processor(new zeep::http::file_based_html_template_processor("docroot"));
+		s->set_template_processor(new zeep::http::file_based_html_template_processor("docroot"));
 #else
-			s->set_template_processor(new zeep::http::rsrc_based_html_template_processor());
+		s->set_template_processor(new zeep::http::rsrc_based_html_template_processor());
 #endif
 
-			s->add_controller(new e_rest_controller());
-			s->add_controller(new e_web_controller());
-			s->add_error_handler(new e_error_handler());
 
-			return s; },
-		"energyd");
+		s->add_controller(new e_rest_controller());
+		s->add_controller(new e_web_controller());
+		s->add_controller(new zeep::http::login_controller());
+		s->add_error_handler(new e_error_handler());
+
+		return s; },
+	"energyd");
 
 	std::string command = config.operands().front();
 

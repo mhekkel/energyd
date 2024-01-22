@@ -1,9 +1,11 @@
+energyd.conf
 node_modules
+.vscode
+build
+docroot/css
 docroot/scripts
 docroot/fonts
-docroot/css
-build/
-src/revision.hpp
 src/mrsrc.hpp
 .vscode/
 energyd.conf
+src/revision.hpp
