@@ -59,12 +59,9 @@ SessyService::SessyService(boost::asio::io_context &io_context)
 	m_thread = std::thread(std::bind(&SessyService::run, this));
 }
 
-float SessyService::get_soc(int sessy_nr) const
+std::vector<SessySOC> SessyService::get_soc() const
 {
-	if (sessy_nr < 1 or sessy_nr > static_cast<int>(m_current.size()) or m_current[sessy_nr - 1].nr != sessy_nr)
-		throw std::runtime_error("No such sessy SOC value available");
-	
-	return m_current[sessy_nr - 1].soc;
+	return read();
 }
 
 void SessyService::run()
@@ -86,10 +83,7 @@ void SessyService::run()
 			m_current = read();
 
 			for (auto &soc : m_current)
-			{
-				if (soc.nr != 0)
-					DataService_v2::instance().store(soc);
-			}
+				DataService_v2::instance().store(soc);
 		}
 		catch (const std::exception &e)
 		{
@@ -98,11 +92,11 @@ void SessyService::run()
 	}
 }
 
-std::array<SessySOC,6> SessyService::read()
+std::vector<SessySOC> SessyService::read() const
 {
 	auto &config = mcfp::config::instance();
 
-	std::array<SessySOC,6> result;
+	std::vector<SessySOC> result;
 
 	for (int sessy_nr = 1; sessy_nr <= 6; ++sessy_nr)
 	{
@@ -123,9 +117,11 @@ std::array<SessySOC,6> SessyService::read()
 
 		zeep::json::element rep_j;
 		zeep::json::parse_json(rep.get_content(), rep_j);
-		
-		result[sessy_nr - 1].nr = sessy_nr;
-		result[sessy_nr - 1].soc = rep_j["sessy"]["state_of_charge"].as<float>();
+
+		SessySOC soc;
+		from_element(rep_j, soc);
+		soc.nr = sessy_nr;
+		result.emplace_back(std::move(soc));
 	}
 
 	return result;

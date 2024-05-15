@@ -50,16 +50,77 @@ struct P1Opname
 	}
 };
 
+struct P1Status
+{
+	std::string status;
+	std::string state;
+	float total_power;
+	float power_consumed;
+	float power_produced;
+
+	template <typename Archive>
+	void serialize(Archive &ar, unsigned long version)
+	{
+		ar & zeep::make_nvp("status", status)
+		   & zeep::make_nvp("state", state)
+		   & zeep::make_nvp("total_power", total_power)
+		   & zeep::make_nvp("power_consumed", power_consumed)
+		   & zeep::make_nvp("power_produced", power_produced);
+	}
+};
+
+struct Sessy
+{
+	float state_of_charge;
+	float power;
+	float power_setpoint;
+	std::string system_state;
+	std::string system_state_details;
+	float frequency;
+
+	template <typename Archive>
+	void serialize(Archive &ar, unsigned long version)
+	{
+		ar & zeep::make_nvp("state_of_charge", state_of_charge)
+			 & zeep::make_nvp("power", power)
+			 & zeep::make_nvp("power_setpoint", power_setpoint)
+			 & zeep::make_nvp("system_state", system_state)
+			 & zeep::make_nvp("system_state_details", system_state_details)
+			 & zeep::make_nvp("frequency", frequency);
+	}
+};
+
+struct RenewableEnergy
+{
+	float voltage_rms;
+	float current_rms;
+	float power;
+
+	template <typename Archive>
+	void serialize(Archive &ar, unsigned long version)
+	{
+		ar & zeep::make_nvp("voltage_rms", voltage_rms)
+		   & zeep::make_nvp("current_rms", current_rms)
+		   & zeep::make_nvp("power", power);
+	}
+};
+
 struct SessySOC
 {
-	int nr = 0;
-	float soc = 0;
+	int nr;
+	std::string status;
+	Sessy sessy;
+	RenewableEnergy phase[3];
 
 	template <typename Archive>
 	void serialize(Archive &ar, unsigned long version)
 	{
 		ar & zeep::make_nvp("nr", nr)
-		   & zeep::make_nvp("soc", soc);
+		   & zeep::make_nvp("status", status)
+		   & zeep::make_nvp("sessy", sessy)
+		   & zeep::make_nvp("renewable_energy_phase1", phase[0])
+		   & zeep::make_nvp("renewable_energy_phase2", phase[1])
+		   & zeep::make_nvp("renewable_energy_phase3", phase[2]);
 	}
 };
 

@@ -661,6 +661,7 @@ class e_web_controller : public zeep::http::html_controller
 	e_web_controller()
 	{
 		map_get("", &e_web_controller::opname);
+		map_get("status", &e_web_controller::status);
 		map_get("opnames", &e_web_controller::opname);
 		mount("invoer", &e_web_controller::invoer);
 		mount("grafiek", &e_web_controller::grafiek);
@@ -668,10 +669,30 @@ class e_web_controller : public zeep::http::html_controller
 		mount("{css,scripts,fonts}/", &e_web_controller::handle_file);
 	}
 
+	zeep::http::reply status(const zeep::http::scope &scope);
 	zeep::http::reply opname(const zeep::http::scope &scope);
 	void invoer(const zeep::http::request &request, const zeep::http::scope &scope, zeep::http::reply &reply);
 	void grafiek(const zeep::http::request &request, const zeep::http::scope &scope, zeep::http::reply &reply);
 };
+
+zeep::http::reply e_web_controller::status(const zeep::http::scope &scope)
+{
+	zeep::http::scope sub(scope);
+
+	sub.put("page", "status");
+
+	zeep::json::element soc;
+	auto socv = SessyService::instance().get_soc();
+	to_element(soc, socv);
+	sub.put("soc", soc);
+
+	zeep::json::element p1;
+	auto p1s = P1Service::instance().get_status();
+	to_element(p1, p1s);
+	sub.put("p1", p1);
+
+	return get_template_processor().create_reply_from_template("status", sub);
+}
 
 zeep::http::reply e_web_controller::opname(const zeep::http::scope &scope)
 {

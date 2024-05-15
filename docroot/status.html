@@ -1,0 +1,90 @@
+<!DOCTYPE html SYSTEM "about:legacy-compat">
+
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:z2="http://www.hekkelman.com/libzeep/m2" lang="nl">
+
+<head z2:replace="~{head::head(~{::title},~{::head/script})}">
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+
+	<title>Energieverbruik - Opnames</title>
+
+	<script z2:src="@{/scripts/index.js}"></script>
+</head>
+
+<body>
+
+	<nav z2:replace="menu :: navbar"></nav>
+
+	<div class="container">
+		
+		<h1>Sessy batterijen</h1>
+
+		<div class="table-responsive">
+
+			<table id="sessy-soc-tabel" class="table">
+				<thead>
+					<tr>
+						<th>Sessy</th>
+						<th>Power (Set Point)</th>
+						<th>State Of Charge</th>
+						<th>System State</th>
+						<th>Renewable Energy</th>
+						<th>Frequency</th>
+					</tr>
+				</thead>
+				<tbody>
+					<tr z2:each="s: ${soc}">
+						<td>
+							<span z2:text="${s.nr}"></span>
+						</td>
+						<td>
+							<span z2:text="|${#numbers.formatDecimal(s.sessy.power, 1, 0)} (${#numbers.formatDecimal(s.sessy.power_setpoint, 1, 0)})|"></span>
+						</td>
+						<td>
+							<span z2:text="${#numbers.formatDecimal(s.sessy.state_of_charge * 100, 1, 0)}"></span>
+						</td>
+						<td>
+							<span z2:text="${s.sessy.system_state}"></span>
+						</td>
+						<td>
+							<span z2:text="|${#numbers.formatDecimal((s.renewable_energy_phase1.power + s.renewable_energy_phase2.power + s.renewable_energy_phase3.power) / 1000, 1, 3)} kW|"></span>
+						</td>
+						<td>
+							<span z2:text="${#numbers.formatDecimal(s.sessy.frequency / 1000, 1, 3)}"></span>
+						</td>
+					</tr>
+				</tbody>
+			</table>
+		</div>
+
+		<h1>P1 meter</h1>
+
+		<div class="table-responsive">
+
+			<table id="P1-tabel" class="table">
+				<thead>
+					<tr>
+						<th>Type</th>
+						<th>Power</th>
+					</tr>
+				</thead>
+				<tbody>
+					<tr>
+						<td>Verbruik</td>
+						<td>
+							<span z2:text="|${#numbers.formatDecimal(p1.power_consumed, 1, 3)} kW|"></span>
+						</td>
+					</tr>
+					<tr>
+						<td>Levering</td>
+						<td>
+							<span z2:text="|${#numbers.formatDecimal(p1.power_produced, 1, 3)} kW|"></span>
+						</td>
+					</tr>
+				</tbody>
+			</table>
+		</div>
+
+	</div>
+</body>
+</html>

@@ -44,16 +44,19 @@ class P1Service
 		return m_current;
 	}
 
+	P1Status get_status() const;
+
   private:
 	P1Service(boost::asio::io_context &io_context);
 
 	void run();
 
-	P1Opname read();
+	std::tuple<P1Opname,P1Status> read() const;
 
 	std::string m_device_string;
 	std::thread m_thread;
 	P1Opname m_current;
+	P1Status m_status;
 
 	boost::asio::io_context &m_io_context;
 

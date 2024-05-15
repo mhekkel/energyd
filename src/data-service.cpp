@@ -108,7 +108,7 @@ void DataService_v2::store(const SessySOC &soc)
 
 			tx.exec("INSERT INTO sessy_soc (nr, soc) VALUES (" +
 					tx.quote(soc.nr) + ", " +
-					tx.quote(soc.soc) + ")");
+					tx.quote(soc.sessy.state_of_charge) + ")");
 			tx.commit();
 		}
 		catch (const pqxx::broken_connection &e)

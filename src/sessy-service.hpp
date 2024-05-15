@@ -30,9 +30,9 @@
 
 #include <boost/asio.hpp>
 
-#include <array>
 #include <memory>
 #include <thread>
+#include <vector>
 
 class SessyService
 {
@@ -40,18 +40,18 @@ class SessyService
 	static SessyService &init(boost::asio::io_context &io_context);
 	static SessyService &instance();
 
-	float get_soc(int nr) const;
+	std::vector<SessySOC> get_soc() const;
 
   private:
 	SessyService(boost::asio::io_context &io_context);
 
 	void run();
 
-	std::array<SessySOC,6> read();
+	std::vector<SessySOC> read() const;
 
 	boost::asio::io_context &m_io_context;
 	std::thread m_thread;
-	std::array<SessySOC,6> m_current;
+	std::vector<SessySOC> m_current;
 
 	static std::unique_ptr<SessyService> s_instance;
 };

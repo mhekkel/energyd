@@ -60,7 +60,7 @@ P1Service::P1Service(boost::asio::io_context &io_context)
 
 	if (std::filesystem::exists(m_device_string))
 	{
-		m_current = read();
+		std::tie(m_current, std::ignore) = read();
 		m_thread = std::thread(std::bind(&P1Service::run, this));
 	}
 }
@@ -81,7 +81,7 @@ void P1Service::run()
 			auto now = std::chrono::system_clock::now();
 			std::this_thread::sleep_until(ceil<quarters>(now));
 
-			m_current = read();
+			std::tie(m_current, std::ignore) = read();
 
 			DataService_v2::instance().store(m_current);
 		}
@@ -92,7 +92,26 @@ void P1Service::run()
 	}
 }
 
-const std::regex kReadRX(R"(^1-0:([12])\.8\.([12])\((\d{6})\.(\d{3})\*kWh\))", std::regex::multiline);
+const std::regex
+	kReadRX(R"(^1-0:(1|2)\.(7|8)\.(0|1|2)\((\d{2,6})\.(\d{3})\*kWh?\))", std::regex::multiline);
+
+
+// totals:
+// 1-0:1.8.1(009936.986*kWh)
+// 1-0:1.8.2(008101.080*kWh)
+// 1-0:2.8.1(003108.322*kWh)
+// 1-0:2.8.2(007566.688*kWh)
+
+// current
+// 1-0:1.7.0(00.184*kW)
+// 1-0:2.7.0(00.169*kW)
+
+
+P1Status P1Service::get_status() const
+{
+	auto [opname, status] = read();
+	return status;
+}
 
 inline uint16_t update_crc(uint16_t crc, char ch)
 {
@@ -112,9 +131,10 @@ inline uint16_t update_crc(uint16_t crc, char ch)
 	return result;
 }
 
-P1Opname P1Service::read()
+std::tuple<P1Opname, P1Status> P1Service::read() const
 {
-	P1Opname result{};
+	P1Opname opname{};
+	P1Status status{};
 
 	boost::asio::serial_port p1(m_io_context.get_executor());
 
@@ -262,21 +282,31 @@ P1Opname P1Service::read()
 						{
 							std::smatch m = *i;
 
-							double v = stod(m[3]) + stod(m[4]) / 1000.0;
+							double v = stod(m[4]) + stod(m[5]) / 1000.0;
 
-							if (m[1] == "1")
+							if (m[2] == "7")
 							{
-								if (m[2] == "2")
-									result.verbruik_hoog = v;
-								else
-									result.verbruik_laag = v;
+								if (m[1] == "1")
+									status.power_consumed = v;
+								else if (m[1] == "2")
+									status.power_produced = v;
 							}
-							else if (m[1] == "2")
+							else if (m[2] == "8")
 							{
-								if (m[2] == "2")
-									result.levering_hoog = v;
-								else
-									result.levering_laag = v;
+								if (m[1] == "1")
+								{
+									if (m[3] == "2")
+										opname.verbruik_hoog = v;
+									else
+										opname.verbruik_laag = v;
+								}
+								else if (m[1] == "2")
+								{
+									if (m[3] == "2")
+										opname.levering_hoog = v;
+									else
+										opname.levering_laag = v;
+								}
 							}
 						}
 
@@ -287,5 +317,5 @@ P1Opname P1Service::read()
 		}
 	}
 
-	return result;
+	return { opname, status };
 }
