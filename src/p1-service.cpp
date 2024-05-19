@@ -60,7 +60,7 @@ P1Service::P1Service(boost::asio::io_context &io_context)
 
 	if (std::filesystem::exists(m_device_string))
 	{
-		std::tie(m_current, std::ignore) = read();
+		std::tie(m_opname, std::ignore) = read();
 		m_thread = std::thread(std::bind(&P1Service::run, this));
 	}
 }
@@ -74,16 +74,28 @@ void P1Service::run()
 
 	using quarters = std::chrono::duration<int64_t, std::ratio<60 * 15>>;
 
+	auto now = std::chrono::system_clock::now();
+	auto next = ceil<quarters>(now);
+
 	for (;;)
 	{
 		try
 		{
-			auto now = std::chrono::system_clock::now();
-			std::this_thread::sleep_until(ceil<quarters>(now));
+			auto [opname, status] = read();
 
-			std::tie(m_current, std::ignore) = read();
+			{
+				std::unique_lock lock(m_mutex);
+				m_opname = opname;
+				m_status = status;
+			}
 
-			DataService_v2::instance().store(m_current);
+			now = std::chrono::system_clock::now();
+			if (now < next)
+				continue;
+
+			DataService_v2::instance().store(m_opname);
+
+			next = ceil<quarters>(now);
 		}
 		catch (const std::exception &e)
 		{
@@ -106,11 +118,16 @@ const std::regex
 // 1-0:1.7.0(00.184*kW)
 // 1-0:2.7.0(00.169*kW)
 
+P1Opname P1Service::get_current() const
+{
+	std::unique_lock lock(m_mutex);
+	return m_opname;
+}
 
 P1Status P1Service::get_status() const
 {
-	auto [opname, status] = read();
-	return status;
+	std::unique_lock lock(m_mutex);
+	return m_status;
 }
 
 inline uint16_t update_crc(uint16_t crc, char ch)

@@ -81,6 +81,12 @@
 							<span z2:text="|${#numbers.formatDecimal(p1.power_produced, 1, 3)} kW|"></span>
 						</td>
 					</tr>
+					<tr>
+						<td>Netto</td>
+						<td>
+							<span z2:text="|${#numbers.formatDecimal(p1.power_consumed - p1.power_produced, 1, 3)} kW|"></span>
+						</td>
+					</tr>
 				</tbody>
 			</table>
 		</div>

@@ -39,11 +39,7 @@ class P1Service
 	static P1Service &init(boost::asio::io_context &io_context);
 	static P1Service &instance();
 
-	P1Opname get_current() const
-	{
-		return m_current;
-	}
-
+	P1Opname get_current() const;
 	P1Status get_status() const;
 
   private:
@@ -55,7 +51,9 @@ class P1Service
 
 	std::string m_device_string;
 	std::thread m_thread;
-	P1Opname m_current;
+
+	mutable std::mutex m_mutex;
+	P1Opname m_opname;
 	P1Status m_status;
 
 	boost::asio::io_context &m_io_context;
