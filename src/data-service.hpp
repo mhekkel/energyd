@@ -126,6 +126,29 @@ struct SessySOC
 
 // --------------------------------------------------------------------
 
+struct GrafiekPunt
+{
+	std::chrono::system_clock::time_point tijd;
+	float zonne_energie;
+	float laad_stroom;
+	float verbruik;
+	float terug_levering;
+	float laad_niveau;
+
+	template <typename Archive>
+	void serialize(Archive &ar, unsigned long version)
+	{
+		ar & zeep::make_nvp("tijd", tijd)
+		   & zeep::make_nvp("zonne_energie", zonne_energie)
+		   & zeep::make_nvp("laad_stroom", laad_stroom)
+		   & zeep::make_nvp("verbruik", verbruik)
+		   & zeep::make_nvp("terug_levering", terug_levering)
+		   & zeep::make_nvp("laad_niveau", laad_niveau);
+	}
+};
+
+// --------------------------------------------------------------------
+
 class DataService_v2
 {
   public:
@@ -136,13 +159,20 @@ class DataService_v2
 
 	void reset_connection();
 
+	std::vector<GrafiekPunt> grafiekVoorDag(std::chrono::year_month_day dag);
+
   private:
 
 	DataService_v2();
 
 	pqxx::connection &get_connection();
 
+	void run();
+
 	std::string m_connection_string;
+
+	std::thread m_thread;
+	std::vector<GrafiekPunt> m_vandaag;
 
 	static std::unique_ptr<DataService_v2> s_instance;
 	static thread_local std::unique_ptr<pqxx::connection> s_connection;
