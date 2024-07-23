@@ -18,6 +18,7 @@ module.exports = (env) => {
 			invoer: SCRIPTS + "invoer.js",
 			opname: SCRIPTS + "opname.js",
 			grafiek: SCRIPTS + "grafiek.js",
+			'status-grafiek': SCRIPTS + "status-grafiek.js",
 		},
 
 		output: {

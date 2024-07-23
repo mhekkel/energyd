@@ -178,7 +178,7 @@ std::tuple<P1Opname, P1Status> P1Service::read() const
 		DONE
 	} state = START;
 
-	uint16_t crc, check_crc;
+	uint16_t crc= 0;
 	std::string header, ident, message, crc_s, datagram;
 
 	while (state != DONE)
@@ -289,6 +289,7 @@ std::tuple<P1Opname, P1Status> P1Service::read() const
 						{
 							std::cerr << "CRC did not match\n";
 							state = START;
+							crc = 0;
 							break;
 						}
 
@@ -328,6 +329,7 @@ std::tuple<P1Opname, P1Status> P1Service::read() const
 						}
 
 						state = DONE;
+						crc = 0;
 					}
 					break;
 			}

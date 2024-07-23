@@ -25,10 +25,10 @@
  */
 
 #include "data-service.hpp"
+#include "p1-service.hpp"
+#include "sessy-service.hpp"
 
 #include <mcfp/mcfp.hpp>
-
-#include <pqxx/pqxx>
 
 #include <iostream>
 
@@ -54,6 +54,10 @@ DataService_v2::DataService_v2()
 
 	// try it
 	pqxx::transaction tx(get_connection());
+
+	// start collecting thread
+
+	m_thread = std::thread(std::bind(&DataService_v2::run, this));
 }
 
 pqxx::connection &DataService_v2::get_connection()
@@ -122,4 +126,65 @@ void DataService_v2::store(const SessySOC &soc)
 			std::cerr << "Failed to write opname: " << e.what() << '\n';
 		}
 	} while (false);
+}
+
+// --------------------------------------------------------------------
+
+void DataService_v2::run()
+{
+	using namespace std::literals;
+	using namespace date;
+	using namespace std::chrono;
+
+	using two_minutes = std::chrono::duration<int64_t, std::ratio<60 * 2>>;
+
+	auto now = std::chrono::system_clock::now();
+	auto next = ceil<two_minutes>(now);
+
+	for (;;)
+	{
+		std::this_thread::sleep_until(next);
+
+		// auto opname = P1Service::instance().get_current();
+		auto status = P1Service::instance().get_status();
+		auto sessy = SessyService::instance().get_soc();
+
+		now = std::chrono::system_clock::now();
+		next = ceil<two_minutes>(now);
+
+		GrafiekPunt pt
+		{
+			.tijd = now,
+			.zonne_energie = std::accumulate(sessy.begin(), sessy.end(), 0.f, [](float sum, SessySOC &s)
+				{ return sum + s.phase[0].power + sum + s.phase[1].power + sum + s.phase[2].power; }),
+			.laad_stroom = std::accumulate(sessy.begin(), sessy.end(), 0.f, [](float sum, SessySOC &s)
+				{ return sum + s.sessy.power; }),
+			.verbruik = status.power_consumed,
+			.terug_levering = status.power_produced,
+			.laad_niveau = std::accumulate(sessy.begin(), sessy.end(), 0.f, [](float sum, SessySOC &s)
+							   { return sum + s.sessy.state_of_charge; }) /
+			               sessy.size(),
+		};
+
+		if (not m_vandaag.empty())
+		{
+			auto ymd_now = date::year_month_day(floor<date::days>(now));
+			auto ymd_last = date::year_month_day(floor<date::days>(m_vandaag.back().tijd));
+
+			if (ymd_now > ymd_last)
+			{
+				m_gisteren = std::move(m_vandaag);
+				m_vandaag.clear();
+			}
+		}
+
+		std::unique_lock lock(m_mutex);
+		m_vandaag.emplace_back(std::move(pt));
+	}
+}
+
+std::vector<GrafiekPunt> DataService_v2::grafiekVoorDag(date::year_month_day dag)
+{
+	std::unique_lock lock(m_mutex);
+	return m_vandaag;
 }

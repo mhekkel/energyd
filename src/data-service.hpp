@@ -28,11 +28,13 @@
 
 #include <zeep/nvp.hpp>
 
+#include <date/date.h>
 #include <pqxx/pqxx>
 
 #include <chrono>
 #include <memory>
 #include <string>
+#include <thread>
 
 struct P1Opname
 {
@@ -159,7 +161,7 @@ class DataService_v2
 
 	void reset_connection();
 
-	std::vector<GrafiekPunt> grafiekVoorDag(std::chrono::year_month_day dag);
+	std::vector<GrafiekPunt> grafiekVoorDag(date::year_month_day dag);
 
   private:
 
@@ -172,7 +174,8 @@ class DataService_v2
 	std::string m_connection_string;
 
 	std::thread m_thread;
-	std::vector<GrafiekPunt> m_vandaag;
+	std::mutex m_mutex;
+	std::vector<GrafiekPunt> m_vandaag, m_gisteren;
 
 	static std::unique_ptr<DataService_v2> s_instance;
 	static thread_local std::unique_ptr<pqxx::connection> s_connection;

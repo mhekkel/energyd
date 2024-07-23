@@ -451,6 +451,8 @@ class e_rest_controller : public zeep::http::rest_controller
 		map_delete_request("opname/{id}", &e_rest_controller::delete_opname, "id");
 
 		map_get_request("data/{type}/{aggr}", &e_rest_controller::get_grafiek, "type", "aggr");
+
+		map_get_request("grafiek/{tijdstip}", &e_rest_controller::get_grafiek_punt, "tijdstip");
 	}
 
 	// CRUD routines
@@ -487,6 +489,12 @@ class e_rest_controller : public zeep::http::rest_controller
 	std::vector<Teller> get_tellers()
 	{
 		return DataService::instance().get_tellers();
+	}
+
+	std::vector<GrafiekPunt> get_grafiek_punt(date::sys_days tijd)
+	{
+		const auto ymd = date::year_month_day{tijd};
+		return DataService_v2::instance().grafiekVoorDag(ymd);
 	}
 
 	// GrafiekData get_grafiek(const string& type, aggregatie_type aggregatie);
@@ -876,15 +884,15 @@ Command should be either:
 		return 1;
 	}
 
-	DataService::init(config.get("databank"));
-	DataService_v2::instance();
-
-	zeep::http::daemon server([]()
+	zeep::http::daemon server([&config]()
 		{
 			auto s = new zeep::http::server("docroot");
 
 			P1Service::init(s->get_io_context());
 			SessyService::init(s->get_io_context());
+
+			DataService::init(config.get("databank"));
+			DataService_v2::instance();
 
 #ifndef NDEBUG
 			s->set_template_processor(new zeep::http::file_based_html_template_processor("docroot"));

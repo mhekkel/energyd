@@ -54,6 +54,7 @@ find_program(YARN yarn REQUIRED)
 
 set(webpack_input
 	${CMAKE_CURRENT_SOURCE_DIR}/webapp/grafiek.js
+	${CMAKE_CURRENT_SOURCE_DIR}/webapp/status-grafiek.js
 	${CMAKE_CURRENT_SOURCE_DIR}/webapp/index.js
 	${CMAKE_CURRENT_SOURCE_DIR}/webapp/invoer.js
 	${CMAKE_CURRENT_SOURCE_DIR}/webapp/opname.js

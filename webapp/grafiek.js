@@ -142,7 +142,7 @@ class Grafiek {
 			console.log(error);
 			throw error.message;
 		}).then(data => {
-			this.processData(data);
+			this.processData(data/* .filter(d => d.ma !== 0) */);
 			grafiekTitel.classList.remove("grafiek-status-loading");
 			grafiekTitel.classList.add("grafiek-status-loaded");
 		}).catch(err => {
@@ -153,7 +153,11 @@ class Grafiek {
 	}
 
 	processData(data) {
-		const nu = new Date(Date.now());
+
+		const nu_d = new Date(Date.now());
+		const nu = new Date(nu_d.getFullYear(), nu_d.getMonth(), nu_d.getDate());
+		const morgen = new Date(nu);
+		morgen.setDate(nu.getDate() + 1);
 		const curve = d3.curveBasis;
 
 		const x = (d) => new Date(d.d);
@@ -171,14 +175,6 @@ class Grafiek {
 
 		const Zsdp = d3.map(data, zsdp); //['v', 'v-sd', 'v+sd', 'ma'];
 		const Zsdm = d3.map(data, zsdm); //['v', 'v-sd', 'v+sd', 'ma'];
-
-		const defined_v = (d) => d.v != 0;
-		const defined_a = (d) => d.a != 0;
-		const defined_ma = (d) => d.ma !== 0;
-
-		const Dv = d3.map(data, defined_v);
-		const Da = d3.map(data, defined_a);
-		const Dma = d3.map(data, defined_ma);
 
 		const xDomain = d3.extent(X);
 		const yDomain = [
@@ -205,25 +201,23 @@ class Grafiek {
 		const yAxis = d3.axisLeft(yScale).tickSizeInner(-this.width);
 
 		const line_v = d3.line()
-			.defined(i => Dv[i])
+			.defined(i => data[i].v !== 0)
 			.curve(curve)
 			.x(i => xScale(X[i]))
 			.y(i => yScale(Y[i]));
 
 		const line_a = d3.line()
-			.defined(i => Da[i])
 			.curve(curve)
 			.x(i => xScale(X[i]))
 			.y(i => yScale(Y_a[i]));
 
 		const line_ma = d3.line()
-			.defined(i => Dma[i])
+			.defined(i => data[i].ma !== 0)
 			.curve(curve)
 			.x(i => xScale(X[i]))
 			.y(i => yScale(Y_ma[i]));
 
 		const area = d3.area()
-			.defined(i => Da[i])
 			.curve(curve)
 			.x(i => xScale(X[i]))
 			.y0(i => yScale(Zsdm[i]))
@@ -262,7 +256,7 @@ class Grafiek {
 			.attr("d", ([, i]) => line_v(i));
 
 		this.plotData.selectAll(".line-l")
-			.data(d3.group(I.filter(i => X[i] > nu), i => Z[i]))
+			.data(d3.group(I.filter(i => X[i] >= morgen), i => Z[i]))
 			.join("path")
 			.attr("class", "line-l")
 			.attr("fill", "none")

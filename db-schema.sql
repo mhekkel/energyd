@@ -31,3 +31,17 @@ add constraint sessy_soc_pk primary key (tijd, nr);
 
 alter table public.sessy_soc owner to "energie-admin";
 
+-- Status graph data
+
+create table
+	public.status_data (
+		tijd timestamp without time zone default now() not null,
+		soc numeric(4, 3),
+		battery_power 
+	);
+
+alter table only public.sessy_soc
+add constraint sessy_soc_pk primary key (tijd, nr);
+
+alter table public.sessy_soc owner to "energie-admin";
+
