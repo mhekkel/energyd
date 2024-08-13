@@ -158,6 +158,7 @@ class DataService_v2
 
 	void store(const P1Opname &opname);
 	void store(const SessySOC &soc);
+	void store(const GrafiekPunt &pt);
 
 	void reset_connection();
 

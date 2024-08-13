@@ -28,6 +28,8 @@
 #include "p1-service.hpp"
 #include "sessy-service.hpp"
 
+#include <date/tz.h>
+
 #include <mcfp/mcfp.hpp>
 
 #include <iostream>
@@ -54,6 +56,47 @@ DataService_v2::DataService_v2()
 
 	// try it
 	pqxx::transaction tx(get_connection());
+
+	// Initialise data
+
+	using namespace date;
+	using namespace std::chrono_literals;
+
+	auto now = std::chrono::system_clock::now();
+	auto ymd_now = date::year_month_day(floor<date::days>(now));
+
+	auto day = local_time<days>{ ymd_now.year() / ymd_now.month() / ymd_now.day() };
+	auto day_after = day + days{ 1 };
+
+	auto utc_day = make_zoned(current_zone(), day);
+	// auto utc_day_before = make_zoned(current_zone(), day_before);
+	auto utc_day_after = make_zoned(current_zone(), day_after);
+
+	std::stringstream d1;
+	// d1 << utc_day_before;
+	d1 << utc_day;
+
+	std::stringstream d2;
+	d2 << utc_day_after;
+
+	for (const auto &[tijd, soc, laden, verbruik, levering, opwekking] :
+		tx.stream<std::string, float, float, float, float, float>(
+			// clang-format off
+			R"(SELECT trim(both '\"' from to_json(tijd)::text) AS tijd, soc, laden, verbruik, levering, opwekking
+			   FROM daily_graph
+			   WHERE tijd BETWEEN )" + tx.quote(d1.str()) + " AND " + tx.quote(d2.str())
+			// clang-format on
+			))
+	{
+		std::chrono::time_point<std::chrono::system_clock> t;
+		std::istringstream is(tijd);
+		is >> parse("%FT%T%0z", t);
+
+		if (is.fail())
+			continue;
+
+		m_vandaag.emplace_back(t, soc, laden, verbruik, levering, opwekking);
+	}
 
 	// start collecting thread
 
@@ -128,6 +171,36 @@ void DataService_v2::store(const SessySOC &soc)
 	} while (false);
 }
 
+void DataService_v2::store(const GrafiekPunt &pt)
+{
+	bool first_reset = true;
+	do
+	{
+		try
+		{
+			pqxx::transaction tx(get_connection());
+
+			tx.exec("INSERT INTO daily_graph (soc, laden, verbruik, levering, opwekking) VALUES (" +
+					tx.quote(pt.laad_niveau) + ", " +
+					tx.quote(pt.laad_stroom) + ", " +
+					tx.quote(pt.verbruik) + ", " +
+					tx.quote(pt.terug_levering) + ", " +
+					tx.quote(pt.zonne_energie) + ")");
+			tx.commit();
+		}
+		catch (const pqxx::broken_connection &e)
+		{
+			if (first_reset)
+			{
+				first_reset = false;
+				reset_connection();
+				continue;
+			}
+			std::cerr << "Failed to write opname: " << e.what() << '\n';
+		}
+	} while (false);
+}
+
 // --------------------------------------------------------------------
 
 void DataService_v2::run()
@@ -152,8 +225,7 @@ void DataService_v2::run()
 		now = std::chrono::system_clock::now();
 		next = ceil<two_minutes>(now);
 
-		GrafiekPunt pt
-		{
+		GrafiekPunt pt{
 			.tijd = now,
 			.zonne_energie = std::accumulate(sessy.begin(), sessy.end(), 0.f, [](float sum, SessySOC &s)
 				{ return sum + s.phase[0].power + sum + s.phase[1].power + sum + s.phase[2].power; }),
@@ -161,9 +233,10 @@ void DataService_v2::run()
 				{ return sum + s.sessy.power; }),
 			.verbruik = status.power_consumed,
 			.terug_levering = status.power_produced,
-			.laad_niveau = std::accumulate(sessy.begin(), sessy.end(), 0.f, [](float sum, SessySOC &s)
+			.laad_niveau = sessy.size() ? std::accumulate(sessy.begin(), sessy.end(), 0.f, [](float sum, SessySOC &s)
 							   { return sum + s.sessy.state_of_charge; }) /
-			               sessy.size(),
+			               sessy.size()
+						   : 0,
 		};
 
 		if (not m_vandaag.empty())
@@ -180,6 +253,15 @@ void DataService_v2::run()
 
 		std::unique_lock lock(m_mutex);
 		m_vandaag.emplace_back(std::move(pt));
+
+		try
+		{
+			store(pt);
+		}
+		catch (const std::exception &ex)
+		{
+			std::clog << ex.what() << '\n';
+		}
 	}
 }
 

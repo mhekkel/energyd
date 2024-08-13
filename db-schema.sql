@@ -34,14 +34,14 @@ alter table public.sessy_soc owner to "energie-admin";
 -- Status graph data
 
 create table
-	public.status_data (
+	public.daily_graph (
 		tijd timestamp without time zone default now() not null,
-		soc numeric(4, 3),
-		battery_power 
+		soc numeric(3, 2),
+		laden numeric(4),
+		verbruik numeric(4),
+		levering numeric(4),
+		opwekking numeric(4)
 	);
 
-alter table only public.sessy_soc
-add constraint sessy_soc_pk primary key (tijd, nr);
-
-alter table public.sessy_soc owner to "energie-admin";
+alter table public.daily_graph owner to "energie-admin";
 

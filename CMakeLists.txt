@@ -45,7 +45,7 @@ add_executable(energyd
 	${PROJECT_SOURCE_DIR}/src/sessy-service.cpp
 	${PROJECT_SOURCE_DIR}/src/p1-service.cpp)
 
-target_link_libraries(energyd date::date libpqxx::pqxx libmcfp::libmcfp zeep::zeep
+target_link_libraries(energyd date::date-tz libpqxx::pqxx libmcfp::libmcfp zeep::zeep
 	OpenSSL::SSL OpenSSL::Crypto)
 
 # yarn rules for javascripts
