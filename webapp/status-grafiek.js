@@ -114,6 +114,7 @@ class Grafiek {
 			});
 
 		
+		console.log("data: ", data);
 
 		const x = (d) => d.tijd;
 		// const y = (d) => d.v;
@@ -156,7 +157,7 @@ class Grafiek {
 
 		const xFormat = d3.timeFormat("%H:%M");
 
-		const xAxis = d3.axisBottom(xScale).ticks(d3.timeHour.every(1), xFormat).tickSizeOuter(0);
+		const xAxis = d3.axisBottom(xScale).tickFormat(xFormat).tickSizeOuter(0);//.ticks(d3.timeHour.every(1), xFormat);
 		// const yAxis = d3.axisLeft(yScale).tickSizeInner(-this.width);
 
 		// const line_v = d3.line()

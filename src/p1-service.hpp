@@ -53,8 +53,8 @@ class P1Service
 	std::thread m_thread;
 
 	mutable std::mutex m_mutex;
-	P1Opname m_opname;
-	P1Status m_status;
+	P1Opname m_opname{};
+	P1Status m_status{};
 
 	boost::asio::io_context &m_io_context;
 
