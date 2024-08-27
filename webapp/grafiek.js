@@ -256,7 +256,7 @@ class Grafiek {
 			.attr("d", ([, i]) => line_v(i));
 
 		this.plotData.selectAll(".line-l")
-			.data(d3.group(I.filter(i => X[i] >= morgen), i => Z[i]))
+			.data(d3.group(I.filter(i => X[i] > nu), i => Z[i]))
 			.join("path")
 			.attr("class", "line-l")
 			.attr("fill", "none")

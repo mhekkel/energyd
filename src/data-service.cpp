@@ -53,6 +53,7 @@ DataService_v2::DataService_v2()
 	auto &config = mcfp::config::instance();
 
 	m_connection_string = config.get("databank");
+	m_read_only = config.has("read-only");
 
 	// try it
 	pqxx::transaction tx(get_connection());
@@ -90,12 +91,12 @@ DataService_v2::DataService_v2()
 	{
 		std::chrono::time_point<std::chrono::system_clock> t;
 		std::istringstream is(tijd);
-		is >> parse("%FT%T%0z", t);
+		is >> parse("%FT%T", t);
 
 		if (is.fail())
 			continue;
 
-		m_vandaag.emplace_back(t, soc, laden, verbruik, levering, opwekking);
+		m_vandaag.emplace_back(t, opwekking, laden, verbruik, levering, soc);
 	}
 
 	// start collecting thread
@@ -117,6 +118,9 @@ void DataService_v2::reset_connection()
 
 void DataService_v2::store(const P1Opname &opname)
 {
+	if (m_read_only)
+		return;
+
 	bool first_reset = true;
 	do
 	{
@@ -146,6 +150,9 @@ void DataService_v2::store(const P1Opname &opname)
 
 void DataService_v2::store(const SessySOC &soc)
 {
+	if (m_read_only)
+		return;
+
 	bool first_reset = true;
 	do
 	{
@@ -173,6 +180,9 @@ void DataService_v2::store(const SessySOC &soc)
 
 void DataService_v2::store(const GrafiekPunt &pt)
 {
+	if (m_read_only)
+		return;
+
 	bool first_reset = true;
 	do
 	{
@@ -229,10 +239,10 @@ void DataService_v2::run()
 			.tijd = now,
 			.zonne_energie = std::accumulate(sessy.begin(), sessy.end(), 0.f, [](float sum, SessySOC &s)
 				{ return sum + s.phase[0].power + sum + s.phase[1].power + sum + s.phase[2].power; }),
-			.laad_stroom = std::accumulate(sessy.begin(), sessy.end(), 0.f, [](float sum, SessySOC &s)
+			.laad_stroom = 1000 * std::accumulate(sessy.begin(), sessy.end(), 0.f, [](float sum, SessySOC &s)
 				{ return sum + s.sessy.power; }),
-			.verbruik = status.power_consumed,
-			.terug_levering = status.power_produced,
+			.verbruik = 1000 * status.power_consumed,
+			.terug_levering = 1000 * status.power_produced,
 			.laad_niveau = sessy.size() ? std::accumulate(sessy.begin(), sessy.end(), 0.f, [](float sum, SessySOC &s)
 							   { return sum + s.sessy.state_of_charge; }) /
 			               sessy.size()

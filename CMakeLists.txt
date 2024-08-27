@@ -33,7 +33,7 @@ mrc_write_header(${PROJECT_SOURCE_DIR}/src/mrsrc.hpp)
 
 # Libraries
 find_package(date REQUIRED)
-find_package(zeep 6 REQUIRED)
+find_package(zeep 6.0.14 REQUIRED)
 find_package(libmcfp REQUIRED)
 find_package(libpqxx 7.8 REQUIRED)
 find_package(OpenSSL REQUIRED)

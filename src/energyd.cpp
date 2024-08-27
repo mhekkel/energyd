@@ -845,8 +845,10 @@ int main(int argc, const char *argv[])
 		mcfp::make_option<std::string>("sessy-3", "URL to fetch the status of sessy number 3"),
 		mcfp::make_option<std::string>("sessy-4", "URL to fetch the status of sessy number 4"),
 		mcfp::make_option<std::string>("sessy-5", "URL to fetch the status of sessy number 5"),
-		mcfp::make_option<std::string>("sessy-6", "URL to fetch the status of sessy number 6")
-		);
+		mcfp::make_option<std::string>("sessy-6", "URL to fetch the status of sessy number 6"),
+
+		mcfp::make_option("read-only", "Do not write data into the database (debug option)")
+	);
 
 	std::error_code ec;
 	config.parse(argc, argv, ec);
@@ -924,7 +926,7 @@ Command should be either:
 		else
 		{
 			std::string user = config.get("user");
-			result = server.start(address, port, 1, 2, user);
+			result = server.start(address, port, 4, user);
 		}
 	}
 	else if (command == "stop")
