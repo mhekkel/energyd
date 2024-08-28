@@ -131,20 +131,20 @@ struct SessySOC
 struct GrafiekPunt
 {
 	std::chrono::system_clock::time_point tijd;
-	float zonne_energie;
-	float laad_stroom;
+	float zon;
+	float batterij;
 	float verbruik;
-	float terug_levering;
+	float levering;
 	float laad_niveau;
 
 	template <typename Archive>
 	void serialize(Archive &ar, unsigned long version)
 	{
 		ar & zeep::make_nvp("tijd", tijd)
-		   & zeep::make_nvp("zonne_energie", zonne_energie)
-		   & zeep::make_nvp("laad_stroom", laad_stroom)
+		   & zeep::make_nvp("zon", zon)
+		   & zeep::make_nvp("batterij", batterij)
 		   & zeep::make_nvp("verbruik", verbruik)
-		   & zeep::make_nvp("terug_levering", terug_levering)
+		   & zeep::make_nvp("levering", levering)
 		   & zeep::make_nvp("laad_niveau", laad_niveau);
 	}
 };

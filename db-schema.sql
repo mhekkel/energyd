@@ -37,7 +37,7 @@ create table
 	public.daily_graph (
 		tijd timestamp without time zone default now() not null,
 		soc numeric(3, 2),
-		laden numeric(4),
+		batterij numeric(4),
 		verbruik numeric(4),
 		levering numeric(4),
 		opwekking numeric(4)

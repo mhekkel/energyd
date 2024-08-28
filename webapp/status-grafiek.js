@@ -117,7 +117,9 @@ class Grafiek {
 		console.log("data: ", data);
 
 		const x = (d) => d.tijd;
-		
+
+		const y_soc = (d) => d.laad_niveau;
+
 
 		const X = d3.map(data, x);
 		// const Y = d3.map(data, y);
@@ -137,30 +139,30 @@ class Grafiek {
 		// const Dma = d3.map(data, defined_ma);
 
 		const xDomain = [start, stop];
-		const yDomain = [1, 0];
+		const y_soc_Domain = [1, 0];
 
 		// const I = d3.range(X.length);//.filter(i => zDomain.has(Z[i]));
 
 		const xType = d3.scaleTime;
-		const yType = d3.scaleLinear;
+		const y_soc_Type = d3.scaleLinear;
 
 		const xRange = [1, this.width - 2];
-		const yRange = [1, this.height - 2];
+		const y_soc_Range = [1, this.height - 2];
 
 		const xScale = xType(xDomain, xRange).interpolate(d3.interpolateRound);
-		const yScale = yType(yDomain, yRange);
+		const y_soc_Scale = yType(yDomain, yRange);
 
 		const colors = d3.scaleOrdinal(d3.schemeTableau10);
 
-		const xFormat = d3.timeFormat("%H:%M");
+		const xFormat = d3.timeFormat("%H");
 
 		const xAxis = d3.axisBottom(xScale).tickFormat(xFormat).tickSizeOuter(0);//.ticks(d3.timeHour.every(1), xFormat);
-		const yAxis = d3.axisRight(yScale).tickSizeInner(this.width);
+		const y_soc_Axis = d3.axisRight(y_soc_Scale).tickSizeInner(this.width);
 
 		const line_soc = d3.line()
 			.curve(d3.curveBasis)
 			.x(d => xScale(d.tijd))
-			.y(d => yScale(d.laad_niveau));
+			.y(d => y_soc_Scale(d.laad_niveau));
 
 		// const line_a = d3.line()
 		// 	.defined(i => Da[i])
@@ -182,7 +184,7 @@ class Grafiek {
 		// 	.y1(i => yScale(Zsdp[i]));
 
 		this.gX.call(xAxis);
-		this.gY.call(yAxis);
+		this.gY.call(y_soc_Axis);
 
 		// this.plotData.selectAll(".sd")
 		// 	.data(d3.group(I, i => Z[i]))

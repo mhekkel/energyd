@@ -32,12 +32,29 @@
 
 #include <mcfp/mcfp.hpp>
 
+#include <zeep/value-serializer.hpp>
+
 #include <iostream>
 
 // --------------------------------------------------------------------
 
 std::unique_ptr<DataService_v2> DataService_v2::s_instance;
 thread_local std::unique_ptr<pqxx::connection> DataService_v2::s_connection;
+
+// --------------------------------------------------------------------
+
+std::ostream &operator<<(std::ostream &os, const GrafiekPunt &pt)
+{
+	os
+		<< "tijd: " << zeep::value_serializer<decltype(pt.tijd)>::to_string(pt.tijd) << "; "
+		<< "zon: " << pt.zon << "; "
+		<< "batterij: " << pt.batterij << "; "
+		<< "verbruik: " << pt.verbruik << "; "
+		<< "levering: " << pt.levering << "; "
+		<< "laad_niveau: " << pt.laad_niveau << "\n";
+
+	return os;
+}
 
 // --------------------------------------------------------------------
 
@@ -80,10 +97,10 @@ DataService_v2::DataService_v2()
 	std::stringstream d2;
 	d2 << utc_day_after;
 
-	for (const auto &[tijd, soc, laden, verbruik, levering, opwekking] :
+	for (const auto &[tijd, soc, batterij, verbruik, levering, opwekking] :
 		tx.stream<std::string, float, float, float, float, float>(
 			// clang-format off
-			R"(SELECT trim(both '\"' from to_json(tijd)::text) AS tijd, soc, laden, verbruik, levering, opwekking
+			R"(SELECT trim(both '\"' from to_json(tijd)::text) AS tijd, soc, batterij, verbruik, levering, opwekking
 			   FROM daily_graph
 			   WHERE tijd BETWEEN )" + tx.quote(d1.str()) + " AND " + tx.quote(d2.str())
 			// clang-format on
@@ -96,7 +113,7 @@ DataService_v2::DataService_v2()
 		if (is.fail())
 			continue;
 
-		m_vandaag.emplace_back(t, opwekking, laden, verbruik, levering, soc);
+		m_vandaag.emplace_back(t, opwekking, batterij, verbruik, levering, soc);
 	}
 
 	// start collecting thread
@@ -190,12 +207,12 @@ void DataService_v2::store(const GrafiekPunt &pt)
 		{
 			pqxx::transaction tx(get_connection());
 
-			tx.exec("INSERT INTO daily_graph (soc, laden, verbruik, levering, opwekking) VALUES (" +
+			tx.exec("INSERT INTO daily_graph (soc, batterij, verbruik, levering, opwekking) VALUES (" +
 					tx.quote(pt.laad_niveau) + ", " +
-					tx.quote(pt.laad_stroom) + ", " +
+					tx.quote(pt.batterij) + ", " +
 					tx.quote(pt.verbruik) + ", " +
-					tx.quote(pt.terug_levering) + ", " +
-					tx.quote(pt.zonne_energie) + ")");
+					tx.quote(pt.levering) + ", " +
+					tx.quote(pt.zon) + ")");
 			tx.commit();
 		}
 		catch (const pqxx::broken_connection &e)
@@ -237,16 +254,16 @@ void DataService_v2::run()
 
 		GrafiekPunt pt{
 			.tijd = now,
-			.zonne_energie = std::accumulate(sessy.begin(), sessy.end(), 0.f, [](float sum, SessySOC &s)
+			.zon = std::accumulate(sessy.begin(), sessy.end(), 0.f, [](float sum, SessySOC &s)
 				{ return sum + s.phase[0].power + sum + s.phase[1].power + sum + s.phase[2].power; }),
-			.laad_stroom = 1000 * std::accumulate(sessy.begin(), sessy.end(), 0.f, [](float sum, SessySOC &s)
-				{ return sum + s.sessy.power; }),
+			.batterij = std::accumulate(sessy.begin(), sessy.end(), 0.f, [](float sum, SessySOC &s)
+									  { return sum + s.sessy.power; }),
 			.verbruik = 1000 * status.power_consumed,
-			.terug_levering = 1000 * status.power_produced,
+			.levering = 1000 * status.power_produced,
 			.laad_niveau = sessy.size() ? std::accumulate(sessy.begin(), sessy.end(), 0.f, [](float sum, SessySOC &s)
-							   { return sum + s.sessy.state_of_charge; }) /
-			               sessy.size()
-						   : 0,
+											  { return sum + s.sessy.state_of_charge; }) /
+			                                  sessy.size()
+			                            : 0,
 		};
 
 		if (not m_vandaag.empty())
@@ -270,7 +287,9 @@ void DataService_v2::run()
 		}
 		catch (const std::exception &ex)
 		{
-			std::clog << ex.what() << '\n';
+			std::clog << ex.what() << '\n'
+					  << "trying to store\n"
+					  << pt << "\n";
 		}
 	}
 }
