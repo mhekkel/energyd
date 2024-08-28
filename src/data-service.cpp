@@ -106,14 +106,16 @@ DataService_v2::DataService_v2()
 			// clang-format on
 			))
 	{
-		std::chrono::time_point<std::chrono::system_clock> t;
+		local_time<std::chrono::seconds> t;
 		std::istringstream is(tijd);
 		is >> parse("%FT%T", t);
 
 		if (is.fail())
 			continue;
+		
+		auto t2 = make_zoned(current_zone(), t);
 
-		m_vandaag.emplace_back(t, opwekking, batterij, verbruik, levering, soc);
+		m_vandaag.emplace_back(t2.get_sys_time(), opwekking, batterij, verbruik, levering, soc);
 	}
 
 	// start collecting thread
@@ -294,8 +296,59 @@ void DataService_v2::run()
 	}
 }
 
-std::vector<GrafiekPunt> DataService_v2::grafiekVoorDag(date::year_month_day dag)
+std::vector<GrafiekPunt> DataService_v2::grafiekVoorDag(date::year_month_day dag, std::chrono::minutes resolutie)
 {
 	std::unique_lock lock(m_mutex);
-	return m_vandaag;
+
+	using namespace std::chrono_literals;
+
+	if (resolutie <= 2min)
+		return m_vandaag;
+	else
+	{
+		std::vector<GrafiekPunt> result;
+
+		auto now = std::chrono::system_clock::now();
+		auto ymd_now = date::year_month_day(floor<date::days>(now));
+
+		auto day = date::local_time<date::days>{ ymd_now.year() / ymd_now.month() / ymd_now.day() };
+
+		auto t1 = date::zoned_time(date::current_zone(), day);
+		auto t2 = t1.get_sys_time() + 24h;
+
+		for (auto t = t1.get_sys_time(); t < t2; t += resolutie)
+		{
+			GrafiekPunt pt{ .tijd = t };
+
+			size_t N = 0;
+			for (auto &p : m_vandaag)
+			{
+				if (p.tijd < t)
+					continue;
+				if (p.tijd >= t + resolutie)
+					break;
+
+				pt.zon += p.zon;
+				pt.batterij += p.batterij;
+				pt.verbruik += p.verbruik;
+				pt.levering += p.levering;
+				pt.laad_niveau += p.laad_niveau;
+
+				++N;
+			}
+
+			if (N == 0)
+				continue;
+
+			pt.zon /= N;
+			pt.batterij /= N;
+			pt.verbruik /= N;
+			pt.levering /= N;
+			pt.laad_niveau /= N;
+
+			result.emplace_back(std::move(pt));
+		}
+
+		return result;
+	}
 }

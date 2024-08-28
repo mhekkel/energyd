@@ -452,7 +452,7 @@ class e_rest_controller : public zeep::http::rest_controller
 
 		map_get_request("data/{type}/{aggr}", &e_rest_controller::get_grafiek, "type", "aggr");
 
-		map_get_request("grafiek/{tijdstip}", &e_rest_controller::get_grafiek_punt, "tijdstip");
+		map_get_request("grafiek/{tijdstip}", &e_rest_controller::get_grafiek_punt, "tijdstip", "resolutie");
 	}
 
 	// CRUD routines
@@ -491,10 +491,10 @@ class e_rest_controller : public zeep::http::rest_controller
 		return DataService::instance().get_tellers();
 	}
 
-	std::vector<GrafiekPunt> get_grafiek_punt(date::sys_days tijd)
+	std::vector<GrafiekPunt> get_grafiek_punt(date::sys_days tijd, std::optional<int> resolutie)
 	{
 		const auto ymd = date::year_month_day{tijd};
-		return DataService_v2::instance().grafiekVoorDag(ymd);
+		return DataService_v2::instance().grafiekVoorDag(ymd, std::chrono::minutes{ resolutie.value_or(2) });
 	}
 
 	// GrafiekData get_grafiek(const string& type, aggregatie_type aggregatie);

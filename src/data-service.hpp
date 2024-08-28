@@ -162,7 +162,7 @@ class DataService_v2
 
 	void reset_connection();
 
-	std::vector<GrafiekPunt> grafiekVoorDag(date::year_month_day dag);
+	std::vector<GrafiekPunt> grafiekVoorDag(date::year_month_day dag, std::chrono::minutes resolutie);
 
   private:
 
