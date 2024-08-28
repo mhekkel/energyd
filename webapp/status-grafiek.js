@@ -109,7 +109,9 @@ class Grafiek {
 		if (this.width < 100)
 			return;
 		
-		const data = await fetch(`ajax/grafiek/${datum.toISOString().substring(0, 10)}?resolutie=15`)
+		const resolutie = 15;
+
+		const data = await fetch(`ajax/grafiek/${datum.toISOString().substring(0, 10)}?resolutie=${resolutie}`)
 			.then(async r => {
 				if (r.ok)
 					return r.json();
@@ -155,51 +157,61 @@ class Grafiek {
 			.attr("stroke-width", 1.5)
 			.attr("d", line_soc(data));
 
-		const barWidth = (this.width - 2) / (24 * 3) - 1;
+		const barWidth = (this.width - 2) / ((24*60) / resolutie);
 
-		this.plotData.append("g")
-			.attr("fill", colors(1))
-			.selectAll(".battery")
-			.data(data)
-			.join("rect")
-			.attr("class", "battery")
-			.attr("x", d => x(d.tijd))
-			.attr("y", d => d.batterij > 0 ? y(d.batterij) : y(0))
-			.attr("width", 2)
-			.attr("height", d => Math.abs(y(0) - y(d.batterij)));
+		const barData = [
+			[0, d3.schemeTableau10[2], 'verbruik', -1],
+			[1, d3.schemeTableau10[4], 'levering', 1],
+			[2, d3.schemeTableau10[1], 'zon', 1],
+			[3, d3.schemeTableau10[3], 'batterij', 1]
+		];
 
-		this.plotData.append("g")
-			.attr("fill", colors(2))
-			.selectAll(".sun")
-			.data(data)
-			.join("rect")
-			.attr("class", "sun")
-			.attr("x", d => x(d.tijd) + 3)
-			.attr("y", d => d.zon > 0 ? y(d.zon) : y(0))
-			.attr("width", 2)
-			.attr("height", d => Math.abs(y(0) - y(d.zon)));
+		barData.forEach(([dx, color, bar, f]) => {
+			this.plotData.append("g")
+				.attr("fill", color)
+				.selectAll(bar)
+				.data(data)
+				.join("rect")
+				.attr("class", bar)
+				.attr("x", d => x(d.tijd) + dx * (barWidth / 5))
+				.attr("y", d => f * d[bar] > 0 ? y(f * d[bar]) : y(0))
+				.attr("width", barWidth / 5)
+				.attr("height", d => Math.abs(y(0) - y(f * d[bar])));
+		});
 
-		this.plotData.append("g")
-			.attr("fill", colors(3))
-			.selectAll(".use")
-			.data(data)
-			.join("rect")
-			.attr("class", "use")
-			.attr("x", d => x(d.tijd) + 6)
-			.attr("y", d => y(0))
-			.attr("width", 2)
-			.attr("height", d => Math.abs(y(0) - y(d.verbruik)));
 
-		this.plotData.append("g")
-			.attr("fill", colors(4))
-			.selectAll(".provide")
-			.data(data)
-			.join("rect")
-			.attr("class", "provide")
-			.attr("x", d => x(d.tijd) + 9)
-			.attr("y", d => d.levering > 0 ? y(d.levering) : y(0))
-			.attr("width", 2)
-			.attr("height", d => Math.abs(y(0) - y(d.levering)));
+		// this.plotData.append("g")
+		// 	.attr("fill", colors(2))
+		// 	.selectAll(".sun")
+		// 	.data(data)
+		// 	.join("rect")
+		// 	.attr("class", "sun")
+		// 	.attr("x", d => x(d.tijd) + 3)
+		// 	.attr("y", d => d.zon > 0 ? y(d.zon) : y(0))
+		// 	.attr("width", 2)
+		// 	.attr("height", d => Math.abs(y(0) - y(d.zon)));
+
+		// this.plotData.append("g")
+		// 	.attr("fill", colors(3))
+		// 	.selectAll(".use")
+		// 	.data(data)
+		// 	.join("rect")
+		// 	.attr("class", "use")
+		// 	.attr("x", d => x(d.tijd) + 6)
+		// 	.attr("y", d => y(0))
+		// 	.attr("width", 2)
+		// 	.attr("height", d => Math.abs(y(0) - y(d.verbruik)));
+
+		// this.plotData.append("g")
+		// 	.attr("fill", colors(4))
+		// 	.selectAll(".provide")
+		// 	.data(data)
+		// 	.join("rect")
+		// 	.attr("class", "provide")
+		// 	.attr("x", d => x(d.tijd) + 9)
+		// 	.attr("y", d => d.levering > 0 ? y(d.levering) : y(0))
+		// 	.attr("width", 2)
+		// 	.attr("height", d => Math.abs(y(0) - y(d.levering)));
 
 
 	}
