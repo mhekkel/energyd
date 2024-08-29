@@ -8,6 +8,15 @@ class Grafiek {
 		this.svg = d3.select("svg");
 		this.svg.on("touchstart", event => event.preventDefault());
 
+		const selector = document.getElementById("graph-date");
+
+		selector.value = new Date().toISOString().substring(0, 10);
+
+		selector.addEventListener("change", () => {
+			console.log(selector.value);
+			this.laadGrafiek();
+		});
+
 		this.maakGrafiek();
 	}
 
@@ -102,7 +111,9 @@ class Grafiek {
 
 	async laadGrafiek() {
 
-		const datum = new Date();
+		this.plotData.selectAll("*").remove();
+
+		const datum = new Date(document.getElementById("graph-date").value);
 		const start = d3.timeDay.floor(datum);
 		const stop = d3.timeDay.ceil(datum);
 
@@ -149,8 +160,8 @@ class Grafiek {
 		const barWidth = (this.width - 2) / ((24*60) / resolutie);
 
 		const barData = [
-			[0, d3.schemeTableau10[2], 'verbruik', -1],
-			[0, d3.schemeTableau10[4], 'levering', 1],
+			[0, "#9e8081", 'verbruik', -1],
+			[0, "#7e867d", 'levering', 1],
 			[1, d3.schemeTableau10[1], 'zon', 1],
 			[2, d3.schemeTableau10[3], 'batterij', 1]
 		];
@@ -179,7 +190,6 @@ class Grafiek {
 			.attr("stroke", colors(0))
 			.attr("stroke-width", 1.5)
 			.attr("d", line_soc(data));
-
 
 		const line_netto = d3.line()
 			.curve(d3.curveBasis)
