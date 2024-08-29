@@ -176,7 +176,6 @@ class DataService_v2
 
 	std::thread m_thread;
 	std::mutex m_mutex;
-	std::vector<GrafiekPunt> m_vandaag, m_gisteren;
 	bool m_read_only;
 
 	static std::unique_ptr<DataService_v2> s_instance;

@@ -75,51 +75,7 @@ DataService_v2::DataService_v2()
 	// try it
 	pqxx::transaction tx(get_connection());
 
-	// Initialise data
-
-	using namespace date;
-	using namespace std::chrono_literals;
-
-	auto now = std::chrono::system_clock::now();
-	auto ymd_now = date::year_month_day(floor<date::days>(now));
-
-	auto day = local_time<days>{ ymd_now.year() / ymd_now.month() / ymd_now.day() };
-	auto day_after = day + days{ 1 };
-
-	// auto utc_day = make_zoned(current_zone(), day);
-	// // auto utc_day_before = make_zoned(current_zone(), day_before);
-	// auto utc_day_after = make_zoned(current_zone(), day_after);
-
-	std::stringstream d1;
-	// d1 << utc_day_before;
-	d1 << /* utc_ */day;
-
-	std::stringstream d2;
-	d2 << /* utc_ */day_after;
-
-	for (const auto &[tijd, soc, batterij, verbruik, levering, opwekking] :
-		tx.stream<std::string, float, float, float, float, float>(
-			// clang-format off
-			R"(SELECT trim(both '\"' from to_json(tijd)::text) AS tijd, soc, batterij, verbruik, levering, opwekking
-			   FROM daily_graph
-			   WHERE tijd BETWEEN )" + tx.quote(d1.str()) + " AND " + tx.quote(d2.str())
-			// clang-format on
-			))
-	{
-		local_time<std::chrono::seconds> t;
-		std::istringstream is(tijd);
-		is >> parse("%FT%T", t);
-
-		if (is.fail())
-			continue;
-		
-		auto t2 = make_zoned(current_zone(), t);
-
-		m_vandaag.emplace_back(t2.get_sys_time(), opwekking, batterij, verbruik, levering, soc);
-	}
-
 	// start collecting thread
-
 	m_thread = std::thread(std::bind(&DataService_v2::run, this));
 }
 
@@ -268,21 +224,6 @@ void DataService_v2::run()
 			                            : 0,
 		};
 
-		if (not m_vandaag.empty())
-		{
-			auto ymd_now = date::year_month_day(floor<date::days>(now));
-			auto ymd_last = date::year_month_day(floor<date::days>(m_vandaag.back().tijd));
-
-			if (ymd_now > ymd_last)
-			{
-				m_gisteren = std::move(m_vandaag);
-				m_vandaag.clear();
-			}
-		}
-
-		std::unique_lock lock(m_mutex);
-		m_vandaag.emplace_back(std::move(pt));
-
 		try
 		{
 			store(pt);
@@ -298,21 +239,52 @@ void DataService_v2::run()
 
 std::vector<GrafiekPunt> DataService_v2::grafiekVoorDag(date::year_month_day dag, std::chrono::minutes resolutie)
 {
-	std::unique_lock lock(m_mutex);
+	std::vector<GrafiekPunt> data, result;
+	pqxx::transaction tx(get_connection());
 
+	// Initialise data
+	using namespace date;
 	using namespace std::chrono_literals;
 
+	auto day = local_time<days>{ dag.year() / dag.month() / dag.day() };
+	auto day_after = day + days{ 1 };
+
+	// auto utc_day = make_zoned(current_zone(), day);
+	// // auto utc_day_before = make_zoned(current_zone(), day_before);
+	// auto utc_day_after = make_zoned(current_zone(), day_after);
+
+	std::stringstream d1;
+	// d1 << utc_day_before;
+	d1 << /* utc_ */day;
+
+	std::stringstream d2;
+	d2 << /* utc_ */day_after;
+
+	for (const auto &[tijd, soc, batterij, verbruik, levering, opwekking] :
+		tx.stream<std::string, float, float, float, float, float>(
+			// clang-format off
+			R"(SELECT trim(both '\"' from to_json(tijd)::text) AS tijd, soc, batterij, verbruik, levering, opwekking
+			   FROM daily_graph
+			   WHERE tijd BETWEEN )" + tx.quote(d1.str()) + " AND " + tx.quote(d2.str())
+			// clang-format on
+			))
+	{
+		local_time<std::chrono::seconds> t;
+		std::istringstream is(tijd);
+		is >> parse("%FT%T", t);
+
+		if (is.fail())
+			continue;
+		
+		auto t2 = make_zoned(current_zone(), t);
+
+		data.emplace_back(t2.get_sys_time(), opwekking, batterij, verbruik, levering, soc);
+	}
+
 	if (resolutie <= 2min)
-		return m_vandaag;
+		std::swap(data, result);
 	else
 	{
-		std::vector<GrafiekPunt> result;
-
-		auto now = std::chrono::system_clock::now();
-		auto ymd_now = date::year_month_day(floor<date::days>(now));
-
-		auto day = date::local_time<date::days>{ ymd_now.year() / ymd_now.month() / ymd_now.day() };
-
 		auto t1 = date::zoned_time(date::current_zone(), day);
 		auto t2 = t1.get_sys_time() + 24h;
 
@@ -321,7 +293,7 @@ std::vector<GrafiekPunt> DataService_v2::grafiekVoorDag(date::year_month_day dag
 			GrafiekPunt pt{ .tijd = t };
 
 			size_t N = 0;
-			for (auto &p : m_vandaag)
+			for (auto &p : data)
 			{
 				if (p.tijd < t)
 					continue;
@@ -348,7 +320,7 @@ std::vector<GrafiekPunt> DataService_v2::grafiekVoorDag(date::year_month_day dag
 
 			result.emplace_back(std::move(pt));
 		}
-
-		return result;
 	}
+
+	return result;
 }
