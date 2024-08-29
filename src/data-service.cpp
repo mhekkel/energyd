@@ -265,7 +265,8 @@ std::vector<GrafiekPunt> DataService_v2::grafiekVoorDag(date::year_month_day dag
 			// clang-format off
 			R"(SELECT trim(both '\"' from to_json(tijd)::text) AS tijd, soc, batterij, verbruik, levering, opwekking
 			   FROM daily_graph
-			   WHERE tijd BETWEEN )" + tx.quote(d1.str()) + " AND " + tx.quote(d2.str())
+			   WHERE tijd BETWEEN )" + tx.quote(d1.str()) + " AND " + tx.quote(d2.str()) +
+		    "  ORDER BY tijd ASC"
 			// clang-format on
 			))
 	{
