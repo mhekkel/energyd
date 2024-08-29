@@ -86,16 +86,16 @@ DataService_v2::DataService_v2()
 	auto day = local_time<days>{ ymd_now.year() / ymd_now.month() / ymd_now.day() };
 	auto day_after = day + days{ 1 };
 
-	auto utc_day = make_zoned(current_zone(), day);
-	// auto utc_day_before = make_zoned(current_zone(), day_before);
-	auto utc_day_after = make_zoned(current_zone(), day_after);
+	// auto utc_day = make_zoned(current_zone(), day);
+	// // auto utc_day_before = make_zoned(current_zone(), day_before);
+	// auto utc_day_after = make_zoned(current_zone(), day_after);
 
 	std::stringstream d1;
 	// d1 << utc_day_before;
-	d1 << utc_day;
+	d1 << /* utc_ */day;
 
 	std::stringstream d2;
-	d2 << utc_day_after;
+	d2 << /* utc_ */day_after;
 
 	for (const auto &[tijd, soc, batterij, verbruik, levering, opwekking] :
 		tx.stream<std::string, float, float, float, float, float>(

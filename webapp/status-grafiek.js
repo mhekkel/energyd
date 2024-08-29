@@ -126,8 +126,8 @@ class Grafiek {
 
 		data.forEach(d => {
 			d.tijd = new Date(d.tijd);
-			minE = Math.min(minE, d.zon, d.batterij, d.verbruik, d.levering, d.laad_niveau);
-			maxE = Math.max(maxE, d.zon, d.batterij, d.verbruik, d.levering, d.laad_niveau);
+			minE = Math.min(minE, d.zon, d.batterij, -d.verbruik, d.levering, d.laad_niveau);
+			maxE = Math.max(maxE, d.zon, d.batterij, -d.verbruik, d.levering, d.laad_niveau);
 		});
 
 		const x = d3.scaleTime([start, stop], [1, this.width - 2]);
@@ -136,34 +136,23 @@ class Grafiek {
 		const colors = d3.scaleOrdinal(d3.schemeTableau10);
 
 		const xFormat = d3.timeFormat("%H");
+		const y_socFormat = d3.format(".0%");
 
 		const xAxis = d3.axisBottom(x).tickFormat(xFormat).tickSizeOuter(0);//.ticks(d3.timeHour.every(1), xFormat);
 		const y_Axis = d3.axisLeft(y);
-		const y_soc_Axis = d3.axisRight(y_soc)/* .tickSizeInner(this.width) */;
-
-		const line_soc = d3.line()
-			.curve(d3.curveBasis)
-			.x(d => x(d.tijd))
-			.y(d => y_soc(d.laad_niveau));
+		const y_soc_Axis = d3.axisRight(y_soc).tickFormat(y_socFormat)/* .tickSizeInner(this.width) */;
 
 		this.gX.call(xAxis);
 		this.gY1.call(y_Axis);
 		this.gY2.call(y_soc_Axis);
 
-		this.plotData.append("path")
-			.attr("class", "soc")
-			.attr("fill", "none")
-			.attr("stroke", colors(0))
-			.attr("stroke-width", 1.5)
-			.attr("d", line_soc(data));
-
 		const barWidth = (this.width - 2) / ((24*60) / resolutie);
 
 		const barData = [
 			[0, d3.schemeTableau10[2], 'verbruik', -1],
-			[1, d3.schemeTableau10[4], 'levering', 1],
-			[2, d3.schemeTableau10[1], 'zon', 1],
-			[3, d3.schemeTableau10[3], 'batterij', 1]
+			[0, d3.schemeTableau10[4], 'levering', 1],
+			[1, d3.schemeTableau10[1], 'zon', 1],
+			[2, d3.schemeTableau10[3], 'batterij', 1]
 		];
 
 		barData.forEach(([dx, color, bar, f]) => {
@@ -173,47 +162,36 @@ class Grafiek {
 				.data(data)
 				.join("rect")
 				.attr("class", bar)
-				.attr("x", d => x(d.tijd) + dx * (barWidth / 5))
+				.attr("x", d => x(d.tijd) + dx * (barWidth / 3))
 				.attr("y", d => f * d[bar] > 0 ? y(f * d[bar]) : y(0))
-				.attr("width", barWidth / 5)
+				.attr("width", Math.max(barWidth / 3 - 1, 1))
 				.attr("height", d => Math.abs(y(0) - y(f * d[bar])));
 		});
 
+		const line_soc = d3.line()
+			.curve(d3.curveBasis)
+			.x(d => x(d.tijd))
+			.y(d => y_soc(d.laad_niveau));
 
-		// this.plotData.append("g")
-		// 	.attr("fill", colors(2))
-		// 	.selectAll(".sun")
-		// 	.data(data)
-		// 	.join("rect")
-		// 	.attr("class", "sun")
-		// 	.attr("x", d => x(d.tijd) + 3)
-		// 	.attr("y", d => d.zon > 0 ? y(d.zon) : y(0))
-		// 	.attr("width", 2)
-		// 	.attr("height", d => Math.abs(y(0) - y(d.zon)));
-
-		// this.plotData.append("g")
-		// 	.attr("fill", colors(3))
-		// 	.selectAll(".use")
-		// 	.data(data)
-		// 	.join("rect")
-		// 	.attr("class", "use")
-		// 	.attr("x", d => x(d.tijd) + 6)
-		// 	.attr("y", d => y(0))
-		// 	.attr("width", 2)
-		// 	.attr("height", d => Math.abs(y(0) - y(d.verbruik)));
-
-		// this.plotData.append("g")
-		// 	.attr("fill", colors(4))
-		// 	.selectAll(".provide")
-		// 	.data(data)
-		// 	.join("rect")
-		// 	.attr("class", "provide")
-		// 	.attr("x", d => x(d.tijd) + 9)
-		// 	.attr("y", d => d.levering > 0 ? y(d.levering) : y(0))
-		// 	.attr("width", 2)
-		// 	.attr("height", d => Math.abs(y(0) - y(d.levering)));
+		this.plotData.append("path")
+			.attr("class", "soc")
+			.attr("fill", "none")
+			.attr("stroke", colors(0))
+			.attr("stroke-width", 1.5)
+			.attr("d", line_soc(data));
 
 
+		const line_netto = d3.line()
+			.curve(d3.curveBasis)
+			.x(d => x(d.tijd))
+			.y(d => y(d.levering - d.verbruik));
+
+		this.plotData.append("path")
+			.attr("class", "netto")
+			.attr("fill", "none")
+			.attr("stroke", "black")
+			.attr("stroke-width", 1.5)
+			.attr("d", line_netto(data));
 	}
 
 	zoomed() {
