@@ -137,8 +137,8 @@ class Grafiek {
 
 		data.forEach(d => {
 			d.tijd = new Date(d.tijd);
-			minE = Math.min(minE, d.zon, d.batterij, -d.verbruik, d.levering, d.laad_niveau);
-			maxE = Math.max(maxE, d.zon, d.batterij, -d.verbruik, d.levering, d.laad_niveau);
+			minE = Math.min(minE, d.zon, -d.batterij, -d.verbruik, d.levering, d.laad_niveau);
+			maxE = Math.max(maxE, d.zon, -d.batterij, -d.verbruik, d.levering, d.laad_niveau);
 		});
 
 		const x = d3.scaleTime([start, stop], [1, this.width - 2]);
@@ -163,7 +163,7 @@ class Grafiek {
 			[0, "#9e8081", 'verbruik', -1],
 			[0, "#7e867d", 'levering', 1],
 			[1, d3.schemeTableau10[1], 'zon', 1],
-			[2, d3.schemeTableau10[3], 'batterij', 1]
+			[2, d3.schemeTableau10[3], 'batterij', -1]
 		];
 
 		barData.forEach(([dx, color, bar, f]) => {
