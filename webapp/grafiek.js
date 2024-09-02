@@ -267,17 +267,28 @@ class Grafiek {
 			.attr('opacity', 0.6)
 			.attr("d", ([, i]) => line_v(i));
 
-		this.plotData.selectAll(".ma-line")
-			.data(d3.group(I, i => Z[i]))
+		this.plotData.selectAll(".ma-line1")
+			.data(d3.group(I.filter(i => X[i] <= nu), i => Z[i]))
 			.join("path")
-			.attr("class", "ma-line")
+			.attr("class", "ma-line1")
 			.attr("fill", "none")
 			.attr("stroke-width", 2)
 			.attr("stroke-linejoin", "round")
 			.attr("stroke-linecap", "round")
 			.attr("stroke", "gray")
 			.attr("d", ([, i]) => line_ma(i));
-	}
+
+		this.plotData.selectAll(".ma-line2")
+			.data(d3.group(I.filter(i => X[i] > nu), i => Z[i]))
+			.join("path")
+			.attr("class", "ma-line2")
+			.attr("fill", "none")
+			.attr("stroke-width", 2)
+			.attr("stroke-linejoin", "round")
+			.attr("stroke-linecap", "round")
+			.attr("stroke", "gray")
+			.attr("d", ([, i]) => line_ma(i));
+		}
 
 	zoomed() {
 
