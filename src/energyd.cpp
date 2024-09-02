@@ -859,6 +859,7 @@ int main(int argc, const char *argv[])
 
 		mcfp::make_option<std::string>("address", "0.0.0.0", "External address"),
 		mcfp::make_option<uint16_t>("port", 10336, "Port to listen to"),
+		mcfp::make_option<std::string>("context", "External web address of this service"),
 		mcfp::make_option("no-daemon,F", "Do not fork into background"),
 		mcfp::make_option<std::string>("user,u", "www-data", "User to run the daemon"),
 
@@ -967,6 +968,9 @@ Command should be either:
 		sc->add_rule("/**", { "USER" });
 
 		auto s = new zeep::http::server(sc, "docroot");
+
+		if (config.has("context"))
+			s->set_context_name(config.get("context"));
 
 		P1Service::init(s->get_io_context());
 		SessyService::init(s->get_io_context());
