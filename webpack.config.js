@@ -5,8 +5,8 @@ const TerserPlugin = require('terser-webpack-plugin');
 const UglifyJsPlugin = require('uglifyjs-webpack-plugin');
 const path = require('path');
 
-const SCRIPTS = __dirname + "/webapp/";
-const DEST = __dirname + "/docroot/scripts";
+const SCRIPTS = path.resolve(__dirname, "webapp/");
+const DEST = path.resolve(__dirname, "docroot/scripts");
 
 module.exports = (env) => {
 
@@ -14,14 +14,16 @@ module.exports = (env) => {
 
 	const webpackConf = {
 		entry: {
-			index: SCRIPTS + "index.js",
-			invoer: SCRIPTS + "invoer.js",
-			opname: SCRIPTS + "opname.js",
-			grafiek: SCRIPTS + "grafiek.js",
+			index: path.resolve(SCRIPTS, "index.js"),
+			invoer: path.resolve(SCRIPTS, "invoer.js"),
+			opname: path.resolve(SCRIPTS, "opname.js"),
+			grafiek: path.resolve(SCRIPTS, "grafiek.js"),
+			'status-grafiek': path.resolve(SCRIPTS, "status-grafiek.js"),
 		},
 
 		output: {
-			path: DEST
+			path: DEST,
+			clean: true
 		},
 
 		module: {
@@ -65,22 +67,20 @@ module.exports = (env) => {
 		plugins: [
 			new MiniCssExtractPlugin({
 				filename: "../css/[name].css"
-			})
-		],
+			}),
+			new CleanWebpackPlugin({
+				verbose: true,
+				cleanOnceBeforeBuildPatterns: [
+					path.resolve(__dirname, 'scripts'),
+					path.resolve(__dirname, 'fonts')
+				]
+			})],
 
 		optimization: { minimizer: [] }
 	};
 
 	if (PRODUCTION) {
 		webpackConf.mode = "production";
-
-		webpackConf.plugins.push(
-			new CleanWebpackPlugin({
-				cleanOnceBeforeBuildPatterns: [
-					'scripts',
-					'fonts'
-				]
-			}));
 
 		webpackConf.optimization.minimizer.push(
 			new TerserPlugin({ /* additional options here */ }),

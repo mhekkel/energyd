@@ -1,7 +1,7 @@
 {
 	"name": "energieverbruik",
 	"version": "1.0.0",
-	"description": "A tool to monitor erergy usage",
+	"description": "A tool to monitor energy usage",
 	"repository": "svn+ssh://mail.hekkelman.net//home/maarten/svnroot/energyd/trunk",
 	"author": "M.L. Hekkelman",
 	"license": "Boost",

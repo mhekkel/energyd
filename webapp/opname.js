@@ -5,8 +5,6 @@ class OpnameEditor {
 	constructor() {
 		this.dialog = document.getElementById("opname-dialog");
 		this.form = document.getElementById("opname-edit-form");
-		// this.csrf = this.form.elements['_csrf'].value;
-
 		this.form.addEventListener("submit", (evt) => this.saveOpname(evt));
 	}
 
@@ -23,7 +21,7 @@ class OpnameEditor {
 
 		new Modal(this.dialog);
 
-		fetch(`ajax/opname/${id}`, {credentials: "include", method: "get"})
+		fetch(`ajax/opname/${id}`, { credentials: "include", method: "get" })
 			.then(async response => {
 				if (response.ok)
 					return response.json();
@@ -33,9 +31,6 @@ class OpnameEditor {
 				throw error.message;
 			})
 			.then(data => {
-
-				this.opname = data;
-
 				for (let key in data.standen) {
 					const input = document.getElementById(`id-${key}`);
 					input.value = data.standen[key];
@@ -48,11 +43,12 @@ class OpnameEditor {
 		if (e)
 			e.preventDefault();
 
-		this.opname.standen = {};
+		let opname = { standen: {} };
+
 		for (let key in this.form.elements) {
 			const input = this.form.elements[key];
 			if (input.type !== 'number') continue;
-			this.opname.standen[`${input.dataset.id}`] = +input.value;
+			opname.standen[`${input.dataset.id}`] = +input.value;
 		}
 
 		const url = this.id ? `ajax/opname/${this.id}` : 'ajax/opname';
@@ -66,7 +62,7 @@ class OpnameEditor {
 				// 'X-CSRF-Token': this.csrf
 			},
 			method: method,
-			body: JSON.stringify(this.opname)
+			body: JSON.stringify(opname)
 		}).then(async response => {
 			if (response.ok)
 				return response.json();
@@ -84,9 +80,8 @@ class OpnameEditor {
 
 	createOpname() {
 		this.id = null;
-		this.opname = {};
 		this.form.reset();
-		
+
 		new Modal(this.dialog);
 	}
 

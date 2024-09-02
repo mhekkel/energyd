@@ -1,6 +1,8 @@
 import * as d3 from 'd3';
 
-class grafiek {
+let grafiek;
+
+class Grafiek {
 	constructor() {
 
 		this.selector = document.getElementById('grafiek-id');
@@ -20,6 +22,10 @@ class grafiek {
 
 		this.svg.on("touchstart", event => event.preventDefault());
 
+		this.maakGrafiek();
+	}
+
+	maakGrafiek() {
 		const plotContainer = this.svg.node();
 		let bBoxWidth = plotContainer.clientWidth;
 		let bBoxHeight = plotContainer.clientHeight;
@@ -86,13 +92,22 @@ class grafiek {
 		// 	.translateExtent([[0, 0], [this.width + 90, this.height + 90]])
 		// 	.on("zoom", () => this.zoomed());
 
-		const zoom = d3.zoom()
-			.scaleExtent([1, 1]);
+		// const zoom = d3.zoom()
+		// 	.scaleExtent([1, 1]);
 
-		this.svg.call(zoom)
-			.on("wheel.zoom", null)
-			.on("touchstart", null)
-			.on("touchmove", null);
+		// this.svg.call(zoom)
+		// 	.on("wheel.zoom", null)
+		// 	.on("touchstart", null)
+		// 	.on("touchmove", null);
+	}
+
+	herstelGrafiek() {
+		this.svg.selectAll("#clip").remove();
+		this.svg.selectAll("text").remove();
+		this.svg.selectAll("g").remove();
+
+		this.maakGrafiek();
+		this.laadGrafiek();
 	}
 
 	laadGrafiek() {
@@ -127,7 +142,7 @@ class grafiek {
 			console.log(error);
 			throw error.message;
 		}).then(data => {
-			this.processData(data);
+			this.processData(data/* .filter(d => d.ma !== 0) */);
 			grafiekTitel.classList.remove("grafiek-status-loading");
 			grafiekTitel.classList.add("grafiek-status-loaded");
 		}).catch(err => {
@@ -138,7 +153,11 @@ class grafiek {
 	}
 
 	processData(data) {
-		const nu = new Date(Date.now());
+
+		const nu_d = new Date(Date.now());
+		const nu = new Date(nu_d.getFullYear(), nu_d.getMonth(), nu_d.getDate());
+		const morgen = new Date(nu);
+		morgen.setDate(nu.getDate() + 1);
 		const curve = d3.curveBasis;
 
 		const x = (d) => new Date(d.d);
@@ -156,14 +175,6 @@ class grafiek {
 
 		const Zsdp = d3.map(data, zsdp); //['v', 'v-sd', 'v+sd', 'ma'];
 		const Zsdm = d3.map(data, zsdm); //['v', 'v-sd', 'v+sd', 'ma'];
-
-		const defined_v = (d) => d.v != 0;
-		const defined_a = (d) => d.a != 0;
-		const defined_ma = (d) => d.ma !== 0;
-
-		const Dv = d3.map(data, defined_v);
-		const Da = d3.map(data, defined_a);
-		const Dma = d3.map(data, defined_ma);
 
 		const xDomain = d3.extent(X);
 		const yDomain = [
@@ -190,25 +201,23 @@ class grafiek {
 		const yAxis = d3.axisLeft(yScale).tickSizeInner(-this.width);
 
 		const line_v = d3.line()
-			.defined(i => Dv[i])
+			.defined(i => data[i].v !== 0)
 			.curve(curve)
 			.x(i => xScale(X[i]))
 			.y(i => yScale(Y[i]));
 
 		const line_a = d3.line()
-			.defined(i => Da[i])
 			.curve(curve)
 			.x(i => xScale(X[i]))
 			.y(i => yScale(Y_a[i]));
 
 		const line_ma = d3.line()
-			.defined(i => Dma[i])
+			.defined(i => data[i].ma !== 0)
 			.curve(curve)
 			.x(i => xScale(X[i]))
 			.y(i => yScale(Y_ma[i]));
 
 		const area = d3.area()
-			.defined(i => Da[i])
 			.curve(curve)
 			.x(i => xScale(X[i]))
 			.y0(i => yScale(Zsdm[i]))
@@ -282,6 +291,12 @@ class grafiek {
 
 
 window.addEventListener("load", () => {
-	const g = new grafiek();
-	g.laadGrafiek();
+	grafiek = new Grafiek();
+	grafiek.laadGrafiek();
 });
+
+window.addEventListener("resize", () => {
+	if (grafiek) {
+		grafiek.herstelGrafiek();
+	}
+})

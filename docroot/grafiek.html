@@ -11,22 +11,22 @@
 </head>
 
 <body>
-	<nav z2:replace="menu :: navbar" />
+	<nav z2:replace="menu :: navbar"></nav>
 
 	<div class="container">
 
 		<div class="row mt-3 mb-3">
 			<div class="col">
 
-				<div class="input-group">
+				<div class="input-group input-group-sm">
 					<label class="input-group-text" for="grafiek-id">Grafiek</label>
 					<select id="grafiek-id" class="form-select">
 						<option value="warmte">Warmte</option>
 						<option value="electriciteit">Electriciteit Totaal</option>
-						<option value="electriciteit-hoog">Electriciteit Hoog</option>
-						<option value="electriciteit-laag">Electriciteit Laag</option>
 						<option value="electriciteit-verbruik">Electriciteit Verbruik</option>
 						<option value="electriciteit-levering">Electriciteit Levering</option>
+						<option value="electriciteit-hoog">Electriciteit Hoog</option>
+						<option value="electriciteit-laag">Electriciteit Laag</option>
 						<option value="electriciteit-verbruik-hoog">Electriciteit Verbruik Hoog</option>
 						<option value="electriciteit-verbruik-laag">Electriciteit Verbruik Laag</option>
 						<option value="electriciteit-levering-hoog">Electriciteit Levering Hoog</option>
@@ -37,7 +37,7 @@
 
 			<div class="col">
 
-				<div class="btn-group" role="group" aria-label="Basic radio toggle button group">
+				<div class="btn-group btn-group-sm" role="group" aria-label="Basic radio toggle button group">
 					<input type="radio" class="btn-check btn-aggr" name="btnradio" id="btnradio1" autocomplete="off"
 						data-aggr="dag" checked="checked" />
 					<label class="btn btn-outline-secondary" for="btnradio1">Dag</label>
