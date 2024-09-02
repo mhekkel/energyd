@@ -53,15 +53,6 @@ class Grafiek {
 			.attr("y", this.height + this.margin.top + this.margin.bottom)
 			.text("Tijd");
 
-		// this.svg.append("text")
-		// 	.attr("class", "y axis-label")
-		// 	.attr("text-anchor", "end")
-		// 	.attr("x", -this.margin.top)
-		// 	.attr("y", 6)
-		// 	.attr("dy", ".75em")
-		// 	.attr("transform", "rotate(-90)")
-		// 	.text("Verbruik per dag");
-
 		this.g = this.svg.append("g")
 			.attr("transform", `translate(${this.margin.left},${this.margin.top})`);
 
@@ -85,19 +76,6 @@ class Grafiek {
 		this.plotData = this.plot.append('g')
 			.attr("width", this.width)
 			.attr("height", this.height);
-
-		// const zoom = d3.zoom()
-		// 	.scaleExtent([1, 40])
-		// 	.translateExtent([[0, 0], [this.width + 90, this.height + 90]])
-		// 	.on("zoom", () => this.zoomed());
-
-		// const zoom = d3.zoom()
-		// 	.scaleExtent([1, 1]);
-
-		// this.svg.call(zoom)
-		// 	.on("wheel.zoom", null)
-		// 	.on("touchstart", null)
-		// 	.on("touchmove", null);
 	}
 
 	herstelGrafiek() {
@@ -202,10 +180,6 @@ class Grafiek {
 			.attr("stroke", "black")
 			.attr("stroke-width", 1.5)
 			.attr("d", line_netto(data));
-	}
-
-	zoomed() {
-
 	}
 }
 
