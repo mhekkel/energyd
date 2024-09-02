@@ -5,7 +5,7 @@
 <body>
 
 	<nav z2:fragment="navbar" class="navbar navbar-expand-sm bg-dark navbar-dark">
-		<a href="/" class="navbar-brand">Energieverbruik</a>
+		<a href="/" z2:href="@{/}" class="navbar-brand">Energieverbruik</a>
 
 		<button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent"
 			aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
@@ -15,16 +15,16 @@
 		<div class="collapse navbar-collapse" id="navbarSupportedContent">
 			<ul class="navbar-nav mr-auto">
 				<li class="nav-item" z2:classappend="${page == 'status' ? 'active' : ''}">
-					<a class="nav-link" href="/status">Status</a>
+					<a class="nav-link" z2:href="@{/status}" href="/status">Status</a>
 				</li>
 				<li class="nav-item" z2:classappend="${page == 'opname' ? 'active' : ''}">
-					<a class="nav-link" href="/opnames">Opnames</a>
+					<a class="nav-link" z2:href="@{/opnames}" href="/opnames">Opnames</a>
 				</li>
 				<li class="nav-item" z2:classappend="${page == 'invoer' ? 'active' : ''}">
-					<a class="nav-link" href="/invoer">Invoer</a>
+					<a class="nav-link" z2:href="@{/invoer}" href="/invoer">Invoer</a>
 				</li>
 				<li class="nav-item" z2:classappend="${page == 'grafiek' ? 'active' : ''}">
-					<a class="nav-link" href="/grafiek">Grafieken</a>
+					<a class="nav-link" z2:href="@{/grafiek}" href="/grafiek">Grafieken</a>
 				</li>
 			</ul>
 		</div>
