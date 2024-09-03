@@ -694,7 +694,7 @@ class e_web_controller : public zeep::http::html_controller
   public:
 	e_web_controller()
 	{
-		map_get("", &e_web_controller::opname);
+		map_get("", &e_web_controller::status);
 		map_get("status", &e_web_controller::status);
 		map_get("opnames", &e_web_controller::opname);
 		mount("invoer", &e_web_controller::invoer);
@@ -944,24 +944,8 @@ Command should be either:
 		std::cerr << "starting with created secret " << secret << std::endl;
 	}
 
-	// --------------------------------------------------------------------
-
-	std::vector<std::string> vConn;
-	for (std::string opt : { "db-host", "db-port", "db-dbname", "db-user", "db-password" })
-	{
-		if (not config.has(opt))
-			continue;
-
-		vConn.push_back(opt.substr(3) + "=" + config.get<std::string>(opt));
-	}
-
-	DataService::init(zeep::join(vConn, " "));
-
 	zeep::http::daemon server([&]()
 	{
-		DataService::init(config.get("databank"));
-		DataService_v2::instance();
-
 		auto sc = new zeep::http::security_context(secret, users, false);
 
 		sc->add_rule("/login", {});
@@ -973,6 +957,8 @@ Command should be either:
 			s->set_context_name(config.get("context"));
 
 		P1Service::init(s->get_io_context());
+		DataService::init(config.get("databank"));
+		DataService_v2::instance();
 		SessyService::init(s->get_io_context());
 
 		// zeep::http::daemon server([&config]()
