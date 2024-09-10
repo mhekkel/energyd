@@ -1,7 +1,58 @@
-// @use "sass:math";
+@use "sass:math";
 
+// (Required) Import Bootstrap
+@import "bootstrap/scss/_functions";
+@import "bootstrap/scss/_variables";
+@import "bootstrap/scss/_mixins";
+
+.alert {
+	border: 1px solid;
+}
+
+@import "bootstrap/scss/_alert";
+
+$card-box-shadow: $box-shadow;
+
+// (Required) Import Bootstrap
 @import "bootstrap/scss/bootstrap";
-@import "~bootstrap-icons/font/bootstrap-icons.css";
+
+// Generic layout, forcing a footer at the bottom
+body {
+	display: flex;
+	min-height: 100vh;
+	height: 100%;
+	flex-direction: column;
+
+	header,
+	footer {
+		flex: none;
+	}
+
+	footer {
+		clear: both;
+		border-top: 1px solid #888;
+		padding: 0.5em;
+		margin-top: 2em;
+		font-size: small;
+		color: #555;
+		white-space: pre;
+	}
+
+	&>div.container {
+		flex: 1 0 auto;
+		padding: var(--space) var(--space) 0;
+		width: 100%;
+
+		&::after {
+			content: '\00a0';
+			/* &nbsp; */
+			display: block;
+			margin-top: var(--space);
+			height: 0px;
+			visibility: hidden;
+		}
+	}
+}
 
 /* * {
 	font-family: sans-serif;
@@ -36,7 +87,6 @@ g.tick line {
 	stroke: lightgrey;
 	opacity: 0.7;
 }
-
 
 .head {
 	display: block;

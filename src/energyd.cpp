@@ -638,6 +638,9 @@ std::vector<DataPunt> e_rest_controller::get_grafiek(grafiek_type type, aggregat
 
 	StandMap sm = DataService::instance().get_stand_map(type);
 
+	if (sm.empty())
+		return {};
+
 	auto nu = floor<std::chrono::days>(std::chrono::system_clock::now());
 	auto jaar = year_month_day{ floor<days>(nu) }.year();
 
@@ -744,22 +747,28 @@ zeep::http::reply e_web_controller::opname(const zeep::http::scope &scope)
 	to_element(tellers, u);
 	sub.put("tellers", tellers);
 
-	// huidige stand
+	// huidige stand, if any
 
-	auto huidig = DataService::instance().get_last_opname();
-	huidig.id.clear();
-	huidig.datum = {};
+	try
+	{
+		auto huidig = DataService::instance().get_last_opname();
+		huidig.id.clear();
+		huidig.datum = {};
 
-	auto p1_w = P1Service::instance().get_current();
+		auto p1_w = P1Service::instance().get_current();
 
-	huidig.standen["2"] = p1_w.verbruik_laag;
-	huidig.standen["3"] = p1_w.verbruik_hoog;
-	huidig.standen["4"] = p1_w.levering_laag;
-	huidig.standen["5"] = p1_w.levering_hoog;
+		huidig.standen["2"] = p1_w.verbruik_laag;
+		huidig.standen["3"] = p1_w.verbruik_hoog;
+		huidig.standen["4"] = p1_w.levering_laag;
+		huidig.standen["5"] = p1_w.levering_hoog;
 
-	zeep::json::element opname;
-	to_element(opname, huidig);
-	sub.put("huidig", opname);
+		zeep::json::element opname;
+		to_element(opname, huidig);
+		sub.put("huidig", opname);
+	}
+	catch (const std::exception &e)
+	{
+	}
 
 	return get_template_processor().create_reply_from_template("opnames", sub);
 }
@@ -775,16 +784,22 @@ void e_web_controller::invoer(const zeep::http::request &request, const zeep::ht
 	std::string id = request.get_parameter("id", "");
 	if (id.empty())
 	{
-		o = DataService::instance().get_last_opname();
-		o.id.clear();
-		o.datum = {};
+		try
+		{
+			o = DataService::instance().get_last_opname();
+			o.id.clear();
+			o.datum = {};
 
-		auto p1_w = P1Service::instance().get_current();
+			auto p1_w = P1Service::instance().get_current();
 
-		o.standen["2"] = p1_w.verbruik_laag;
-		o.standen["3"] = p1_w.verbruik_hoog;
-		o.standen["4"] = p1_w.levering_laag;
-		o.standen["5"] = p1_w.levering_hoog;
+			o.standen["2"] = p1_w.verbruik_laag;
+			o.standen["3"] = p1_w.verbruik_hoog;
+			o.standen["4"] = p1_w.levering_laag;
+			o.standen["5"] = p1_w.levering_hoog;
+		}
+		catch (const std::exception &e)
+		{
+		}
 	}
 	else
 		o = DataService::instance().get_opname(id);
@@ -956,7 +971,7 @@ Command should be either:
 	}
 
 	zeep::http::daemon server([&]()
-	{
+		{
 		auto s = new zeep::http::server(sc.get(), "docroot");
 
 		if (config.has("context"))
