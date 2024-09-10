@@ -14,7 +14,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wno-unused-parameter -Wno-missing-field-initializers")
 elseif(MSVC)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W4")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W4")
 endif()
 
 # Create a revision file, containing the current git version info, if any
@@ -40,8 +40,13 @@ add_executable(energyd ${PROJECT_SOURCE_DIR}/src/energyd.cpp)
 target_link_libraries(energyd libpqxx::pqxx libmcfp::libmcfp zeep::zeep)
 
 # yarn rules for javascripts
-
 find_program(YARN yarn REQUIRED)
+
+# Make sure yarn is initialised
+add_custom_command(
+	OUTPUT ${PROJECT_SOURCE_DIR}/node_modules
+	COMMAND ${YARN}
+	WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
 
 set(webpack_input
 	${CMAKE_CURRENT_SOURCE_DIR}/webapp/grafiek.js
@@ -60,7 +65,8 @@ add_custom_command(
 	WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 	VERBATIM)
 
-add_custom_target(webpack DEPENDS ${webpack_output})
+add_custom_target(webpack DEPENDS ${PROJECT_SOURCE_DIR}/node_modules
+	${webpack_output})
 
 add_dependencies(energyd webpack)
 
@@ -69,5 +75,5 @@ mrc_target_resources(energyd ${PROJECT_SOURCE_DIR}/docroot/)
 # enable_testing()
 
 # add_test(NAME energyd
-# 	COMMAND $<TARGET_FILE:energyd>
-# 	WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
+# COMMAND $<TARGET_FILE:energyd>
+# WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
