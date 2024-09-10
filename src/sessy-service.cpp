@@ -55,41 +55,11 @@ SessyService &SessyService::instance()
 SessyService::SessyService(boost::asio::io_context &io_context)
 	: m_io_context(io_context)
 {
-	m_current = read();
-	m_thread = std::thread(std::bind(&SessyService::run, this));
 }
 
 std::vector<SessySOC> SessyService::get_soc() const
 {
 	return read();
-}
-
-void SessyService::run()
-{
-	using namespace std::literals;
-
-	using namespace date;
-	using namespace std::chrono;
-
-	using quarters = std::chrono::duration<int64_t, std::ratio<60 * 15>>;
-
-	for (;;)
-	{
-		try
-		{
-			auto now = std::chrono::system_clock::now();
-			std::this_thread::sleep_until(ceil<quarters>(now));
-
-			m_current = read();
-
-			for (auto &soc : m_current)
-				DataService_v2::instance().store(soc);
-		}
-		catch (const std::exception &e)
-		{
-			std::cerr << e.what() << '\n';
-		}
-	}
 }
 
 std::vector<SessySOC> SessyService::read() const

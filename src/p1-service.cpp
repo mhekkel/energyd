@@ -69,14 +69,6 @@ void P1Service::run()
 {
 	using namespace std::literals;
 
-	using namespace date;
-	using namespace std::chrono;
-
-	using quarters = std::chrono::duration<int64_t, std::ratio<60 * 15>>;
-
-	auto now = std::chrono::system_clock::now();
-	auto next = ceil<quarters>(now);
-
 	for (;;)
 	{
 		try
@@ -88,14 +80,6 @@ void P1Service::run()
 				m_opname = opname;
 				m_status = status;
 			}
-
-			now = std::chrono::system_clock::now();
-			if (now < next)
-				continue;
-
-			DataService_v2::instance().store(m_opname);
-
-			next = ceil<quarters>(now);
 		}
 		catch (const std::exception &e)
 		{

@@ -91,68 +91,6 @@ void DataService_v2::reset_connection()
 	s_connection.reset(nullptr);
 }
 
-void DataService_v2::store(const P1Opname &opname)
-{
-	if (m_read_only)
-		return;
-
-	bool first_reset = true;
-	do
-	{
-		try
-		{
-			pqxx::transaction tx(get_connection());
-
-			tx.exec("INSERT INTO p1_opname (verbruik_hoog, verbruik_laag, levering_hoog, levering_laag) VALUES (" +
-					tx.quote(opname.verbruik_hoog) + ", " +
-					tx.quote(opname.verbruik_laag) + ", " +
-					tx.quote(opname.levering_hoog) + ", " +
-					tx.quote(opname.levering_laag) + ")");
-			tx.commit();
-		}
-		catch (const pqxx::broken_connection &e)
-		{
-			if (first_reset)
-			{
-				first_reset = false;
-				reset_connection();
-				continue;
-			}
-			std::cerr << "Failed to write opname: " << e.what() << '\n';
-		}
-	} while (false);
-}
-
-void DataService_v2::store(const SessySOC &soc)
-{
-	if (m_read_only)
-		return;
-
-	bool first_reset = true;
-	do
-	{
-		try
-		{
-			pqxx::transaction tx(get_connection());
-
-			tx.exec("INSERT INTO sessy_soc (nr, soc) VALUES (" +
-					tx.quote(soc.nr) + ", " +
-					tx.quote(soc.sessy.state_of_charge) + ")");
-			tx.commit();
-		}
-		catch (const pqxx::broken_connection &e)
-		{
-			if (first_reset)
-			{
-				first_reset = false;
-				reset_connection();
-				continue;
-			}
-			std::cerr << "Failed to write opname: " << e.what() << '\n';
-		}
-	} while (false);
-}
-
 void DataService_v2::store(const GrafiekPunt &pt)
 {
 	if (m_read_only)

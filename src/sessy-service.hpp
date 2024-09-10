@@ -45,13 +45,8 @@ class SessyService
   private:
 	SessyService(boost::asio::io_context &io_context);
 
-	void run();
-
 	std::vector<SessySOC> read() const;
 
 	boost::asio::io_context &m_io_context;
-	std::thread m_thread;
-	std::vector<SessySOC> m_current;
-
 	static std::unique_ptr<SessyService> s_instance;
 };
