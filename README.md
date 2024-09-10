@@ -113,4 +113,10 @@ In case you want to run the server in the foreground for debugging purposes you 
 Usage
 -----
 
-The meters are hard coded, so this is perhaps not very useful for others. To complicate matters further, all text in the user interface is in Dutch. The idea is that you regularly enter (_Voeg toe_ button, or _Invoer_) the current values for the various meters. The graph (_Grafieken_) will then display your usage over time. The list of current values (_Opnames_) are displayed on the home page.
+This software actually combines two different things. Originally it was used to manually enter the readings of a smart meter and stadsverwarmingmeter.
+I've done this for many years and this software can render nice graphs for electricity and warmth usage showing the current year in the context of history.
+
+The meters are hard coded, so this is perhaps not very useful for others. To complicate matters further, all text in the user interface is in Dutch. The idea is that you regularly enter (_Voeg toe_ button, or _Invoer_) the current values for the various meters. The graph (_Grafieken_) will then display your usage over time.
+
+The second part was bolted on later when a Sessy battery entered the home. To monitor the loading and unloading of the battery a new graph
+was added using a new data table. This data is stored every two minutes automatically. This new page is now the home page of the application.
