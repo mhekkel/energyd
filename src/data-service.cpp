@@ -249,16 +249,11 @@ std::vector<GrafiekPunt> DataService_v2::grafiekVoorDag(date::year_month_day dag
 	auto day = local_time<days>{ dag.year() / dag.month() / dag.day() };
 	auto day_after = day + days{ 1 };
 
-	// auto utc_day = make_zoned(current_zone(), day);
-	// // auto utc_day_before = make_zoned(current_zone(), day_before);
-	// auto utc_day_after = make_zoned(current_zone(), day_after);
-
 	std::stringstream d1;
-	// d1 << utc_day_before;
-	d1 << /* utc_ */day;
+	d1 << day;
 
 	std::stringstream d2;
-	d2 << /* utc_ */day_after;
+	d2 << day_after;
 
 	for (const auto &[tijd, soc, batterij, verbruik, levering, opwekking] :
 		tx.stream<std::string, float, float, float, float, float>(

@@ -932,26 +932,32 @@ Command should be either:
 
 	// --------------------------------------------------------------------
 
-	zeep::http::simple_user_service users({ { config.get("web-user-name"), config.get("web-user-password"),
-		{ "USER" } } });
+	std::unique_ptr<zeep::http::security_context> sc;
+	std::unique_ptr<zeep::http::simple_user_service> users;
 
-	std::string secret;
-	if (config.has("web-secret"))
-		secret = config.get("web-secret");
-	else
+	if (config.has("web-user-name") and config.has("web-user-password"))
 	{
-		secret = zeep::encode_base64(zeep::random_hash());
-		std::cerr << "starting with created secret " << secret << std::endl;
+		users.reset(new zeep::http::simple_user_service({ { config.get("web-user-name"), config.get("web-user-password"),
+			{ "USER" } } }));
+
+		std::string secret;
+		if (config.has("web-secret"))
+			secret = config.get("web-secret");
+		else
+		{
+			secret = zeep::encode_base64(zeep::random_hash());
+			std::cerr << "starting with created secret " << secret << std::endl;
+		}
+
+		sc.reset(new zeep::http::security_context(secret, *users, false));
+
+		sc->add_rule("/login", {});
+		sc->add_rule("/**", { "USER" });
 	}
 
 	zeep::http::daemon server([&]()
 	{
-		auto sc = new zeep::http::security_context(secret, users, false);
-
-		sc->add_rule("/login", {});
-		sc->add_rule("/**", { "USER" });
-
-		auto s = new zeep::http::server(sc, "docroot");
+		auto s = new zeep::http::server(sc.get(), "docroot");
 
 		if (config.has("context"))
 			s->set_context_name(config.get("context"));
@@ -972,7 +978,8 @@ Command should be either:
 
 		s->add_controller(new e_rest_controller());
 		s->add_controller(new e_web_controller());
-		s->add_controller(new zeep::http::login_controller());
+		if (sc)
+			s->add_controller(new zeep::http::login_controller());
 		s->add_error_handler(new e_error_handler());
 
 		return s; },

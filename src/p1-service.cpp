@@ -332,6 +332,9 @@ std::tuple<P1Opname, P1Status> P1Service::read() const
 						crc = 0;
 					}
 					break;
+
+				default:
+					break;
 			}
 		}
 	}
