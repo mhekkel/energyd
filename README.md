@@ -3,19 +3,22 @@ Energy Usage Monitor
 
 This application is a real world example of a web application built on [libzeep](https://github.com/mhekkel/libzeep). It can be used to enter the current value of multiple usage meters and display the usage of energy over time.
 
-Additionally, this software can monitor the status of one or more [Sessy batteries](https://www.sessy.nl/).
+Additionally, this software can monitor the status of one or more [Sessy batteries](https://www.sessy.nl/) and it will
+read data from a P1 port of your smart meter, if configured. When you have a Sessy, you should use a splitter and
+a P1 to USB converter like [the one from Cedel](https://webshop.cedel.nl/nl/Slimme-meter-kabel-P1-naar-USB).
 
 Installation
 ------------
 
-To build and install energyd, you first need to install various other packages. Of course first of all you need [libzeep](https://github.com/mhekkel/libzeep). If you successfully installed libzeep, most of the requirements are already met, the remaining requirements are
+To build and install energyd, you first need to install various other packages. Of course first of all you need [libzeep](https://github.com/mhekkel/libzeep). If you successfully installed libzeep, most of the requirements are already met, the remaining requirements are:
 
-* [mrc](https://github.com/mhekkel/mrc.git), a resource compiler
 * Postgresql
 * The development version of [libpqxx](https://pqxx.org/development/libpqxx/)
 * The javascript package manager [yarn](https://yarnpkg.com/)
+* [mrc](https://github.com/mhekkel/mrc.git), a resource compiler
+* [libmcfp](https://github.com/mhekkel/libmcfp), a library for parsing command line arguments
 
-Building the software should start with running `yarn` without arguments in the source directory followed by the standard cmake commands:
+Building the software is done by entering the following commands:
 
 ```console
 git clone https://github.com/mhekkel/energyd.git
@@ -27,8 +30,12 @@ sudo cmake --install build
 
 This should give you an executable called energyd installed in `/usr/local`.
 
-The following commands are executed as a user that has admin rights on your postgres installation. First create a new user for this database,
-this command will ask for a password.
+Database
+--------
+
+The software uses a postgresql database to store data. The following commands are executed as a user
+that has admin rights on your postgres installation. First create a new user for this database,
+this command will ask for a password which you will have to add to the connect URL for the database.
 
 ```console
 createuser -P energie-admin
@@ -40,7 +47,7 @@ Then create the database with the newly created user as owner:
 createdb -O energie-admin energie
 ```
 
-Finally fill the database with tables and some data:
+Finally fill the database with tables:
 
 ```console
 psql -h localhost -f db-schemal.sql energie energie-admin
@@ -57,7 +64,7 @@ All command line arguments can be specified in this file in the usual ini file f
 A minimal config file might look like this:
 
 ```
-databank=postgresql://energie-admin:geheim@db-server.local/energie
+databank=postgresql://energie-admin:geheim@localhost/energie
 address=localhost
 sessy-1=http://192.168.178.25/api/v1/power/status
 p1-device arg=/dev/ttyUSB0
@@ -69,7 +76,7 @@ Running
 Now that the database is ready, we can start the application. There are several options you can give:
 
 ```console
-$ ./energyd --help
+$ energyd --help
 energyd [options] command
   -h [ --help ]                    Display help message
   -v [ --verbose ]                 Verbose output
