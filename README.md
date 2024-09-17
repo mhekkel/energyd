@@ -67,7 +67,7 @@ A minimal config file might look like this:
 databank=postgresql://energie-admin:geheim@localhost/energie
 address=localhost
 sessy-1=http://192.168.178.25/api/v1/power/status
-p1-device arg=/dev/ttyUSB0
+p1-device=/dev/ttyUSB0
 ```
 
 Running
