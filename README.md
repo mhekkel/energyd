@@ -1,6 +1,8 @@
 Energy Usage Monitor
 ====================
 
+This project is no longer maintained on github. Please see [https://forge.hekkelman.net/maarten/energyd](https://forge.hekkelman.net/maarten/energyd) for the current version.
+
 This application is a real world example of a web application built on [libzeep](https://github.com/mhekkel/libzeep). It can be used to enter the current value of multiple usage meters and display the usage of energy over time.
 
 Additionally, this software can monitor the status of one or more [Sessy batteries](https://www.sessy.nl/) and it will
